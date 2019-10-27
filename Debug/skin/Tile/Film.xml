@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="gb2312"?>
+<UIFrame>
+
+      <TileLayout bkColor="RGB(36,36,36)" AdaptItemSize="140,190" AdaptPadding="10,5,10,5">
+        <Lable bkImage="file='Tile/大黄蜂.jpg' dest='0,0,120,160'" textpadding="0,164,0,0" text="大黄蜂" font="6" textcolor="RGB(255,255,255)"/>
+        <Lable bkImage="file='Tile/狗13.jpg' dest='0,0,120,160'" textpadding="0,164,0,0" text="狗13" font="6" textcolor="RGB(255,255,255)"/>
+        <Lable bkImage="file='Tile/恐龙王.jpg' dest='0,0,120,160'" textpadding="0,164,0,0" text="恐龙王" font="6" textcolor="RGB(255,255,255)"/>
+        <Lable bkImage="file='Tile/龙猫.jpg' dest='0,0,120,160'" textpadding="0,164,0,0" text="龙猫" font="6" textcolor="RGB(255,255,255)"/>
+        
+        <Lable bkImage="file='Tile/密室逃生.jpg' dest='0,0,120,160'" textpadding="0,164,0,0" text="密室逃生" font="6" textcolor="RGB(255,255,255)"/>
+        <Lable bkImage="file='Tile/无名之辈.jpg' dest='0,0,120,160'" textpadding="0,164,0,0" text="无名之辈" font="6" textcolor="RGB(255,255,255)"/>
+        <Lable bkImage="file='Tile/驯龙高手.jpg' dest='0,0,120,160'" textpadding="0,164,0,0" text="驯龙高手" font="6" textcolor="RGB(255,255,255)"/>
+        <Lable bkImage="file='Tile/英雄再起.jpg' dest='0,0,120,160'" textpadding="0,164,0,0" text="英雄再起" font="6" textcolor="RGB(255,255,255)"/>
+      </TileLayout>
+
+</UIFrame>

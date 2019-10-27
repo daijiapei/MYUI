@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="gb2312"?>
+<UIFrame>
+  <theme name="vscroll_theme" 
+         FrontNormalImage="file='scrollbar.png' source='0,0,16,16'"
+         TrackNormalImage="file='scrollbar.png' source='0,16,16,32'"
+         FinalNormalImage="file='scrollbar.png' source='0,32,16,48'"
+         DragBtnNormalImage="file='scrollbar.png' source='0,48,16,64' corner='0,1,0,1'"
+         
+         FrontHotImage="file='scrollbar.png' source='16,0,32,16'"
+         FinalHotImage="file='scrollbar.png' source='16,32,32,48'"
+         DragBtnHotImage="file='scrollbar.png' source='16,48,32,64' corner='0,1,0,1'"
+         
+         FrontPushedImage="file='scrollbar.png' source='32,0,48,16'"
+         FinalPushedImage="file='scrollbar.png' source='32,32,48,48'"
+         DragBtnPushedImage="file='scrollbar.png' source='32,48,48,64' corner='0,1,0,1'"
+         
+         width="16" />
+  <theme name="lable_theme" HotColor="RGB(115,199,235)" SelectColor="RGB(0,122,204)" 
+         textcolor="RGB(0,0,0)" height="22" font="0" dtVCenter="true" dtLeft="true"/>
+  <theme name="button_theme" size="70,28" Normalcolor="RGB(0,0,0)" Hotcolor="RGB(65,70,75)" textcolor="RGB(255,255,225)"/>
+  
+  <font id="0" name="华文中宋" size="12" bold="false" italic="false" underline="false"/>
+  <Window size="450,320" font="0">
+    <!--Window size="380,220" mininfo="380,220" maxinfo="380,220"-->
+    <VerticalLayout bkcolor="RGB(0,0,0)" name="root" inset="1,1,1,1">
+       <HorizontalLayout height="28" caption="true" name="title">
+         <Text textcolor="RGB(255,255,255)" text="短消息" dtLeft="true" dtVCenter="true" feign="true" textpadding="5,5,5,5,"/>
+          <Button size="39,22" NormalImage="file='btn_close_normal.png'" HotImage="file='btn_close_highlight.png'"
+                  pushedImage="file='btn_close_down.png'" name="closebtn"/>
+          <Control feign="true" width="12"/>
+       </HorizontalLayout>
+      <HorizontalLayout bkcolor="RGB(255,255,255)">
+        <VerticalLayout width="110">
+          <Button size="90,90" NormalImage="file='btn_manager.png' source='0,0,50,50' dest='20,20,70,70'" 
+                  HotImage="file='btn_manager.png' source='50,0,100,50' dest='18,18,72,72'"
+                  pushedImage="file='btn_manager.png' source='100,0,150,50' dest='18,18,72,72'" 
+                  textPadding="0,70,0,0" name="btnCallManager" text="呼叫网管"/>
+          <Button size="90,90" NormalImage="file='btn_waiter.png' source='0,0,50,50' dest='20,20,70,70'" 
+                  HotImage="file='btn_waiter.png' source='50,0,100,50' dest='18,18,72,72'"
+                  pushedImage="file='btn_waiter.png' source='100,0,150,50' dest='18,18,72,72'" 
+                  textPadding="0,70,0,0" name="btnCallWaiter" text="呼叫服务员"/>
+          <Button size="90,90" NormalImage="file='btn_technician.png' source='0,0,50,50' dest='20,20,70,70'" 
+                  HotImage="file='btn_technician.png' source='50,0,100,50' dest='18,18,72,72'"
+                  pushedImage="file='btn_technician.png' source='100,0,150,50' dest='18,18,72,72'" 
+                  textPadding="0,72,0,0" name="btnCallTechnician" text="呼叫技术员"/>
+          <Control/>
+        </VerticalLayout>
+
+        <VerticalLayout Inset="20,5,20,0">
+          <HorizontalLayout height="20">
+            <Lable text="已收消息" width="58"/>
+            <Control/>
+          </HorizontalLayout>
+          <Edit height="80" name="edtTalk" bordersize="1" bordercolor="RGB(0,0,0)" rowSpace="2" textpadding="5,5,5,5" onlyRead="true"
+                HotBorderSize="2" HotBorderColor="RGB(115,199,235)"
+                vscroll="true" vScrollActive="true" vScrollTheme="vscroll_theme"
+                multiLine="true" Linefree="true" bkcolor="RGB(230,231,232)"/>
+          <HorizontalLayout height="38">
+            <Button theme="button_theme" name="btnPre" text="&lt;&lt;上一条" margin="0,0,20,0" />
+            <Button theme="button_theme" name="btnNext" text="下一条>>"/>
+            <Control/>
+          </HorizontalLayout>
+          <Edit height="80" name="edtMessage"  bordersize="1" bordercolor="RGB(0,0,0)" HotBorderSize="2" HotBorderColor="RGB(115,199,235)"
+                hint="请输入要发送的消息"
+                vscroll="true" vScrollActive="true" vScrollTheme="vscroll_theme"
+                rowSpace="2" textpadding="5,5,5,5" multiLine="true" Linefree="true"/>
+
+          <ComboBox height="20" name="cbxMessage" margin="0,5,0,5"
+                    HotBorderSize="1" HotBorderColor="RGB(115,199,235)"
+                    NormalImage="file='combo.png' source='0,0,100,22' corner='2,2,23,2'"
+                    vscroll="true" vScrollTheme="vscroll_theme"
+                    textPadding="5,1,22,1">
+
+          </ComboBox>
+
+          <!--ComboBox height="20" name="cbxMessage" margin="0,5,0,5"
+                    NormalImage="file='combo.png' source='0,0,100,22' corner='2,2,23,2'"
+                    HotImage="file='combo.png' source='0,22,100,44' corner='2,2,23,2'"
+                    pushedImage="file='combo.png' source='0,44,100,66' corner='2,2,23,2'"
+                    focusedImage="file='combo.png' source='0,44,100,66' corner='2,2,23,2'"
+                    textPadding="5,1,22,1"/-->
+
+          <HorizontalLayout height="28">
+            <Control/>
+            <Button theme="button_theme" name="btnSend" text="发送" />
+          </HorizontalLayout>
+
+          <Control/>
+        </VerticalLayout>
+      </HorizontalLayout>
+      
+    </VerticalLayout>
+  </Window>
+</UIFrame>

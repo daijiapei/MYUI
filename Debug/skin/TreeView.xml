@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="gb2312"?>
+<UIFrame>
+  <group name="group1"></group>
+  <theme name="vscroll_theme" 
+         FrontNormalImage="file='scrollbar.png' source='0,0,16,16'"
+         TrackNormalImage="file='scrollbar.png' source='0,16,16,32'"
+         FinalNormalImage="file='scrollbar.png' source='0,32,16,48'"
+         DragBtnNormalImage="file='scrollbar.png' source='0,48,16,64' corner='0,1,0,1'"
+         
+         FrontHotImage="file='scrollbar.png' source='16,0,32,16'"
+         FinalHotImage="file='scrollbar.png' source='16,32,32,48'"
+         DragBtnHotImage="file='scrollbar.png' source='16,48,32,64' corner='0,1,0,1'"
+         
+         FrontPushedImage="file='scrollbar.png' source='32,0,48,16'"
+         FinalPushedImage="file='scrollbar.png' source='32,32,48,48'"
+         DragBtnPushedImage="file='scrollbar.png' source='32,48,48,64' corner='0,1,0,1'"
+         
+         width="16" />
+  <theme name="node_theme" textcolor="RGB(0,0,0)" height="22" font="0" showCheck="true" expandoffset="-1"
+         CheckNormalImage="file='treeview_checked.png' dest='3,3,19,19'"
+         UnCheckNormalImage="file='treeview_unchecked.png' dest='3,3,19,19' dest='3,3,19,19' "
+         ExpandNormalImage="file='treeview_expand.png' source='0,0,16,16' dest='3,3,19,19'"
+         ExpandHotImage="file='treeview_expand.png' source='16,0,32,16' dest='3,3,19,19'"
+         UnExpandNormalImage="file='treeview_unexpand.png' source='0,0,16,16' dest='3,3,19,19'"
+         UnExpandHotImage="file='treeview_unexpand.png' source='16,0,32,16' dest='3,3,19,19'"
+         />
+
+  <font id="0" name="华文中宋" size="12" bold="false" italic="false" underline="false"/>
+  <font id="1" name="华文中宋" size="22" bold="true" italic="false" underline="false"/>
+  <font id="2" name="楷体" size="12" bold="false" italic="true" underline="false"/>
+  <font id="3" name="华文中宋" size="40" bold="false" italic="true" underline="true"/>
+  <font id="4" name="微软雅黑" size="38" bold="true" italic="true" underline="false"/>
+  <font id="5" name="楷体" size="16" bold="false" italic="false" underline="false"/>
+   <Window size="450,600" font="0">
+    <!--Window size="380,220" mininfo="380,220" maxinfo="380,220"-->
+    <VerticalLayout bkcolor="RGB(0,0,0)" name="root" inset="1,1,1,1">
+       <HorizontalLayout height="28" caption="true" name="title">
+         <Text textcolor="RGB(255,255,255)" text="树控件" align="left;vcenter" feign="true" textpadding="5,5,5,5,"/>
+          <Button size="39,22" NormalImage="file='btn_close_normal.png'" HotImage="file='btn_close_highlight.png'"
+                  pushedImage="file='btn_close_down.png'" name="closebtn"/>
+          <Control feign="true" width="12"/>
+       </HorizontalLayout>
+     
+    <HorizontalLayout Inset="5,5,5,5" bkcolor="RGB(255,255,255)">
+
+      <!--vscroll="true" vScrollActive="true" vScrollTheme="vscroll_theme"-->
+      <TreeView width="270" Inset="2,2,2,2" bkcolor="RGB(249,249,249)" BorderColor="RGB(0,0,0)" 
+                BorderSize="1" vscroll="true" vScrollActive="false" vScrollTheme="vscroll_theme">
+        <TreeNode theme="node_theme" text="我的好友" expanded="true">
+          <TreeNode theme="node_theme" text="001" expanded="true">
+            <TreeNode theme="node_theme" text="002" expanded="true">
+              <TreeNode theme="node_theme" text="003" expanded="true">
+                <TreeNode theme="node_theme" text="004" expanded="true">
+                  <TreeNode theme="node_theme" text="005" expanded="true"/>
+                </TreeNode>
+              </TreeNode>
+            </TreeNode>
+          <TreeNode theme="node_theme" text="同级01" expanded="true">
+            <TreeNode theme="node_theme" text="下级01" expanded="true"/>
+            <TreeNode theme="node_theme" text="下级01" expanded="true"/>
+          </TreeNode>
+          <TreeNode theme="node_theme" text="同级02" expanded="true"/>
+          <TreeNode theme="node_theme" text="同级03" expanded="true"/>
+          </TreeNode>
+        </TreeNode>
+        
+        <TreeNode theme="node_theme" text="我的设备"/>
+        <TreeNode theme="node_theme" text="高中同学"/>
+        <TreeNode theme="node_theme" text="初中同学"/>
+        <TreeNode theme="node_theme" text="大学同学"/>
+        <TreeNode theme="node_theme" text="好朋友"/>
+        <TreeNode theme="node_theme" text="游戏"/>
+        <TreeNode theme="node_theme" text="技术"/>
+        <TreeNode theme="node_theme" text="肇庆"/>
+
+      </TreeView>
+
+      <Control/>
+    </HorizontalLayout>
+
+    </VerticalLayout>
+  </Window>
+</UIFrame>

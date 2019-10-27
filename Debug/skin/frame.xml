@@ -1,0 +1,210 @@
+<?xml version="1.0" encoding="gb2312"?>
+<UIFrame>
+	<group name="group1"></group>
+	<language file="language.xml" script="chinese">
+		
+	</language>
+	<theme name="vscroll_theme"
+		   FrontNormalImage="file='scrollbarV.png' source='0,16,16,32'"
+		   TrackNormalImage="file='scrollbarV.png' source='32,32,48,48'"
+		   FinalNormalImage="file='scrollbarV.png' source='0,48,16,64'"
+		   DragBtnNormalImage="file='scrollbarV.png' source='0,0,16,16' corner='0,1,0,1'"
+
+		   FrontHotImage="file='scrollbarV.png' source='0,16,16,32'"
+		   FinalHotImage="file='scrollbarV.png' source='16,48,32,64'"
+		   DragBtnHotImage="file='scrollbarV.png' source='16,0,32,16' corner='0,1,0,1'"
+         
+		   FrontPushedImage="file='scrollbarV.png' source='32,16,48,32'"
+		   FinalPushedImage="file='scrollbarV.png' source='32,48,48,64'"
+		   DragBtnPushedImage="file='scrollbarV.png' source='32,0,48,16' corner='0,1,0,1'"
+         
+		   width="16" />
+	<theme name="hscroll_theme"
+		   FrontNormalImage="file='scrollbarH.png' source='0,0,16,16'"
+		   TrackNormalImage="file='scrollbarH.png' source='16,32,32,48'"
+		   FinalNormalImage="file='scrollbarH.png' source='32,0,48,16'"
+		   DragBtnNormalImage="file='scrollbarH.png' source='48,0,64,16' corner='1,0,1,0'"
+         
+		   height="16" />
+
+	<theme name ="button_theme" NormalImage="button_nor.bmp" HotImage="button_over.bmp" pushedImage="button_down.bmp"/>
+	<theme name="node_theme" textcolor="RGB(0,0,0)" height="22" font="0" showCheck="true" expandoffset="-1"
+		   CheckNormalImage="file='treeview_checked.png' dest='3,3,19,19'"
+		   UnCheckNormalImage="file='treeview_unchecked.png' dest='3,3,19,19' dest='3,3,19,19' "
+		   ExpandNormalImage="file='treeview_expand.png' source='0,0,16,16' dest='3,3,19,19'"
+		   ExpandHotImage="file='treeview_expand.png' source='16,0,32,16' dest='3,3,19,19'"
+		   UnExpandNormalImage="file='treeview_unexpand.png' source='0,0,16,16' dest='3,3,19,19'"
+		   UnExpandHotImage="file='treeview_unexpand.png' source='16,0,32,16' dest='3,3,19,19'"
+         />
+	<theme name="lable_theme" HotColor="RGB(115,199,235)" SelectColor="RGB(0,122,204)" textpadding="2,0,2,0"
+			 textcolor="RGB(0,0,0)" height="22" font="0" align="vcenter;left;"/>
+
+	<theme name="lvhd_theme" NormalImage="file='list_header_nor.png'"
+		   HotImage="file='list_header_hot.png'" PushedImage="file='list_header_pushed.png'"/>
+
+	<theme name="option_theme" size="90,90" ForeNormalImage="file='RadioBtnNon.png' dest='20,20,70,70'"
+		  ForeCheckImage="file='RadioBtnSel.png' dest='20,20,70,70'"
+		  textPadding="0,70,0,0" groupname="group1"/>
+
+	<theme name="check_theme" size="90,20" ForeNormalImage="file='treeview_unchecked.png' dest='0,0,20,20'"
+		  ForeCheckImage="file='treeview_checked.png' dest='0,0,20,20'" align="left;vcenter;"
+		  textPadding="20,0,0,0"/>
+
+	<font id="0" name="华文中宋" size="14" bold="false" italic="false" underline="false"/>
+	<font id="1" name="华文中宋" size="22" bold="true" italic="false" underline="false"/>
+	<font id="2" name="楷体" size="12" bold="false" italic="true" underline="false"/>
+	<font id="3" name="华文中宋" size="40" bold="false" italic="true" underline="true"/>
+	<font id="4" name="微软雅黑" size="38" bold="true" italic="true" underline="false"/>
+	<font id="5" name="楷体" size="16" bold="false" italic="false" underline="false"/>
+	<font id="6" name="宋体" size="17" bold="true" italic="false" underline="false"/>
+	<Window size="1500,700" font="0">
+		<!--Window size="380,220" mininfo="380,220" maxinfo="380,220"-->
+		<VerticalLayout bkcolor="RGB(1,31,62)" name="root" inset="1,1,1,1">
+			<HorizontalLayout height="28" caption="true" name="title">
+				<Text textcolor="RGB(255,255,255)" text="树控件" align="left;vcenter" Penetrated="true" textpadding="5,5,5,5,"/>
+				<Button size="39,22" NormalImage="file='btn_close_normal.png'" HotImage="file='btn_close_highlight.png'"
+						pushedImage="file='btn_close_down.png'" name="closebtn" Margin="0,0,12,0" tiptext="关闭"/>
+			</HorizontalLayout>
+			<!--客户区-->
+			<HorizontalLayout bkcolor="RGB(255,255,255)">
+				<HorizontalLayout>
+					<VerticalLayout>
+						<!--第一列-->
+						<HorizontalLayout height="30">
+							<Option text="复选1" theme="check_theme"></Option>
+							<Option text="复选2" theme="check_theme"></Option>
+							<Option text="复选3" theme="check_theme"></Option>
+						</HorizontalLayout>
+
+						<Calendar width="200" height="28" name="cbxMessage" margin="0,5,0,5" textPadding="5,1,22,1"
+								  HotBorderSize="1" HotBorderColor="RGB(115,199,235)" font="0" align="vcenter;left;"
+								  NormalImage="file='combo.png' source='0,0,100,22' corner='2,2,23,2'"
+								  cbxNormalImage="file='combo.png' source='0,0,100,22' corner='2,2,23,2'"
+								  cbxHotBorderSize="2" cbxHotBorderColor="RGB(115,199,235)" cbxFont="0" cbxVScroll="true" vScrollTheme="vscroll_theme"
+								  btnFont="0">
+						</Calendar>
+
+						<Progress margin="5,5,5,5" width="220" height="32" Value="30"
+								  bkImage="progress_back.png" normalImage="progress_fore.png"/>
+
+						<Slider margin="5,5,5,5" width="220" height="32" Value="30"
+								StepBarImage="file='SliderBar.png'" StepBarSize="15,28"
+								bkImage="file='slider_fore.bmp' mask='0xffff00ff'"/>
+
+						<Gif size="320,190" margin="5,5,5,5" bkImage="boy.gif"/>
+
+						<ComboBox width="200" height="28" name="cbxMessage" margin="0,5,0,5"
+							  HotBorderSize="1" HotBorderColor="RGB(115,199,235)"
+							  NormalImage="file='combo.png' source='0,0,100,22' corner='2,2,23,2'"
+							  vscroll="true" vScrollTheme="vscroll_theme"
+							  textPadding="5,1,22,1">
+
+							<Lable theme="lable_theme" text="001"/>
+							<Lable theme="lable_theme" text="002"/>
+							<Lable theme="lable_theme" text="003"/>
+							<Lable theme="lable_theme" text="004"/>
+							<Lable theme="lable_theme" text="005"/>
+							<Lable theme="lable_theme" text="006"/>
+							<Lable theme="lable_theme" text="007"/>
+							<Lable theme="lable_theme" text="008"/>
+							<Lable theme="lable_theme" text="009"/>
+
+						</ComboBox>
+
+						<Edit height="80" name="edtMessage"  bordersize="1" bordercolor="RGB(0,0,0)" margin="20,5,20,5"
+							  HotBorderSize="2" HotBorderColor="RGB(115,199,235)" hint="请输入要发送的消息"
+								vscroll="true" vScrollActive="true" vScrollTheme="vscroll_theme" textPadding="5,2,5,2"
+								rowSpace="2" textpadding="5,5,5,5" multiLine="true" Linefree="true"/>
+
+						<Text height="160" text="{f 1}您已经有{f 4}{c #F27D30}{x 6}8{x 12}{/c}{/f}{b #FF0000}天没有体检了！{/b}{/f}{p}{f 5}{a top}{c RGB(55,124,217)}头顶{/c}{/a}{/f}{i QQ.png}{f5}{a middle}{c RGB(114,192,76)}中间{/c}{/a}{a bottom}{c RGB(114,192,76)}底部{/c}{/a}{/f}{/p}"
+							  align="left;vcenter" margin="20,5,20,5" showhtml="true" name="htmltext"
+							  bkcolor="RGB(240,240,240)" bordersize="1" borderColor="RGB(0,0,0)"/>
+					</VerticalLayout>
+
+					<VerticalLayout bkcolor="RGB(200,200,200)">
+						<!--第二列-->
+
+						<Picture size="300,300" margin="5,5,5,5" bkImage="login_bg0.jpg" text="扫码的是大傻B" QrCode="true"></Picture>
+
+						<TreeView height="300" Inset="2,2,2,2" bkcolor="RGB(178,251,118)" BorderColor="RGB(0,0,0)"  margin="5,5,5,5"
+								BorderSize="1" vscroll="true" vScrollActive="false" vScrollTheme="vscroll_theme" visible="true">
+							<TreeNode theme="node_theme" text="我的好友" expanded="false">
+								<TreeNode theme="node_theme" text="001" expanded="true">
+									<TreeNode theme="node_theme" text="002" expanded="true">
+										<TreeNode theme="node_theme" text="003" expanded="true">
+											<TreeNode theme="node_theme" text="004" expanded="true">
+												<TreeNode theme="node_theme" text="005" expanded="true"/>
+											</TreeNode>
+										</TreeNode>
+									</TreeNode>
+									<TreeNode theme="node_theme" text="同级01" expanded="true">
+										<TreeNode theme="node_theme" text="下级01" expanded="true"/>
+										<TreeNode theme="node_theme" text="下级01" expanded="true"/>
+									</TreeNode>
+									<TreeNode theme="node_theme" text="同级02" expanded="true"/>
+									<TreeNode theme="node_theme" text="同级03" expanded="true"/>
+								</TreeNode>
+							</TreeNode>
+
+							<TreeNode theme="node_theme" text="我的设备">
+								<TreeNode theme="node_theme" text="个人PC"/>
+								<TreeNode theme="node_theme" text="安卓手机"/>
+								<TreeNode theme="node_theme" text="苹果手机"/>
+							</TreeNode>
+							<TreeNode theme="node_theme" text="高中同学"/>
+							<TreeNode theme="node_theme" text="初中同学"/>
+							<TreeNode theme="node_theme" text="大学同学"/>
+							<TreeNode theme="node_theme" text="好朋友"/>
+							<TreeNode theme="node_theme" text="游戏"/>
+							<TreeNode theme="node_theme" text="技术"/>
+							<TreeNode theme="node_theme" text="肇庆"/>
+
+						</TreeView>
+					</VerticalLayout>
+				</HorizontalLayout>
+
+				<VerticalLayout>
+					<!--第三列-->
+					<HorizontalLayout bkcolor="RGB(209,167,10)" height="100">
+						<Option theme="option_theme" name="optLv" text="列表控件"/>
+						<Option theme="option_theme" name="optAbs" text="绝对布局"/>
+						<Option theme="option_theme" name="optFilm" text="地砖布局"/>
+						<Option theme="option_theme" name="optWeb" text="浏览器"/>
+					</HorizontalLayout>
+					<TabLayout name="Table">
+
+						<ListView name="ListView" vscroll="true" vScrollActive="false" vScrollTheme="vscroll_theme"
+								  hscroll="true" hScrollActive="false" hScrollTheme="hscroll_theme"
+								  bkColor="ARGB(255,240,240,240)" HeaderBkImage="file='list_header_nor.png'">
+							<ListHeader theme="lvhd_theme" text="001"/>
+							<ListHeader theme="lvhd_theme" text="002"/>
+							<ListHeader theme="lvhd_theme" text="003"/>
+							<ListHeader theme="lvhd_theme" text="004"/>
+							<ListHeader theme="lvhd_theme" text="005"/>
+							<ListHeader theme="lvhd_theme" text="006"/>
+							<ListHeader theme="lvhd_theme" text="007"/>
+							<ListHeader theme="lvhd_theme" text="008"/>
+							<ListHeader theme="lvhd_theme" text="009"/>
+
+						</ListView>
+
+						<AbsoluteLayout bkcolor="RGB(73,203,93)" name="Absolute">
+							<Button name="btnMenu" theme="button_theme" text="普通按钮" pos="100,100,190,128"/>
+							<Button theme="button_theme" textpadding="16,0,16,0" text="{a middle}{f 0}{i face.png}{x 8}按钮{/f}{/a}" pos="300,100,390,128" showhtml="true"/>
+							<Text text="123456789" pos="200,200,490,228"/>
+
+							<RichEdit name="view_richedit" pos="200,250,400,500" bkImage="RGB(255,255,255)"/>
+						</AbsoluteLayout>
+
+
+						<!--自定义一个Film控件， IBuilderCallback中完成Film的创建-->
+						<Film name="Film" vscroll="true" vScrollActive="true" vScrollTheme="vscroll_theme"></Film>
+
+						<WebBrowser name="WebBrowser" url="http://www.baidu.com"></WebBrowser>
+					</TabLayout>
+				</VerticalLayout>
+
+			</HorizontalLayout>
+		</VerticalLayout>
+	</Window>
+</UIFrame>

@@ -31,25 +31,23 @@ namespace MYUI
 
     public:
         
-
         HWND Create(HINSTANCE hInstance, LPCTSTR strWindowText, LPCTSTR strSkinFolder = NULL, LPCTSTR strXmlFile = NULL);
         void SetMenuLayout(CControlUI * pControl);
-        virtual LRESULT Popup(INotify *pNotify, RECT rcAbsolute, bool bRightPopup = true);//ÍùhNotifyWnd·¢ÏûÏ¢
-        
+
+        virtual LRESULT Popup(INotify *pNotify, POINT ptPopup);
+        virtual SIZE GetSize();
     protected:
-        virtual void Hide(bool bHideChild);
         //virtual void SendNotify(TNOTIFYUI &notify);
 
         virtual LPVOID GetInterface(LPCTSTR strName);
-        virtual LRESULT CALLBACK WndProc(UINT message, WPARAM wParam, LPARAM lParam);
+
         virtual void OnNotify(TNOTIFYUI &notify);
         virtual LRESULT OnEvent(TEVENT &event);
         virtual CControlUI * CreateControl(const char* strClass);
 
-        LRESULT DoModal(MSG &msg);
+        LRESULT DoModal();
         CBaseLayoutUI * GetMenuUI() const;
     protected:
-        CMenuUI * m_pChildMenu;
         INotify * m_pNotify;
     };
 

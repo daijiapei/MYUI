@@ -158,40 +158,27 @@ static void get_month_all_date(DATESTURCT * calendar, int year, int month)
 	class CDateWnd : public CWindowUI
 	{
 	public:
-		CDateWnd();
+        CDateWnd(CControlUI * pParent, CControlUI * pDateView);
 		~CDateWnd();
-		void SetParent(CControlUI * pParent);
-		void SetView(CControlUI * pControl);
 
 		bool SetSelectDate(DATESTURCT &date);
 		bool ShowCalendar(int nYear, int nMonth);
 	protected:
         virtual void OnNotify(TNOTIFYUI &notify);
         virtual LRESULT OnEvent(TEVENT &event);
-		virtual LRESULT CALLBACK WndProc(UINT message, WPARAM wParam, LPARAM lParam);
 	protected:
 		CControlUI * m_pParent;
 		CControlUI * m_pView;
 	};
 
-	CDateWnd::CDateWnd()
-		: m_pParent(NULL)
-		, m_pView(NULL)
+    CDateWnd::CDateWnd(CControlUI * pParent, CControlUI * pDateView)
+        : m_pParent(pParent)
+        , m_pView(pDateView)
 	{
 	}
 
 	CDateWnd::~CDateWnd()
 	{
-	}
-
-	void CDateWnd::SetParent(CControlUI * pParent)
-	{
-		m_pParent = pParent;
-	}
-
-	void CDateWnd::SetView(CControlUI * pControl)
-	{
-		m_pView = pControl;
 	}
 
 	bool CDateWnd::SetSelectDate(DATESTURCT &date)
@@ -227,33 +214,6 @@ static void get_month_all_date(DATESTURCT * calendar, int year, int month)
 		return true;
 	}
 
-	LRESULT CALLBACK CDateWnd::WndProc(UINT message, WPARAM wParam, LPARAM lParam)
-	{
-		switch(message)
-		{
-		case WM_CHECKHIDE:
-			{
-
-				CControlUI * pControl = NULL;
-				pControl = (CControlUI*)::SendMessage(::GetParent(m_hWnd), WM_REQUESTINFO, MRQF_GETFOCUS, NULL);
-
-				if(NULL == m_pParent)
-				{
-					::ShowWindow(m_hWnd, FALSE);
-					break;
-				}
-				HWND hFocusWnd = ::GetFocus();
-				if(pControl != m_pParent &&  hFocusWnd != m_hWnd && ::GetParent(hFocusWnd) != m_hWnd)
-				{
-					::ShowWindow(m_hWnd, FALSE);
-					break;
-				}
-			}break;
-		}
-
-		return __super::WndProc(message, wParam, lParam);
-	}
-
     void CDateWnd::OnNotify(TNOTIFYUI &notify)
 	{
 		CMuiString strTemp;
@@ -281,7 +241,8 @@ static void get_month_all_date(DATESTURCT * calendar, int year, int month)
 					pDateView->GetSelect(date);
 					strTemp.Format(_T("%04d-%02d-%02d"), date.year, date.month, date.day);
 					m_pParent->SetText(strTemp);
-					::ShowWindow(m_hWnd, FALSE);
+                    ::ShowWindow(m_hWnd, FALSE);
+                    ::PostMessage(m_hWnd, WM_BREAKLOOP, TRUE, NULL);
 				}
 				else if(pConntrol->GetName() == CCalendarUI::strYearBoxName)
 				{
@@ -325,7 +286,8 @@ static void get_month_all_date(DATESTURCT * calendar, int year, int month)
 			}break;
 		case EnumEventType::KillFocued:
 			{
-				PostMessage(WM_CHECKHIDE, NULL, NULL);
+            ::PostMessage(GetWindowOwner(m_hWnd), WM_BREAKLOOP, TRUE,
+                (LPARAM)static_cast<CControlUI*>(m_pParent));
 			}break;
 		case EnumEventType::WindowDestroy:
 			{
@@ -840,29 +802,11 @@ static void get_month_all_date(DATESTURCT * calendar, int year, int month)
 			}
 		}
 
-		if(NULL == m_pDialog) m_pDialog = new CDateWnd();
-
-		m_pDialog->SetParent(this);
-		m_pDialog->SetView(m_pDialogView);
-        m_pDialog->SetSyncResource(dynamic_cast<CWindowUI*>(m_pShareInfo->pNotify));//使用同步资源，同步父窗口资源
-		m_pDialog->Create((HINSTANCE) GetWindowLong(hNewWnd,GWL_HINSTANCE),hNewWnd,
-			WS_BORDER | WS_POPUP | WS_CLIPSIBLINGS, 
-			_T("{E0BAF9EC-36B5-41EE-A4B3-B2DF52844943}"), _T("CDateWnd"), &rect);
-
 	}
 
 	void CCalendarUI::OnDetach(HWND hOldWnd)
 	{
-		if(m_pDialog)
-		{
-			if(::IsWindow(*m_pDialog))
-			{
-				m_pDialog->Destroy();
-			}
-			delete m_pDialog;
-			m_pDialog = NULL;
-		}
-		
+
 	}
 
 	bool CCalendarUI::GetDate(DATESTURCT &date)
@@ -981,63 +925,49 @@ static void get_month_all_date(DATESTURCT * calendar, int year, int month)
 		}
 	}
 
-	bool CCalendarUI::ShowDialog(bool bShow /*= true*/)
-	{
-		CControlUI * pControl = NULL;
-		POINT pt;
+    LRESULT CCalendarUI::Popup(LPARAM lParam)
+    {
+        RECT rcPos = { 0 };
+        POINT Point = { 0 };
+        SIZE DialogSize = {390, 400};
+        CDateWnd * pDialog = NULL;
+        LRESULT lResult = 0;
 
-		RECT ParentRect, ChildRect;
+        if (m_pDialog)
+        {
+            ASSERT(0 && "CCalendarUI::Popup 不合适的调用时机, m_pDialog应该为空");
+            return FALSE;
+        }
 
-		int width = GetSystemMetrics(SM_CXSCREEN);
-		int height = GetSystemMetrics(SM_CYSCREEN);
+        if (FALSE == GetItemFixedRect(rcPos)) return false;
 
-		ASSERT(::IsWindow(*m_pDialog));
+        rcPos.left += 1;
+        rcPos.right -= 1;
+        ::MapWindowPoints(m_pShareInfo->hWnd, NULL, (LPPOINT)&rcPos, 2);
+        
+        Point = CalcPopupPoint(&rcPos, &DialogSize, CPOT_BOTTOM);
+        rcPos.left = Point.x;
+        rcPos.top = Point.y;
+        rcPos.right = rcPos.left + DialogSize.cx;
+        rcPos.bottom = rcPos.top + DialogSize.cy;
 
-		if(!!::IsWindowVisible(*m_pDialog) == bShow)
-		{
-			return true;
-		}
+        pDialog = new CDateWnd(static_cast<CControlUI*>(this),
+            static_cast<CControlUI*>(m_pDialogView));
+        pDialog->CloneResource(m_pShareInfo);//使用同步资源，同步父窗口资源
+        pDialog->Create((HINSTANCE)GetWindowLong(GETHWND(this), GWL_HINSTANCE), GETHWND(this),
+            WS_BORDER | WS_POPUP | WS_CLIPSIBLINGS,
+            _T("{E0BAF9EC-36B5-41EE-A4B3-B2DF52844943}"), _T("CDateWnd"));
 
-		if(false == bShow)
-		{
-			m_pDialog->ShowWindow(false);
-		}
-		else
-		{
-			if(TRUE == GetItemFixedRect(ParentRect))
-			{
-				//::MapWindowPoints(HWND_DESKTOP, m_pShareInfo->hWnd, reinterpret_cast<LPPOINT>(&ParentRect), 2);
+        m_pDialog = pDialog;
+        
+        lResult = pDialog->Popup(rcPos);
 
-				POINT * lpt = (POINT *)&ParentRect;
-				::ClientToScreen(m_pShareInfo->hWnd, &lpt[0]);
-				::ClientToScreen(m_pShareInfo->hWnd, &lpt[1]);
-				ParentRect.left += 1;
-				ParentRect.right -= 1;
-				pt.x = ParentRect.left;
-				pt.y = ParentRect.bottom;
+        m_pDialog = NULL;
 
-				::GetWindowRect(*m_pDialog, &ChildRect);
-
-				int cx = ParentRect.left + (ChildRect.right - ChildRect.left);
-				int cy = ParentRect.bottom + (ChildRect.bottom - ChildRect.top);
-				if(cx > width) //控件超出显示范围
-				{
-					pt.x = ParentRect.right - (ChildRect.right - ChildRect.left);
-				}
-
-				if(cy > height) //控件超出显示范围
-				{
-					pt.y = ParentRect.top - (ChildRect.bottom - ChildRect.top);
-				}
-
-				//SendMessage(infoPtr->hwndWorker, DDM_SETDATE, 0, (LPARAM)&infoPtr->date);
-
-				::SetWindowPos(*m_pDialog,HWND_TOPMOST, pt.x, pt.y ,0, 0,SWP_NOSIZE | SWP_SHOWWINDOW);
-			}
-		}
-
-		return true;
-	}
+        pDialog->Destroy();
+        delete pDialog;
+        return lResult;
+    }
 
 	LRESULT CCalendarUI::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	{
@@ -1063,27 +993,32 @@ static void get_month_all_date(DATESTURCT * calendar, int year, int month)
 				rcButton = m_rcRawItem;
 				rcButton.left = rcButton.right - m_rcTextPadding.right;
 
-				if(FALSE == PointInRect(pt, rcButton))
-				{
-					//让消息流入__super中
-					ShowDialog(false);
-					break;
-				}
-				else
-				{
-					if(true == IsEnabled())
-					{
-						ShowDialog(!::IsWindowVisible(* m_pDialog));
-					}
-				}
+                if (TRUE == PointInRect(pt, rcButton))
+                {
+                    if (m_pDialog)
+                    {
+                        m_pDialog->PostMessage(WM_BREAKLOOP, TRUE, NULL);
+                    }
+                    else
+                    {
+                        ::PostMessage(GETHWND(this), WM_POPUPDIALOG, (WPARAM)static_cast<IDialogPopup*>(this), NULL);
+                    }
+                }
 			}break;
 		case WM_KEYDOWN:
 			{
-				if(true == IsEnabled() && VK_RETURN == wParam)
-				{
-					ShowDialog(!::IsWindowVisible(* m_pDialog));
-					return false;
-				}
+            if (VK_RETURN == wParam)
+            {
+                if (m_pDialog)
+                {
+                    m_pDialog->PostMessage(WM_BREAKLOOP, TRUE, NULL);
+                }
+                else
+                {
+                    ::PostMessage(GETHWND(this), WM_POPUPDIALOG, (WPARAM)static_cast<IDialogPopup*>(this), NULL);
+                }
+                return false;
+            }
 			}break;
 		case WM_MOUSEMOVE:
 			{
@@ -1120,11 +1055,17 @@ static void get_month_all_date(DATESTURCT * calendar, int year, int month)
 			}break;
 		case WM_SETFOCUS:
 			{
+                TRACE(_T("CCalendarUI WM_SETFOCUS"));
 				//m_pBoxWnd->SendMessage(WM_PARENTNOTIFY, TRUE, NULL);
 			}break;
 		case WM_KILLFOCUS:
 			{
-				m_pDialog->PostMessage(WM_CHECKHIDE);
+                TRACE(_T("CCalendarUI WM_KILLFOCUS"));
+                if (m_pDialog)
+                {
+                    ::PostMessage(::GetWindowOwner(*m_pDialog), WM_BREAKLOOP,
+                        TRUE, (LPARAM)static_cast<CControlUI*>(this));
+                }
 			}break;
 		default:
 			break;

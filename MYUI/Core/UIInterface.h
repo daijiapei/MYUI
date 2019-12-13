@@ -7,7 +7,18 @@
 namespace MYUI
 {
 #define WM_HITTEST          WM_NCHITTEST
-#define WM_BREAK            (WM_USER + 1)
+
+
+#define WM_BREAKLOOP        (WM_USER + 1)//退出当前loop
+    //break loop wparam flag
+#define BLWF_UNCHECK         0x00 //不需要进行任何检查，直接退出
+#define BLWF_CHECKFOCUS      0x01 //退出前检查父子控件是否拥有焦点
+
+
+#define WM_MOUSEENTER       (WM_USER + 2)
+#define WM_POPUPMENU        (WM_USER + 3)
+#define WM_POPUPDIALOG      (WM_USER + 4)
+
 #define WM_MYUIMSG			(WM_USER + 128)//窗口与控件同用
 #define WM_MYCONTROLMSG     (WM_USER + 256)//控件私有
 #define WM_MYCM             WM_MYCONTROLMSG
@@ -17,7 +28,7 @@ namespace MYUI
 /*WM_SETTIMER */
 #define WM_SETTIMER         (WM_MYUIMSG + 2)
 
-	typedef struct _tagControlTimer
+    typedef struct __CONTROLTIMER
 	{
 		PVOID pControl;
 		UINT nIDEvnet;
@@ -25,7 +36,6 @@ namespace MYUI
 	}CONTROLTIMER;
 /*WM_SETTIMER */
 
-#define WM_MOUSEENTER		(WM_MYUIMSG + 3)
 #define WM_DEPENDCHANGE		(WM_MYUIMSG + 4)
 
 
@@ -126,8 +136,14 @@ namespace MYUI
     {
     public:
         //往hNotifyWnd发消息, 鼠标在屏幕中的Point位置
-        virtual LRESULT Popup(INotify *pNotify, RECT rcAbsolute, bool bRightPopup = true) = 0;
-        virtual void Hide(bool bHideChild) = 0;
+        virtual LRESULT Popup(INotify *pNotify, POINT ptPopup) = 0;
+        virtual SIZE GetSize() = 0;
+    };
+
+    class IDialogPopup
+    {
+    public:
+        virtual LRESULT Popup(LPARAM lParam) = 0;
     };
 
 	enum EnumEventType

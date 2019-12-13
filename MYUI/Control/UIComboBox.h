@@ -8,7 +8,7 @@ namespace MYUI
 {
 	class CComboBoxWnd;
 
-	class MYUI_API CComboBoxUI : public CEditUI , public IControlArray
+    class MYUI_API CComboBoxUI : public CEditUI, public IControlArray , protected IDialogPopup
 	{
 	public:
 		CComboBoxUI();
@@ -45,15 +45,12 @@ namespace MYUI
 		virtual void SetVerticalScrollBar(CScrollBarUI * pScrollBar);
 		virtual CScrollBarUI * GetVerticalScrollBar() const;
 
-		LRESULT NotifyCall(HOBJECT hObject, EnumNotifyMsg * notify);
 		//绘制
 		
 	protected:
 		virtual LRESULT WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
-		virtual void OnAttach(HWND hNewWnd);//当控件附加到新的窗口时，会调用一次该函数
-		virtual void OnDetach(HWND hOldWnd);//当控件离开一个窗口时，会调用一次该函数 
 
-		bool ShowDialog(bool bShow = true);
+        LRESULT Popup(LPARAM lParam);
 
 	protected:
 		CComboBoxWnd * m_pDialog;//下拉列表窗口

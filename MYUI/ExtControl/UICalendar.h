@@ -11,20 +11,20 @@ namespace MYUI
 #define DATECOL   7  //列
 #define DATESTULEN   (sizeof(DATESTURCT) * (DATEROW) * (DATECOL))
 
-typedef struct _date_struct{
-	int year;
-	int month;
-	int day;
-}DATESTURCT, *PDATESTURCT;
+    typedef struct __DATESTURCT{
+	    int year;
+	    int month;
+	    int day;
+    }DATESTURCT, *PDATESTURCT;
 
-typedef struct _date_string{
-	TCHAR year[4];
-	TCHAR tch1[1];
-	TCHAR month[2];
-	TCHAR tch2[1];
-	TCHAR day[2];
-	TCHAR end[1];
-}DATESTRING, *PDATESTRING;
+    typedef struct __DATESTRING{
+	    TCHAR year[4];
+	    TCHAR tch1[1];
+	    TCHAR month[2];
+	    TCHAR tch2[1];
+	    TCHAR day[2];
+	    TCHAR end[1];
+    }DATESTRING, *PDATESTRING;
 
 
 	class CDateWnd;
@@ -96,7 +96,7 @@ typedef struct _date_string{
 
 	
 
-	class MYUI_API CCalendarUI : public CLableUI
+    class MYUI_API CCalendarUI : public CLableUI, protected IDialogPopup
 	{
 	public:
 		CCalendarUI();
@@ -179,7 +179,8 @@ typedef struct _date_string{
 	protected:
 		virtual void OnAttach(HWND hNewWnd);//当控件附加到新的窗口时，会调用一次该函数
 		virtual void OnDetach(HWND hOldWnd);//当控件离开一个窗口时，会调用一次该函数 
-		bool ShowDialog(bool bShow = true);
+
+        LRESULT Popup(LPARAM lParam);
 		virtual LRESULT WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 		CControlUI * CreateDialogView();
 

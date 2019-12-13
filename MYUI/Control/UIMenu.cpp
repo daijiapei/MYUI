@@ -10,8 +10,7 @@ namespace MYUI
 {
 
     CMenuUI::CMenuUI()
-        : m_pChildMenu(NULL)
-        , m_pNotify(NULL)
+        : m_pNotify(NULL)
     {
 
     }
@@ -146,182 +145,124 @@ namespace MYUI
         return dynamic_cast<CBaseLayoutUI*>(m_pViewInfo ? m_pViewInfo->pRootControl : NULL);
     }
 
-    LRESULT CMenuUI::Popup(INotify *pNotify, RECT rcAbsolute, bool bRightPopup)
+    LRESULT CMenuUI::Popup(INotify *pNotify, POINT ptPopup)
     {
         LRESULT lResult = NULL;
         SIZE Size = { 180, 30 };
         SIZE szScreen = { 0 };
-        int cx = 0, cy = 0;
+        RECT rcPos = { 0 };
         TNOTIFYUI Notify = { 0 };
         MSG Msg = { 0 };
-        CBaseLayoutUI * pLayout = dynamic_cast<CBaseLayoutUI*>(m_pViewInfo ? m_pViewInfo->pRootControl : NULL);
 
         ASSERT(pNotify != m_pShareInfo->pNotify && "CMenuUI::Popup 形成了一个死环");
         
+        Size = this->GetSize();
+
+        rcPos.left = ptPopup.x;
+        rcPos.top = ptPopup.y;
+        rcPos.right = rcPos.left + Size.cx;
+        rcPos.bottom = rcPos.top + Size.cy;
+
+        m_pNotify = pNotify;
+
+        lResult = CWindowUI::Popup(rcPos);
+
+        m_pNotify = NULL;
+
+        return lResult;
+    }
+
+    SIZE CMenuUI::GetSize()
+    {
+        SIZE Size = { 180, 30 };
+        CBaseLayoutUI * pLayout = dynamic_cast<CBaseLayoutUI*>(m_pViewInfo ? m_pViewInfo->pRootControl : NULL);
+
         if (pLayout->GetCount() > 0)
         {
             Size = pLayout->GetContentSize();
-            Size.cx += 2;//边框
-            Size.cy += 2;//边框
-        }
-        
-        szScreen.cx = GetSystemMetrics(SM_CXSCREEN);
-        szScreen.cy = GetSystemMetrics(SM_CYSCREEN);
-
-        if (bRightPopup)
-        {
-            //从左边弹出
-            if (Size.cx + rcAbsolute.right > szScreen.cx && rcAbsolute.left - Size.cx > 0)
-            {
-                cx = rcAbsolute.left - Size.cx;
-            }
-            else
-            {
-                cx = rcAbsolute.right;
-            }
-
-            if (Size.cy + rcAbsolute.top > szScreen.cy && rcAbsolute.top - Size.cy > 0)
-            {
-                cy = rcAbsolute.top - Size.cy;
-            }
-            else
-            {
-                cy = rcAbsolute.top;
-            }
-        }
-        else
-        {
-            //否则从底部弹出
-            if (Size.cx + rcAbsolute.left > szScreen.cx && rcAbsolute.right - Size.cx > 0)
-            {
-                cx = rcAbsolute.right - Size.cx;
-            }
-            else
-            {
-                cx = rcAbsolute.left;
-            }
-
-            if (Size.cy + rcAbsolute.bottom > szScreen.cy && rcAbsolute.top - Size.cy > 0)
-            {
-                cy = rcAbsolute.top - Size.cy;
-            }
-            else
-            {
-                cy = rcAbsolute.bottom;
-            }
+            //Size.cx += 2;//边框
+            //Size.cy += 2;//边框
         }
 
-        m_pNotify = pNotify;
-        
-        ::SetWindowPos(m_hWnd, HWND_TOPMOST, cx, cy, Size.cx, Size.cy, SWP_SHOWWINDOW );
-
-#if 0
-        lResult = this->ShowModal(true, false, &Msg);
-        this->ShowWindow(false);
-
-        if (WM_QUIT == Msg.message && Msg.lParam && pNotify)
-        {
-            Notify.dwType = (EnumNotifyMsg)Msg.wParam;
-            Notify.pSender = reinterpret_cast<CControlUI*>(Msg.lParam);
-            pNotify->SendNotify(Notify);
-        }
-#else
-
-#endif
-
-        return 0;
+        return Size;
     }
 
-    void CMenuUI::Hide(bool bHideChild)
-    {
-        ASSERT(::IsWindow(m_hWnd));
-
-        CMenuUI * pTemp = NULL;
-        CWindowUI * pWindow = dynamic_cast<CWindowUI *>(m_pNotify);;
-        
-        if (bHideChild)
-        {
-            if (m_pChildMenu)
-            {
-                if (pWindow && (pTemp = (CMenuUI *)pWindow->GetInterface(_T("CMenuUI"))))
-                {
-                    pTemp->SendMessage(WMU_CHILDMENUHIDE, NULL, (LPARAM)this);
-                }
-                m_pChildMenu->Hide(bHideChild);
-                m_pChildMenu = NULL;
-            }
-            this->ShowWindow(false);
-        }
-        else
-        {
-            //hide parent
-            HWND hFocus = GetFocus();
-            HWND hChild = m_pChildMenu ? m_pChildMenu->GetHandle() : NULL;
-            if (NULL == hFocus || (hFocus != m_hWnd && hFocus != hChild))
-            {
-                m_pChildMenu = NULL;
-                if (pWindow && (pTemp = (CMenuUI *)pWindow->GetInterface(_T("CMenuUI"))))
-                {
-                    m_pNotify = NULL;
-                    pTemp->SendMessage(WMU_CHILDMENUHIDE, NULL, (LPARAM)this);
-                    pTemp->Hide(bHideChild);
-                }
-                else
-                {
-                    ::SetFocus(*pWindow);
-                }
-
-                this->ShowWindow(false);
-            }
-        }
-        
-    }
-
-    LRESULT CMenuUI::DoModal(MSG &msg)
+    LRESULT CMenuUI::DoModal()
     {
         ASSERT(::IsWindow(m_hWnd));
         LRESULT lResult = 0;
+        MSG Msg = { 0 };
         IUserHandle * pHandle = CUserHandleTable::GetThreadHandle(NULL);
 
-        while (::IsWindow(m_hWnd) && ::GetMessage(&msg, NULL, 0, 0))
+        RECT rcPos = { 0 };
+        ::SetWindowPos(m_hWnd, HWND_TOPMOST, rcPos.left, rcPos.top, rcPos.right - rcPos.left,
+            rcPos.bottom - rcPos.top, SWP_SHOWWINDOW);
+
+        while (TRUE)
         {
-            //::SleepEx(0 , TRUE);
-            if (NULL == msg.hwnd)
+            if (::IsWindow(m_hWnd) && PeekMessage(&Msg, 0, 0, 0, PM_NOREMOVE))
             {
-                if (pHandle)
+                switch (Msg.hwnd ? Msg.message : 0)
                 {
-                    if (msg.message >= WM_USER && WM_USER + 0x7FFF >= msg.message)
+                case WM_POPUPDIALOG:
+                {
+                    if (m_hWnd != Msg.hwnd) break;
+                }break;
+                case WM_POPUPMENU:
+                {
+                    if (static_cast<IMenuPopup*>(this) == reinterpret_cast<IMenuPopup*>(Msg.wParam))
                     {
-                        pHandle->Callback(msg.message - WM_USER, msg.wParam, msg.lParam);
+                        //同一个菜单, 不需要重复弹出
+                        PeekMessage(&Msg, 0, Msg.message, Msg.message, PM_REMOVE);
+                        continue;
+                    }
+
+                    if (m_hWnd != Msg.hwnd) break;
+                }break;
+                case WM_BREAKLOOP:
+                {
+                    if (NULL == Msg.lParam || m_hWnd == (HWND)Msg.lParam) break;
+                }break;
+                default:
+                    break;
+                }
+
+                PeekMessage(&Msg, 0, Msg.message, Msg.message, PM_REMOVE);
+
+                if (NULL == Msg.hwnd)
+                {
+                    if (pHandle)
+                    {
+                        if (Msg.message >= WM_USER && WM_USER + 0x7FFF >= Msg.message)
+                        {
+                            pHandle->Callback(Msg.message - WM_USER, Msg.wParam, Msg.lParam);
+                            continue;
+                        }
+                    }
+                }
+#ifdef ENABLE_TIMER_LPARAM
+                else
+                {
+                    if (WM_TIMER == Msg.message)
+                    {
+                        ::SendMessage(Msg.hwnd, Msg.message, Msg.wParam, Msg.lParam);
                         continue;
                     }
                 }
+#endif
+
+                ::TranslateMessage(&Msg);
+                ::DispatchMessage(&Msg);
             }
             else
             {
-#if 0
-                //WM_TIMER中lParam是回调函数，如果不为空将会在DispatchMessage 中调用该函数，
-                //而用户的WndProc将收不到WM_TIMER通知。但是有些用户更希望lParam作为一个参数
-                //而不是函数，所以我们提前将WM_TIMER消息发送到用户窗口并返回，这样就能实现
-                //lparam 作为定时器参数的目的
-                if (WM_TIMER == msg.message)
-                {
-                    ::SendMessage(msg.hwnd, msg.message, msg.wParam, msg.lParam);
-                    continue;
-                }
-#endif
+                WaitMessage();
             }
-
-            if (WM_CLOSE == msg.message && msg.hwnd == m_hWnd)
-            {
-                lResult = msg.wParam;
-            }
-
-            ::TranslateMessage(&msg);
-            ::DispatchMessage(&msg);
         }
 
-        return lResult;
+        if (::IsWindow(m_hWnd)) ShowWindow(FALSE);
+
+        return Msg.message;
     }
 
     LPVOID CMenuUI::GetInterface(LPCTSTR strName)
@@ -342,37 +283,6 @@ namespace MYUI
         return CWindowUI::GetInterface(strName);
     }
 
-    LRESULT CALLBACK CMenuUI::WndProc(UINT message, WPARAM wParam, LPARAM lParam)
-    {
-        switch (message)
-        {
-        case WMU_SHOWCHILDMENU:
-        {
-            CMenuUI * pMenu = dynamic_cast<CMenuUI *>(reinterpret_cast<IMenuPopup *>(lParam));
-            if (m_pChildMenu && m_pChildMenu != pMenu)
-            {
-                m_pChildMenu->Hide(true);
-            }
-
-            m_pChildMenu = pMenu;
-
-            if (m_pChildMenu)
-            {
-                m_pChildMenu->Popup(static_cast<INotify*>(this), *(RECT*)wParam);
-            }
-        }break;
-        case WMU_CHILDMENUHIDE:
-        {
-            if (m_pChildMenu == (void*)lParam)
-            {
-                m_pChildMenu = NULL;
-            }
-        }break;
-        }
-
-        return __super::WndProc(message, wParam, lParam);
-    }
-
     void CMenuUI::OnNotify(TNOTIFYUI &Notify)
     {
         switch (Notify.dwType)
@@ -382,7 +292,7 @@ namespace MYUI
             if (Notify.pSender->GetClassName() == CMenuElementUI::g_strClassName && m_pNotify)
             {
                 m_pNotify->SendNotify(Notify);
-                this->Hide(true);
+                //this->Hide(true);
             }
         }break;
         }
@@ -420,10 +330,13 @@ namespace MYUI
         }break;
         case EnumEventType::KillFocued:
         {
-            if (NULL == m_pChildMenu)
-            {
-                this->Hide(false);
-            }
+            //if (NULL == m_pChildMenu)
+            //{
+            //    this->Hide(false);
+            //}
+            //
+            
+            ::PostMessage(m_hWnd, WM_BREAKLOOP, TRUE, NULL);
             
             TRACE(_T("EnumEventType::KillFocued %s"), this->GetWindowText());
         }break;
@@ -570,7 +483,8 @@ namespace MYUI
     LRESULT CMenuElementUI::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     {
         CControlUI * pControl = NULL;
-        RECT rcPopup = { 0 };
+        RECT rcPos = { 0 };
+        SIZE Size = { 0 };
         POINT Point = { 0, 0 };
         switch (message)
         {
@@ -580,10 +494,11 @@ namespace MYUI
         }break;
         case WM_LBUTTONUP:
         {
-            if (true == m_bEnabled)
-            {
-                this->SendNotify(FALSE, EnumNotifyMsg::CheckItem, NULL, (LPARAM)this);
-            }
+
+            //要先post,免得处理SendNotify的时候掺杂其他消息在前面,比如WM_CLOSE
+            ::PostMessage(GETHWND(this), WM_BREAKLOOP, FALSE, NULL);
+            this->SendNotify(FALSE, EnumNotifyMsg::CheckItem, NULL, (LPARAM)this);
+
         }break;
         case WM_MOUSEMOVE:
         {
@@ -592,21 +507,24 @@ namespace MYUI
         }break;
         case WM_MOUSEENTER://鼠标第一次进入
         {
-            if (m_pMenu && TRUE == this->GetItemFixedRect(rcPopup))
+            if (m_pMenu && TRUE == this->GetItemFixedRect(rcPos))
             {
                 CBaseLayoutUI* pLayout = dynamic_cast<CBaseLayoutUI*>(m_pParentContrl);
 
                 if (pLayout)
                 {
-                    rcPopup.left += pLayout->GetInset().left;
-                    rcPopup.right += pLayout->GetInset().right;
+                    rcPos.left += pLayout->GetInset().left;
+                    rcPos.right += pLayout->GetInset().right;
                 }
-                ::MapWindowPoints(m_pShareInfo->hWnd, NULL, (LPPOINT)&rcPopup, 2);
-                //m_pMenu->Popup(m_pShareInfo->pNotify, rcPopup);
-                ASSERT(GETHWND(this));
 
-                ::SendMessage(GETHWND(this), WMU_SHOWCHILDMENU, (WPARAM)&rcPopup, (LPARAM)m_pMenu);
+                Size = m_pMenu->GetSize();
+                ::MapWindowPoints(m_pShareInfo->hWnd, NULL, (LPPOINT)&rcPos, 2);
+                Point = CalcPopupPoint(&rcPos, &Size, CPOT_RIGHT);
+
+                ASSERT(GETHWND(this));
             }
+
+            ::PostMessage(GETHWND(this), WM_POPUPMENU, (WPARAM)m_pMenu, MAKELONG(Point.x, Point.y));
         }//流入WM_MOUSELEAVE
         case WM_MOUSELEAVE://鼠标离开
         {
@@ -630,6 +548,7 @@ namespace MYUI
 
         return __super::WndProc(hWnd, message, wParam, lParam);
     }
+
     void CMenuElementUI::PaintBkColor(const RECT& rcItem, const RECT& rcPaint)
     {
         ARGBREF refColor = m_refBkColor;

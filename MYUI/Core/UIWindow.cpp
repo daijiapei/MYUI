@@ -250,7 +250,7 @@ namespace MYUI
 		::ShowWindow(m_hWnd, bShow ? (bTakeFocus ? SW_SHOWNORMAL : SW_SHOWNOACTIVATE) : SW_HIDE);
 	}
 
-    LRESULT CWindowUI::ShowModal(bool bShow /*= true*/, bool bEnableParent /*= true*/, MSG * pMsg /*= NULL*/)
+    LRESULT CWindowUI::ShowModal(bool bShow /*= true*/, bool bEnableParent /*= true*/, UINT uBreakMessage /*= -1*/)
 	{
 		ASSERT(::IsWindow(m_hWnd));
         LRESULT lResult = 0;
@@ -259,17 +259,9 @@ namespace MYUI
         IUserHandle * pHandle = CUserHandleTable::GetThreadHandle(NULL);
 
         ::ShowWindow(m_hWnd, bShow ? TRUE : FALSE);
-        if (bEnableParent)
+        if (bEnableParent && hOwnerWnd)
         {
             ::EnableWindow(hOwnerWnd, FALSE);
-        }
-		
-        if (pMsg)
-        {
-            lResult = pMsg->message;
-            *pMsg = Msg;
-            pMsg->message = lResult;
-            lResult = 0;
         }
 
         while (::IsWindow(m_hWnd) && ::GetMessage(&Msg, NULL, 0, 0))
@@ -286,38 +278,37 @@ namespace MYUI
                     }
                 }
             }
+#ifdef ENABLE_TIMER_LPARAM
             else
             {
-#if 0
+
                 //WM_TIMER中lParam是回调函数，如果不为空将会在DispatchMessage 中调用该函数，
                 //而用户的WndProc将收不到WM_TIMER通知。但是有些用户更希望lParam作为一个参数
                 //而不是函数，所以我们提前将WM_TIMER消息发送到用户窗口并返回，这样就能实现
                 //lparam 作为定时器参数的目的
-                if (WM_TIMER == msg.message)
+                if (WM_TIMER == Msg.message)
                 {
-                    ::SendMessage(msg.hwnd, msg.message, msg.wParam, msg.lParam);
+                    ::SendMessage(Msg.hwnd, Msg.message, Msg.wParam, Msg.lParam);
                     continue;
                 }
+            }
 #endif
-            }
 
-            if (WM_BREAK == Msg.message && Msg.hwnd == m_hWnd)
+            if (WM_CLOSE == Msg.message)
             {
-                lResult = Msg.message;
-                break;
-            }
-
-            if (WM_CLOSE == Msg.message && Msg.hwnd == m_hWnd)
-            {
-                if (pMsg && WM_CLOSE == pMsg->message) *pMsg = Msg;
-                lResult = Msg.message;
+                lResult = Msg.wParam;
 			}
 
             ::TranslateMessage(&Msg);
             ::DispatchMessage(&Msg);
+
+            if (uBreakMessage == Msg.message && m_hWnd == Msg.hwnd)
+            {
+                break;
+            }
 		}
 
-        if (bEnableParent)
+        if (bEnableParent && hOwnerWnd)
         {
             ::EnableWindow(hOwnerWnd, TRUE);
             ::SetFocus(hOwnerWnd);
@@ -325,13 +316,101 @@ namespace MYUI
 
         if (WM_QUIT == Msg.message)
         {
-            lResult = Msg.message;
+            lResult = Msg.wParam;
         }
-
-        if (pMsg && WM_CLOSE != pMsg->message) *pMsg = Msg;
 
         return lResult;
 	}
+
+    LRESULT CWindowUI::Popup(RECT rcPos)
+    {
+        ASSERT(::IsWindow(m_hWnd));
+        LRESULT lResult = 0;
+        MSG Msg = { 0 };
+        IUserHandle * pHandle = CUserHandleTable::GetThreadHandle(NULL);
+        CControlUI * pControl = NULL;
+        ::SetWindowPos(m_hWnd, HWND_TOPMOST, rcPos.left, rcPos.top, rcPos.right - rcPos.left,
+            rcPos.bottom - rcPos.top, SWP_SHOWWINDOW);
+
+        while (TRUE)
+        {
+            pControl = NULL;
+            if (::IsWindow(m_hWnd) && PeekMessage(&Msg, 0, 0, 0, PM_NOREMOVE))
+            {
+                if (Msg.hwnd)
+                {
+                    switch (Msg.message)
+                    {
+                    case WM_POPUPDIALOG:
+                    {
+                        if (m_hWnd != Msg.hwnd) goto BREAKLOOP;
+                    }break;
+                    case WM_POPUPMENU:
+                    {
+
+                        if (this->GetInterface(_T("IMenuPopup")) == (LPVOID)Msg.wParam)
+                        {
+                            //同一个菜单, 不需要重复弹出
+                            PeekMessage(&Msg, 0, Msg.message, Msg.message, PM_REMOVE);
+                            continue;
+                        }
+
+                        if (m_hWnd != Msg.hwnd) goto BREAKLOOP;
+                    }break;
+                    case WM_BREAKLOOP:
+                    {
+                        if (FALSE == Msg.wParam) goto BREAKLOOP;//不需要做任何判断，单纯地退出
+
+                        pControl = reinterpret_cast<CControlUI *>(Msg.lParam);
+                        
+                        if (m_hWnd != GetFocus() && (pControl ? !pControl->IsFocued() : TRUE))
+                        {
+                            goto BREAKLOOP;
+                        }
+                    }break;
+                    default:
+                        break;
+                    }
+                }
+                
+                PeekMessage(&Msg, 0, Msg.message, Msg.message, PM_REMOVE);
+
+                if (NULL == Msg.hwnd)
+                {
+                    if (pHandle)
+                    {
+                        if (Msg.message >= WM_USER && WM_USER + 0x7FFF >= Msg.message)
+                        {
+                            pHandle->Callback(Msg.message - WM_USER, Msg.wParam, Msg.lParam);
+                            continue;
+                        }
+                    }
+                }
+#ifdef ENABLE_TIMER_LPARAM
+                else
+                {
+                    if (WM_TIMER == Msg.message)
+                    {
+                        ::SendMessage(Msg.hwnd, Msg.message, Msg.wParam, Msg.lParam);
+                        continue;
+                    }
+                }
+#endif
+
+                ::TranslateMessage(&Msg);
+                ::DispatchMessage(&Msg);
+            }
+            else
+            {
+                WaitMessage();
+            }
+        }
+
+    BREAKLOOP:
+        if (::IsWindow(m_hWnd) && ::IsWindowVisible(m_hWnd)) ::ShowWindow(m_hWnd, FALSE);
+
+        return Msg.message;
+    }
 
 	bool CWindowUI::RegisterClass()
 	{
@@ -460,6 +539,40 @@ namespace MYUI
 		return m_pViewInfo->pRootControl;
 	}
 
+    bool CWindowUI::CloneResource(TSHAREINFO * pShareInfo)
+    {
+        if (m_pShareInfo->bHostType)
+        {
+            //宿主资源模式，负责申请和释放资源
+            if (m_pShareInfo->FontArray)
+            {
+                for (int i = 0; m_pShareInfo->FontArray->GetSize() > i; i++)
+                {
+                    DeleteObject((HFONT)m_pShareInfo->FontArray->GetAt(i));
+                }
+                delete m_pShareInfo->FontArray;
+            }
+
+            if (m_pShareInfo->strSkinFolder)
+            {
+                delete m_pShareInfo->strSkinFolder;
+            }
+
+            m_pShareInfo->bHostType = FALSE;
+            m_pShareInfo->FontArray = NULL;
+            m_pShareInfo->strSkinFolder = NULL;
+        }
+
+        if (pShareInfo)
+        {
+            m_pShareInfo->FontArray = pShareInfo->FontArray;
+            m_pShareInfo->strSkinFolder = pShareInfo->strSkinFolder;
+            this->SetSkin(m_pShareInfo->strSkinFolder);
+            return true;
+        }
+        return false;
+    }
+
     bool CWindowUI::SetSyncResource(CWindowUI *pHostWindow)
     {
         TSHAREINFO * pShareInfo = NULL;
@@ -564,6 +677,16 @@ namespace MYUI
 		ASSERT(m_pViewInfo);
 		return m_pViewInfo->pFocusControl;
 	}
+
+    BOOL CWindowUI::PostBreakMessage(BOOL bCheck, CControlUI * pParent)
+    {
+        ASSERT(m_hWnd);
+        HWND hWnd = ::GetWindowOwner(m_hWnd);
+
+        hWnd = hWnd ? hWnd : m_hWnd;
+
+        return ::PostMessage(hWnd, WM_BREAKLOOP, bCheck, (LPARAM)pParent);
+    }
 
 	//用来过滤pControl的SendNotify，方便对消息进行监控处理
     void CWindowUI::SendNotify(TNOTIFYUI &notify)
@@ -874,7 +997,7 @@ end:
 		RECT * pRect= NULL, rect = { 0 };
 		MONITORINFO oMonitor = {};
 		PAINTSTRUCT ps;
-		POINT point;
+		POINT Point;
 		CControlUI * pControl = NULL;
 		TEVENT event = { 0 };
 
@@ -980,9 +1103,9 @@ end:
 			{
 				//鼠标在非客户区移动
 				//没有边框了，我们不能拖动窗口，额外处理一下
-				point.x = GET_X_LPARAM(lParam); 
-				point.y = GET_Y_LPARAM(lParam);
-				::ScreenToClient(m_hWnd, &point);
+                Point.x = GET_X_LPARAM(lParam);
+                Point.y = GET_Y_LPARAM(lParam);
+                ::ScreenToClient(m_hWnd, &Point);
 				//RECT rcClient;
 				::GetClientRect(m_hWnd, &rect);
 
@@ -991,21 +1114,21 @@ end:
 				if (WS_SIZEBOX == (dwStype & WS_SIZEBOX) && !::IsZoomed(m_hWnd))
 				{
 					RECT rcSizeBox = { 4,4,4,4 };
-					if (point.y < rect.top + rcSizeBox.top)
+                    if (Point.y < rect.top + rcSizeBox.top)
 					{
-						if (point.x < rect.left + rcSizeBox.left) return HTTOPLEFT;
-						if (point.x > rect.right - rcSizeBox.right) return HTTOPRIGHT;
+                        if (Point.x < rect.left + rcSizeBox.left) return HTTOPLEFT;
+                        if (Point.x > rect.right - rcSizeBox.right) return HTTOPRIGHT;
 						return HTTOP;
 					}
-					else if (point.y > rect.bottom - rcSizeBox.bottom)
+                    else if (Point.y > rect.bottom - rcSizeBox.bottom)
 					{
-						if (point.x < rect.left + rcSizeBox.left) return HTBOTTOMLEFT;
-						if (point.x > rect.right - rcSizeBox.right) return HTBOTTOMRIGHT;
+                        if (Point.x < rect.left + rcSizeBox.left) return HTBOTTOMLEFT;
+                        if (Point.x > rect.right - rcSizeBox.right) return HTBOTTOMRIGHT;
 						return HTBOTTOM;
 					}
 
-					if (point.x < rect.left + rcSizeBox.left) return HTLEFT;
-					if (point.x > rect.right - rcSizeBox.right) return HTRIGHT;
+                    if (Point.x < rect.left + rcSizeBox.left) return HTLEFT;
+                    if (Point.x > rect.right - rcSizeBox.right) return HTRIGHT;
 				}
 
 				return HTCLIENT;
@@ -1160,15 +1283,15 @@ end:
 					{
 						//标题栏处于按下状态，拖动窗口
 						//TRACE(_T("WM_MOUSEMOVE Drop Caption"));
-						GetCursorPos(&point);
+                        GetCursorPos(&Point);
 						::GetWindowRect(m_hWnd, &rect);
-						ScreenToClient(m_hWnd, &point);
+                        ScreenToClient(m_hWnd, &Point);
 						//TRACE(_T("WM_MOUSEMOVE rect  left=%d, top =%d"), rect.left ,rect.top);
 						//TRACE(_T("WM_MOUSEMOVE point point.x=%d, point.y=%d"), point.x ,point.y);
 						//TRACE(_T("WM_MOUSEMOVE Mouse pm.x=%d, pm.y=%d"), ptMouse.x ,ptMouse.y);
 						//TRACE(_T("WM_MOUSEMOVE diff  x  =%d,  y   =%d"), rect.left + point.x - ptMouse.x ,rect.top + point.y - ptMouse.y);
-						::SetWindowPos(m_hWnd, 0, rect.left + point.x - m_pViewInfo->ptLeftMouse.x ,
-							rect.top + point.y - m_pViewInfo->ptLeftMouse.y,
+                        ::SetWindowPos(m_hWnd, 0, rect.left + Point.x - m_pViewInfo->ptLeftMouse.x,
+                            rect.top + Point.y - m_pViewInfo->ptLeftMouse.y,
 							0 , 0, SWP_NOSIZE);
 						return 0;
 					}
@@ -1190,7 +1313,7 @@ end:
 			{
 				//弥补一条鼠标按下消息，使消息配对，所以凡是双击消息都要注意了，MYUI的消息跟Windows有区别
 				//Windows双击：WM_LBUTTONDOWN->WM_LBUTTONUP->WM_LBUTTONDBLCLK->WM_LBUTTONUP
-				//MYUI双击：WM_LBUTTONDOWN->WM_LBUTTONUP->WM_LBUTTONDOWN->WM_LBUTTONDBLCLK->WM_LBUTTONUP
+				//MYUI双击：   WM_LBUTTONDOWN->WM_LBUTTONUP->WM_LBUTTONDOWN->WM_LBUTTONDBLCLK->WM_LBUTTONUP
 				WndProc(WM_LBUTTONDOWN, wParam, lParam);
 				TRACE(_T("WM_LBUTTONDBLCLK"));
 				return MouseProc(message, wParam, lParam);
@@ -1242,10 +1365,10 @@ end:
 		case WM_MOUSEWHEEL:
 			{
 				//WM_MOUSEWHEEL的鼠标位置是屏幕位置
-				point.x = LOWORD(lParam);
-				point.y = HIWORD(lParam);
-				ScreenToClient(m_hWnd, &point);//转换一下
-				lParam = MAKELONG(point.x, point.y);
+                Point.x = LOWORD(lParam);
+                Point.y = HIWORD(lParam);
+                ScreenToClient(m_hWnd, &Point);//转换一下
+                lParam = MAKELONG(Point.x, Point.y);
 				return MouseProc(message, wParam, lParam);
 			}break;
 		case WM_MOUSEHOVER:
@@ -1405,6 +1528,24 @@ end:
 				}
 				return TRUE;
 			}break;
+        case WM_POPUPMENU:
+        {
+            if (wParam)
+            {
+                Point.x = GET_X_LPARAM(lParam);
+                Point.y = GET_Y_LPARAM(lParam);
+                reinterpret_cast<IMenuPopup*>(wParam)->Popup(static_cast<INotify*>(this), Point);
+            }
+            return !!wParam;
+        }break; 
+        case WM_POPUPDIALOG:
+        {
+            if (wParam)
+            {
+                reinterpret_cast<IDialogPopup*>(wParam)->Popup(lParam);
+            }
+            return !!wParam;
+        }
 		case WM_REQUESTINFO:
 			{
 				switch (wParam)

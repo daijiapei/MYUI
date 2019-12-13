@@ -51,7 +51,8 @@ namespace MYUI
 		BOOL Destroy();
 		
 		void ShowWindow(bool bShow = true, bool bTakeFocus = false);//显示窗口
-        LRESULT ShowModal(bool bShow = true, bool bEnableParent = true, MSG * pMsg = NULL);//显示模态窗口，即阻塞窗口
+        LRESULT ShowModal(bool bShow = true, bool bEnableParent = true, UINT uBreakMessage = -1);//显示模态窗口，即阻塞窗口
+        LRESULT Popup(RECT rcPos);
 		HWND GetHandle();
 
 		void CenterWindow();
@@ -81,6 +82,7 @@ namespace MYUI
         LPCTSTR GetLanguageFile() const;
 
 		//与宿主窗口使用同一资源
+        bool CloneResource(TSHAREINFO * pShareInfo);
         bool SetSyncResource(CWindowUI *pHostWindow);
 
 		bool SetSkin(LPCTSTR strSkin);
@@ -94,9 +96,12 @@ namespace MYUI
 		void SetCaption(CControlUI * pControl);
 		CControlUI * GetCaption() const;
 		CControlUI * GetFocusControl();
+
+        BOOL PostBreakMessage(BOOL bCheck, CControlUI * pParent);
 	protected:
 		//void SetCapture(bool bCapture);
 		virtual LRESULT CALLBACK WndProc(UINT message, WPARAM wParam, LPARAM lParam);
+        
 	private:
 		bool RegisterClass();//注册窗口 
 		LRESULT MouseProc(UINT message, WPARAM wParam, LPARAM lParam);

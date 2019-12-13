@@ -17,8 +17,8 @@
 #ifndef __WIN_FRAME_MYUI_H__
 #define __WIN_FRAME_MYUI_H__
 
-#include "Core//UIWindow.h"
-#include "Core//UIBuilder.h"
+#include "Core/UIWindow.h"
+#include "Core/UIBuilder.h"
 #include "Core/UserHandle.h"
 
 #include "Layout/UIVerticalLayout.h"

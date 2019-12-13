@@ -776,6 +776,7 @@ namespace MYUI
             }
         }
 
+#ifdef ENABLE_CONTROL_HOOK
 		for(int i=0; nCount > i; i++)
 		{
 			pHooker = (IControlHooker *)m_pHookers[i];
@@ -785,9 +786,11 @@ namespace MYUI
 				return lResule;
 			}
 		}
+#endif
 
 		lResule = WndProc(hWnd, message, wParam, lParam);
 
+#ifdef ENABLE_CONTROL_HOOK
 		for(int i=0; nCount > i; i++)
 		{
 			pHooker = (IControlHooker *)m_pHookers[i];
@@ -797,6 +800,7 @@ namespace MYUI
 				return lResule;
 			}
 		}
+#endif
 
 		return lResule;
 	}
@@ -805,6 +809,8 @@ namespace MYUI
 	{
 		CControlUI * pControl = NULL;
         POINT Point = { 0, 0 };
+        RECT rcPos = { 0 };
+        SIZE Size = { 0 };
 		bool bRet = false;
 		//如果要产生一条OnNotify通知，返回true;
 		switch(message)
@@ -872,20 +878,22 @@ namespace MYUI
 			}break;
 		case WM_RBUTTONUP:
 		{
-            RECT rcPopup = { 0 };
-            if (m_pMenu && GetItemFixedRect(rcPopup))
+            if (m_pMenu && GetItemFixedRect(rcPos))
             {
                 Point.x = (short)LOWORD(lParam);
                 Point.y = (short)HIWORD(lParam);
 
-                rcPopup.left += Point.x;
-                rcPopup.top += Point.y;
+                rcPos.left += Point.x;
+                rcPos.top += Point.y;
 
-                rcPopup.right = rcPopup.left;
-                rcPopup.bottom = rcPopup.top;
-                ::MapWindowPoints(m_pShareInfo->hWnd, NULL, (LPPOINT)&rcPopup, 2);
+                rcPos.right = rcPos.left;
+                rcPos.bottom = rcPos.top;
+                ::MapWindowPoints(m_pShareInfo->hWnd, NULL, (LPPOINT)&rcPos, 2);
 
-                m_pMenu->Popup(m_pShareInfo->pNotify, rcPopup);
+                Size = m_pMenu->GetSize();
+                Point = CalcPopupPoint(&rcPos, &Size, CPOT_RIGHT);
+
+                ::PostMessage(GETHWND(this), WM_POPUPMENU, (WPARAM)m_pMenu, MAKELONG(Point.x, Point.y));
             }
 		}break;
 		case WM_SETCURSOR:

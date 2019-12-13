@@ -200,7 +200,7 @@
 						<!--自定义一个Film控件， IBuilderCallback中完成Film的创建-->
 						<Film name="Film" vscroll="true" vScrollActive="true" vScrollTheme="vscroll_theme"></Film>
 
-						<WebBrowser name="WebBrowser" url="http://www.baidu.com"></WebBrowser>
+						<!--WebBrowser name="WebBrowser" url="http://www.baidu.com"></WebBrowser-->
 					</TabLayout>
 				</VerticalLayout>
 

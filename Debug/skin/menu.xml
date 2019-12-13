@@ -57,10 +57,19 @@
 						 NormalGuide="file='treeview_unexpand.png' source='0,0,16,16'"
 						 HotGuide="file='treeview_unexpand.png' source='16,0,32,16'">
 				<Menu bkImage="file='menu_bk.png' source='5,5,45,25' corner='30,2,2,2'" name="son_menu2" inset="1,1,1,1">
-					<MenuElement name="son1" text="hello 9" width="180" font="0"/>
-					<MenuElement name="son2" text="hello a" width="180" font="0"/>
-					<MenuElement name="son3" text="hello b" width="180" font="0"/>
-					<MenuElement name="son4" text="hello c" width="180" font="0"/>
+					<MenuElement name="son1" text="hello A" width="180" font="0"/>
+					<MenuElement name="son2" text="hello B" width="180" font="0"/>
+					<MenuElement name="son3" text="hello C" width="180" font="0"
+								NormalGuide="file='treeview_unexpand.png' source='0,0,16,16'"
+								HotGuide="file='treeview_unexpand.png' source='16,0,32,16'">
+						<Menu bkImage="file='menu_bk.png' source='5,5,45,25' corner='30,2,2,2'" name="son_menu3" inset="1,1,1,1">
+							<MenuElement name="son1" text="hello C1" width="180" font="0" HotColor="RGB(0,0,255)"/>
+							<MenuElement name="son2" text="hello C2" width="180" font="0"/>
+							<MenuElement name="son3" text="hello C3" width="180" font="0" HotColor="RGB(255,255,0)"/>
+							<MenuElement name="son4" text="hello C4" width="180" font="0"/>
+						</Menu>
+					</MenuElement>
+					<MenuElement name="son4" text="hello D" width="180" font="0"/>
 				</Menu>
 			</MenuElement>
 			<MenuElement name="mA" text="hello a" width="180"/>

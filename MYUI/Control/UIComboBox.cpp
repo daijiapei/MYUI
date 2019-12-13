@@ -12,7 +12,7 @@ namespace MYUI
 	class CComboBoxWnd : public CWindowUI
 	{
 	public:
-		CComboBoxWnd(CControlUI * pListBox);
+        CComboBoxWnd(CControlUI * pParent, CListBoxUI * pListBox);
 		~CComboBoxWnd();
 
 		//bool SetVerticalScrollBarActive(bool bActive);//是否一直显示滚动条
@@ -24,8 +24,7 @@ namespace MYUI
 		//void RemoveItem(int nIndex);
 		//void RemoveItem(CControlUI *pControl);
 		//bool SetSelectItem(int nIndex);
-		int GetSelect() const;
-		void SetParent(CControlUI * pParent);
+
 	protected:
 		virtual LRESULT CALLBACK WndProc(UINT message, WPARAM wParam, LPARAM lParam);
         virtual void OnNotify(TNOTIFYUI &notify);
@@ -36,9 +35,9 @@ namespace MYUI
 		CControlUI * m_pParent;
 	};
 	
-	CComboBoxWnd::CComboBoxWnd(CControlUI * pListBox)
-		: m_pParent(NULL)
+    CComboBoxWnd::CComboBoxWnd(CControlUI * pParent, CListBoxUI * pListBox)
 	{
+        m_pParent = static_cast<CControlUI*>(pParent);
         m_pListBox = static_cast<CListBoxUI*>(pListBox);
 	}
 
@@ -47,10 +46,6 @@ namespace MYUI
 
 	}
 
-	void CComboBoxWnd::SetParent(CControlUI * pParent)
-	{
-		m_pParent = pParent;
-	}
 
 	LRESULT CALLBACK CComboBoxWnd::WndProc(UINT message, WPARAM wParam, LPARAM lParam)
 	{
@@ -65,28 +60,11 @@ namespace MYUI
 					return 0;
 				};
 			}break;
-		case WM_CHECKHIDE:
-			{
-				ASSERT(m_pParent && "CComboBoxWnd::WndProc m_pParent 不能为空");
-				CControlUI * pControl = NULL;
-				pControl = (CControlUI*)::SendMessage(::GetParent(m_hWnd), WM_REQUESTINFO, MRQF_GETFOCUS, NULL);
-
-				TRACE(_T("pControl = %s , FOCUSE=%d"),(LPCTSTR)(pControl ? pControl->GetClassName() : _T("NULL")), 
-					(int)(::GetFocus() == m_hWnd ? 1 : 0));
-
-				//解释一下为什么WM_CHECKHIDE要使用异步，清看下面的判断语句：
-				//如果焦点不是ComboBox和本窗口中，则关闭本窗口。
-				//在一个焦点转换到另一个焦点的处理过程中，消息接收过程往往是：
-				//WM_KILLFOCUS -> WM_SETFOCUSE -> WM_LBUTTONDOWN。而我们要在WM_LBUTTONDOWN之后，
-				//才能知道pFocusedControl是否等于m_pParent 或者 ::GetFocus() 是否等于 m_hWnd
-				//也就是说，处理WM_KILLFOCUS的时候（WM_CHECKHIDE 总是在WM_KILLFOCUS发出的），
-				//并不能判断出这两个条件是否符合，因为这个时候，窗口正处于焦点转换的空档期，
-				//所以要使用PostMessage，将消息排到队列最后，先让焦点转换完成，再判断是否需要隐藏
-				if(NULL == m_pParent || (pControl != m_pParent && ::GetFocus() != m_hWnd))
-				{
-					::ShowWindow(m_hWnd, FALSE);
-				}
-			}break;
+        case WM_KILLFOCUS:
+        {
+            ::PostMessage(GetWindowOwner(m_hWnd), WM_BREAKLOOP, TRUE,
+                (LPARAM)static_cast<CControlUI*>(m_pParent));
+        }break;
 		}
 
 		return __super::WndProc(message, wParam, lParam);
@@ -102,7 +80,8 @@ namespace MYUI
 				
 				if(pConntrol && m_pParent)
 				{
-					this->ShowWindow(false);
+                    ::ShowWindow(m_hWnd, FALSE);
+                    ::PostMessage(m_hWnd, WM_BREAKLOOP, TRUE, NULL);
 					m_pParent->SetText(pConntrol->GetText());
 					m_pParent->SendNotify(FALSE, notify.dwType, notify.wParam, notify.lParam);
 				}
@@ -137,13 +116,12 @@ namespace MYUI
 			}break;
 		case EnumEventType::KillFocued:
 			{
-				TRACE(_T("CComboBoxWnd::OnEvent WM_KILLFOCUS"));
-				PostMessage(WM_CHECKHIDE, NULL, NULL);
 			}break;
 		case EnumEventType::WindowDestroy:
-			{
-
-			}break;
+		{
+            CVerticalLayoutUI * pRootLayout = static_cast<CVerticalLayoutUI*>(m_pViewInfo->pRootControl);
+            pRootLayout->Remove(m_pListBox);
+		}break;
 		default:
 			break;
 		}
@@ -163,13 +141,11 @@ namespace MYUI
 	{
 		m_pListBox = new CListBoxUI();
 		m_pListBox->SetBkColor(ARGB(255,255,255,255));
-		m_pDialog = new CComboBoxWnd(m_pListBox);
 	}
 
 	CComboBoxUI::~CComboBoxUI()
 	{
-		//delete m_pDialog;
-		//delete m_pListBox;
+		delete m_pListBox;
 	}
 
 	CMuiString CComboBoxUI::g_strClassName(_T("ComboBoxUI"));
@@ -245,24 +221,6 @@ namespace MYUI
 		return m_pListBox->GetSelect();
 	}
 
-	void CComboBoxUI::OnAttach(HWND hNewWnd)
-	{
-        m_pDialog->SetSyncResource(dynamic_cast<CWindowUI*>(m_pShareInfo->pNotify));//使用同步资源，同步父窗口资源
-		m_pDialog->Create((HINSTANCE) GetWindowLong(hNewWnd,GWL_HINSTANCE),hNewWnd,
-			WS_BORDER | WS_POPUP | WS_CLIPSIBLINGS, 
-			_T("{2F581E91-B25B-4A39-AFE8-96087151DFA7}"), _T("ComboBoxWnd"));
-        
-		m_pDialog->SetParent(this);
-	}
-
-	void CComboBoxUI::OnDetach(HWND hOldWnd)
-	{
-		if(::IsWindow(*m_pDialog))
-		{
-			m_pDialog->Destroy();
-		}
-	}
-
 	void CComboBoxUI::SetItemBoxHeight(int nHeight)
 	{
 		m_nItemBoxHeight = nHeight;
@@ -273,49 +231,52 @@ namespace MYUI
 		return m_nItemBoxHeight;
 	}
 
-	bool CComboBoxUI::ShowDialog(bool bShow /*= true*/)
-	{
-		CControlUI * pControl = NULL;
-		RECT rcItem;
-		POINT pt;
-		int nItemBoxHeight = 0;
-		if(NULL == m_pDialog) return false;
+    LRESULT CComboBoxUI::Popup(LPARAM lParam)
+    {
+        LRESULT lResult = FALSE;
+        CComboBoxWnd * pDialog = NULL;
 
-		ASSERT(::IsWindow(*m_pDialog));
-		if(!!::IsWindowVisible(*m_pDialog) == bShow)
-		{
-			return true;
-		}
+        RECT rcPos = { 0 };
+        int nItemBoxHeight = 0;
+        
+        if (m_pDialog)
+        {
+            ASSERT(0 && "CComboBoxUI::Popup 不合适的调用时机, m_pDialog应该为空");
+            return FALSE;
+        }
+        
+        //计算位置
+        if (FALSE == GetItemFixedRect(rcPos)) return NULL;
 
-		if(false == bShow)
-		{
-			m_pDialog->ShowWindow(false);
-		}
-		else
-		{
-			if(TRUE == GetItemFixedRect(rcItem))
-			{
-				pt.x = rcItem.left;
-				pt.y = rcItem.bottom;
+        rcPos.top = rcPos.bottom;
 
-				nItemBoxHeight = MAX(m_pListBox->GetContentSize().cy + 2,//加2是边框的高度
-					rcItem.bottom - rcItem.top);
+        nItemBoxHeight = MAX(m_pListBox->GetContentSize().cy + 2,//加2是边框的高度
+            rcPos.bottom - rcPos.top);
 
-				if(m_nItemBoxHeight > 0)
-				{
-					nItemBoxHeight = MIN(m_nItemBoxHeight,nItemBoxHeight);
-				}
+        if (m_nItemBoxHeight > 0)
+        {
+            nItemBoxHeight = MIN(m_nItemBoxHeight, nItemBoxHeight);
+        }
 
-				::ClientToScreen(m_pShareInfo->hWnd, &pt);
-				::SetWindowPos(*m_pDialog, HWND_TOPMOST, pt.x, pt.y, 
-					rcItem.right - rcItem.left, nItemBoxHeight ,
-					SWP_SHOWWINDOW);
-			}
-		}
+        rcPos.bottom = rcPos.top + nItemBoxHeight;
 
-		//::InvalidateRect(m_pShareInfo->hWnd, NULL, FALSE);
-		return true;
-	}
+        ::MapWindowPoints(GETHWND(this), NULL, (LPPOINT)&rcPos, 2);
+
+        //显示dialog
+        pDialog = new CComboBoxWnd(static_cast<CControlUI*>(this), m_pListBox);
+        pDialog->CloneResource(m_pShareInfo);
+        pDialog->Create((HINSTANCE)GetWindowLong(GETHWND(this), GWL_HINSTANCE), GETHWND(this),
+            WS_BORDER | WS_POPUP | WS_CLIPSIBLINGS,
+            _T("{2F581E91-B25B-4A39-AFE8-96087151DFA7}"), _T("ComboBoxWnd"));
+
+        m_pDialog = pDialog;
+        lResult = pDialog->Popup(rcPos);
+        m_pDialog = NULL;
+
+        pDialog->Destroy();
+        delete pDialog;
+        return lResult;
+    }
 
 	LRESULT CComboBoxUI::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	{
@@ -333,27 +294,31 @@ namespace MYUI
 				rcButton = m_rcRawItem;
 				rcButton.left = rcButton.right - m_rcTextPadding.right;
 
-				if(FALSE == PointInRect(pt, rcButton))
-				{
-					//让消息流入__super中
-					ShowDialog(false);
-					TRACE(_T("CComboBoxUI WM_LBUTTONDOWN From Edit"));
-					break;
-				}
-				else
-				{
-					if(true == IsEnabled())
-					{
-						ShowDialog(!::IsWindowVisible(* m_pDialog));
-						TRACE(_T("CComboBoxUI WM_LBUTTONDOWN From Button"));
-					}
-				}
+                if (TRUE == PointInRect(pt, rcButton))
+                {
+                    if (m_pDialog)
+                    {
+                        m_pDialog->PostMessage(WM_BREAKLOOP, TRUE, NULL);
+                    }
+                    else
+                    {
+                        ::PostMessage(GETHWND(this), WM_POPUPDIALOG, (WPARAM)static_cast<IDialogPopup*>(this), NULL);
+                    }
+                }
 			}break;
 		case WM_KEYDOWN:
 			{
-				if(true == IsEnabled() && VK_RETURN == wParam)
+				if(VK_RETURN == wParam)
 				{
-					ShowDialog(!::IsWindowVisible(* m_pDialog));
+					//ShowDialog(!::IsWindowVisible(* m_pDialog));
+                    if (m_pDialog)
+                    {
+                        m_pDialog->PostMessage(WM_BREAKLOOP, TRUE, NULL);
+                    }
+                    else
+                    {
+                        ::PostMessage(GETHWND(this), WM_POPUPDIALOG, (WPARAM)static_cast<IDialogPopup*>(this), NULL);
+                    }
 					TRACE(_T("CComboBoxUI WM_KEYDOWN From Edit"));
 					return false;
 				}
@@ -393,12 +358,16 @@ namespace MYUI
 			}break;
 		case WM_SETFOCUS:
 			{
-				//m_pDialog->SendMessage(WM_PARENTNOTIFY, TRUE, NULL);
+                TRACE(_T("CComboBoxUI WM_SETFOCUS"));
 			}break;
 		case WM_KILLFOCUS:
 			{
 				TRACE(_T("CComboBoxUI WM_KILLFOCUS"));
-				m_pDialog->PostMessage(WM_CHECKHIDE);
+                if (m_pDialog)
+                {
+                    ::PostMessage(::GetWindowOwner(*m_pDialog), WM_BREAKLOOP,
+                        TRUE, (LPARAM)static_cast<CControlUI*>(this));
+                }
 			}break;
 		default:
 			break;

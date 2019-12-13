@@ -46,6 +46,9 @@
 #define CLAMP(x,a,b) (MIN(b,MAX(a,x)))
 
 
+#define ENABLE_TIMER_LPARAM     //启用TIMER的lparam作为参数(本来是回调)
+#define ENABLE_CONTROL_HOOK     //启用自带的Hook接口
+
 #ifdef MYUI_STATIC
 #	define MYUI_API 
 #else
@@ -237,6 +240,14 @@ BOOL GetStringLine(LPCTSTR strText, int nStrLenght, int nStart,__out int * nCoun
 void PixelToHiMetric(HWND hWnd, const SIZEL* lpSizeInPix, LPSIZEL lpSizeInHiMetric);
 int check_pre_text_encode_lenght(LPCTSTR strText, int nIndex);
 BOOL ExtractInfo(LPCTSTR strSrc, TCHAR * strItem, TCHAR * strValue, int *nReadLen);
+
+
+#define CPOT_TOP     0x01
+#define CPOT_LEFT    0X02
+#define CPOT_RIGHT   0x03
+#define CPOT_BOTTOM  0X04
+POINT CalcPopupPoint(const RECT * pRect, const SIZE * pSize, DWORD dwPopupType);
+
 #ifdef __cplusplus
 }
 #endif

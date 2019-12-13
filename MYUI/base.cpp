@@ -297,3 +297,70 @@ void PixelToHiMetric(HWND hWnd, const SIZEL* lpSizeInPix, LPSIZEL lpSizeInHiMetr
     lpSizeInHiMetric->cx = MAP_PIX_TO_LOGHIM(lpSizeInPix->cx, nPixelsPerInchX);
     lpSizeInHiMetric->cy = MAP_PIX_TO_LOGHIM(lpSizeInPix->cy, nPixelsPerInchY);
 }
+
+
+POINT CalcPopupPoint(const RECT * pRect, const SIZE * pSize, DWORD dwPopupType)
+{
+    POINT ptPopup = { 0 };
+    SIZE szScreen = { 0 };
+
+    szScreen.cx = GetSystemMetrics(SM_CXSCREEN);
+    szScreen.cy = GetSystemMetrics(SM_CYSCREEN);
+
+    switch (dwPopupType)
+    {
+    case CPOT_TOP:
+    {
+
+    }break;
+    case CPOT_LEFT:
+    {
+
+    }break;
+    case CPOT_RIGHT:
+    {
+        //从右边弹出
+        if (pSize->cx + pRect->right > szScreen.cx && pRect->left - pSize->cx > 0)
+        {
+            ptPopup.x = pRect->left - pSize->cx;
+        }
+        else
+        {
+            ptPopup.x = pRect->right;
+        }
+
+        if (pSize->cy + pRect->top > szScreen.cy && pRect->top - pSize->cy > 0)
+        {
+            ptPopup.y = pRect->top - pSize->cy;
+        }
+        else
+        {
+            ptPopup.y = pRect->top;
+        }
+    }break;
+    case CPOT_BOTTOM:
+    default:
+    {
+        //否则从底部弹出
+        if (pSize->cx + pRect->left > szScreen.cx && pRect->right - pSize->cx > 0)
+        {
+            ptPopup.x = pRect->right - pSize->cx;
+        }
+        else
+        {
+            ptPopup.x = pRect->left;
+        }
+
+        if (pSize->cy + pRect->bottom > szScreen.cy && pRect->top - pSize->cy > 0)
+        {
+            ptPopup.y = pRect->top - pSize->cy;
+        }
+        else
+        {
+            ptPopup.y = pRect->bottom;
+        }
+    }break;
+    }
+
+    return ptPopup;
+}

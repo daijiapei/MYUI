@@ -1,0 +1,100 @@
+﻿Build started 2019-12-13 23:31:02.
+     1>Project "E:\Github\MYUI\MYUI\MYUI.vcxproj" on node 2 (Build target(s)).
+     1>ClCompile:
+         C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\CL.exe /c /ZI /nologo /W1 /WX- /sdl- /Od /Oy- /D WIN32 /D _DEBUG /D _WINDOWS /D _USRDLL /D MYUI_EXPORTS /D _CRT_SECURE_NO_WARNINGS /D _WINDLL /D _UNICODE /D UNICODE /Gm /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Fo"Debug\\" /Fd"Debug\vc120.pdb" /Gd /TP /analyze- /errorReport:prompt Control\UIButton.cpp Control\UICombo.cpp Control\UIComboBox.cpp Control\UIEdit.cpp Control\UIGif.cpp Control\UILable.cpp Control\UIListBox.cpp Control\UIListView.cpp Control\UIMenu.cpp Control\UIOption.cpp Control\UIPicture.cpp Control\UIProgress.cpp Control\UIRichEdit.cpp Control\UIScrollBar.cpp Control\UISlider.cpp Control\UIText.cpp Control\UITreeView.cpp Core\UIBuilder.cpp Core\UIContainer.cpp Core\UIControl.cpp Core\UIWindow.cpp ExtControl\UIActiveX.cpp ExtControl\UICalendar.cpp ExtControl\UIDragItem.cpp ExtControl\UIWebBrowser.cpp Layout\UIAbsoluteLayout.cpp Layout\UIBaseLayout.cpp Layout\UIHorizontalLayout.cpp Layout\UITabLayout.cpp Layout\UITileLayout.cpp Layout\UIVerticalLayout.cpp
+         UIVerticalLayout.cpp
+         UITileLayout.cpp
+         UITabLayout.cpp
+         UIHorizontalLayout.cpp
+         UIBaseLayout.cpp
+         UIAbsoluteLayout.cpp
+         UIWebBrowser.cpp
+         UIDragItem.cpp
+         UICalendar.cpp
+         UIActiveX.cpp
+         UIControl.cpp
+         UIContainer.cpp
+         UITreeView.cpp
+         UIText.cpp
+         UISlider.cpp
+         UIScrollBar.cpp
+         UIRichEdit.cpp
+         UIProgress.cpp
+         UIPicture.cpp
+         UIOption.cpp
+         Generating Code...
+         Compiling...
+         UIListView.cpp
+         UIListBox.cpp
+         UILable.cpp
+         UIGif.cpp
+         UIEdit.cpp
+         UIComboBox.cpp
+         UIButton.cpp
+         Generating Code...
+         Compiling...
+         UIWindow.cpp
+         UIBuilder.cpp
+         UIMenu.cpp
+         UICombo.cpp
+         Generating Code...
+       Link:
+         C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\link.exe /ERRORREPORT:PROMPT /OUT:"E:\Github\MYUI\Debug\MYUI.dll" /INCREMENTAL /NOLOGO kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /DEBUG /PDB:"E:\Github\MYUI\Debug\MYUI.pdb" /SUBSYSTEM:WINDOWS /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"E:\Github\MYUI\Debug\MYUI.lib" /MACHINE:X86 /DLL Debug\base.obj
+         Debug\UICombo.obj
+         Debug\UIComboBox.obj
+         Debug\UIGif.obj
+         Debug\UILable.obj
+         Debug\UIListBox.obj
+         Debug\UIListView.obj
+         Debug\UIMenu.obj
+         Debug\UIPicture.obj
+         Debug\UIRichEdit.obj
+         Debug\UIText.obj
+         Debug\UITreeView.obj
+         Debug\UIButton.obj
+         Debug\UIEdit.obj
+         Debug\UIOption.obj
+         Debug\UIProgress.obj
+         Debug\UIScrollBar.obj
+         Debug\UISlider.obj
+         Debug\UIBase.obj
+         Debug\UIBuilder.obj
+         Debug\UIContainer.obj
+         Debug\UIControl.obj
+         Debug\UIWindow.obj
+         Debug\UserHandle.obj
+         Debug\dllmian.obj
+         Debug\UIActiveX.obj
+         Debug\UICalendar.obj
+         Debug\UIDragItem.obj
+         Debug\UIFlash.obj
+         Debug\UIToolTip.obj
+         Debug\UIWebBrowser.obj
+         Debug\UIBaseLayout.obj
+         Debug\UIAbsoluteLayout.obj
+         Debug\UITabLayout.obj
+         Debug\UITileLayout.obj
+         Debug\UIHorizontalLayout.obj
+         Debug\UIVerticalLayout.obj
+         Debug\GdiEngine.obj
+         Debug\RenderEngine.obj
+         Debug\SkinManager.obj
+         Debug\tinystr.obj
+         Debug\tinyxml.obj
+         Debug\tinyxmlerror.obj
+         Debug\tinyxmlparser.obj
+         Debug\AvlTree.obj
+         Debug\Helper.obj
+         Debug\MD5.obj
+         Debug\QR_Encode.obj
+         Debug\rbtree.obj
+         Debug\stb_image.obj
+         Debug\Utils.obj
+         Debug\XUnzip.obj
+            Creating library E:\Github\MYUI\Debug\MYUI.lib and object E:\Github\MYUI\Debug\MYUI.exp
+         MYUI.vcxproj -> E:\Github\MYUI\Debug\MYUI.dll
+     1>Done Building Project "E:\Github\MYUI\MYUI\MYUI.vcxproj" (Build target(s)).
+
+Build succeeded.
+
+Time Elapsed 00:00:18.21

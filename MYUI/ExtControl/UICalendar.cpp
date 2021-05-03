@@ -96,7 +96,7 @@ static int get_month_last_date( int year, int month)
 	return date;
 }
 
-static void get_month_all_date(DATESTURCT * calendar, int year, int month)
+static void get_month_all_date(MUIDATE * calendar, int year, int month)
 {
 	memset(calendar, 0, DATESTULEN);
 	int week = weekday(year, month, 1);
@@ -161,11 +161,11 @@ static void get_month_all_date(DATESTURCT * calendar, int year, int month)
         CDateWnd(CControlUI * pParent, CControlUI * pDateView);
 		~CDateWnd();
 
-		bool SetSelectDate(DATESTURCT &date);
+		bool SetSelectDate(MUIDATE &date);
 		bool ShowCalendar(int nYear, int nMonth);
 	protected:
-        virtual void OnNotify(TNOTIFYUI &notify);
-        virtual LRESULT OnEvent(TEVENT &event);
+        virtual void OnNotify(MUINOTIFY &notify);
+        virtual LRESULT OnEvent(MUIEVENT &event);
 	protected:
 		CControlUI * m_pParent;
 		CControlUI * m_pView;
@@ -181,10 +181,10 @@ static void get_month_all_date(DATESTURCT * calendar, int year, int month)
 	{
 	}
 
-	bool CDateWnd::SetSelectDate(DATESTURCT &date)
+	bool CDateWnd::SetSelectDate(MUIDATE &date)
 	{
 		CDateViewUI * pDateView = NULL;
-		pDateView = (CDateViewUI*)m_pViewInfo->pRootControl->FindControlByName(CCalendarUI::strDateViewName);
+		pDateView = (CDateViewUI*)FindControl(CCalendarUI::strDateViewName);
 
 		return pDateView->SetSelect(date);
 	}
@@ -196,12 +196,12 @@ static void get_month_all_date(DATESTURCT * calendar, int year, int month)
 		CComboBoxUI * pYearBox = NULL;
 		CComboBoxUI * pMonthBox = NULL;
 
-		pYearBox = (CComboBoxUI*)m_pViewInfo->pRootControl->FindControlByName(CCalendarUI::strYearBoxName);
-		pMonthBox = (CComboBoxUI*)m_pViewInfo->pRootControl->FindControlByName(CCalendarUI::strMonthBoxName);
-		pDateView = (CDateViewUI*)m_pViewInfo->pRootControl->FindControlByName(CCalendarUI::strDateViewName);
+		pYearBox = (CComboBoxUI*)FindControl(CCalendarUI::strYearBoxName);
+		pMonthBox = (CComboBoxUI*)FindControl(CCalendarUI::strMonthBoxName);
+		pDateView = (CDateViewUI*)FindControl(CCalendarUI::strDateViewName);
 		if(!pYearBox || !pMonthBox || !pDateView)
 		{
-			ASSERT(0 && "CDateWnd找不到必须具备的控件");
+			MUIASSERT(0 && "CDateWnd找不到必须具备的控件");
 			return false;
 		}
 
@@ -214,18 +214,18 @@ static void get_month_all_date(DATESTURCT * calendar, int year, int month)
 		return true;
 	}
 
-    void CDateWnd::OnNotify(TNOTIFYUI &notify)
+    void CDateWnd::OnNotify(MUINOTIFY &notify)
 	{
 		CMuiString strTemp;
 		CDateViewUI * pDateView = NULL;
 		CComboBoxUI * pYearBox = NULL;
 		CComboBoxUI * pMonthBox = NULL;
-		DATESTURCT date;
+		MUIDATE date;
 		SYSTEMTIME time;
 		CControlUI * pConntrol = (CControlUI*) notify.pSender;
 		switch(notify.dwType)
 		{
-		case EnumNotifyMsg::ClickItem:
+		case EnumNotify::ClickItem:
 			{
 				if(pConntrol->GetName() == CCalendarUI::strBtnGobackName)
 				{
@@ -233,7 +233,7 @@ static void get_month_all_date(DATESTURCT * calendar, int year, int month)
 					ShowCalendar(time.wYear, time.wMonth);
 				}
 			}break;
-		case EnumNotifyMsg::SelectItem:
+		case EnumNotify::SelectItem:
 			{
 				if(pConntrol->GetName() == CCalendarUI::strDateViewName)
 				{
@@ -242,20 +242,20 @@ static void get_month_all_date(DATESTURCT * calendar, int year, int month)
 					strTemp.Format(_T("%04d-%02d-%02d"), date.year, date.month, date.day);
 					m_pParent->SetText(strTemp);
                     ::ShowWindow(m_hWnd, FALSE);
-                    ::PostMessage(m_hWnd, WM_BREAKLOOP, TRUE, NULL);
+                    ::PostMessage(m_hWnd, WMU_BREAKLOOP, TRUE, NULL);
 				}
 				else if(pConntrol->GetName() == CCalendarUI::strYearBoxName)
 				{
 					pYearBox = static_cast<CComboBoxUI *>(pConntrol);
 
-					pDateView = static_cast<CDateViewUI *>(m_pViewInfo->pRootControl->FindControlByName(CCalendarUI::strDateViewName));
+					pDateView = static_cast<CDateViewUI *>(FindControl(CCalendarUI::strDateViewName));
 					pDateView->ChangeCalendarYear(_tcstol(pYearBox->GetText(), NULL, 10));
 					
 				}
 				else if(pConntrol->GetName() == CCalendarUI::strMonthBoxName)
 				{
 					pMonthBox = static_cast<CComboBoxUI *>(pConntrol);
-					pDateView = static_cast<CDateViewUI *>(m_pViewInfo->pRootControl->FindControlByName(CCalendarUI::strDateViewName));
+					pDateView = static_cast<CDateViewUI *>(FindControl(CCalendarUI::strDateViewName));
 					pDateView->ChangeCalendarMonth(_tcstol(pMonthBox->GetText(), NULL, 10));
 				}
 			}break;
@@ -264,11 +264,11 @@ static void get_month_all_date(DATESTURCT * calendar, int year, int month)
 		//return __super::OnNotify(notify);
 	};
 
-    LRESULT CDateWnd::OnEvent(TEVENT &event)
+    LRESULT CDateWnd::OnEvent(MUIEVENT &event)
 	{
 		switch (event.dwType)
 		{
-		case EnumEventType::WindowInit:
+		case EnumEvent::WindowInit:
 			{
 				CVerticalLayoutUI * pRootLayout = new CVerticalLayoutUI();
 
@@ -276,22 +276,22 @@ static void get_month_all_date(DATESTURCT * calendar, int year, int month)
 
 				this->AttachFrameView(pRootLayout);
 			}break;
-		case EnumEventType::OnTimer:
+		case EnumEvent::OnTimer:
 			{
 
 			}break;
-		case EnumEventType::WindowShow:
+		case EnumEvent::WindowShow:
 			{
 				
 			}break;
-		case EnumEventType::KillFocued:
+		case EnumEvent::KillFocued:
 			{
-            ::PostMessage(GetWindowOwner(m_hWnd), WM_BREAKLOOP, TRUE,
+            ::PostMessage(GetWindowOwner(m_hWnd), WMU_BREAKLOOP, TRUE,
                 (LPARAM)static_cast<CControlUI*>(m_pParent));
 			}break;
-		case EnumEventType::WindowDestroy:
+		case EnumEvent::WindowDestroy:
 			{
-				((CVerticalLayoutUI*)m_pViewInfo->pRootControl)->Remove(m_pView);
+				((CVerticalLayoutUI*)GetRootControl())->Remove(m_pView);
 			}break;
 		default:
 			break;
@@ -460,25 +460,24 @@ static void get_month_all_date(DATESTURCT * calendar, int year, int month)
 		return (row * DATECOL) + col;
 	}
 
-	void CDateViewUI::PaintText(const RECT& rcItem, const RECT& rcPaint)
+	void CDateViewUI::PaintText(const RECT& rcUpdate)
 	{
 		TCHAR temp[10];
 		RECT rect;
 		POINT ptBegin, ptEnd;
 		ARGBREF refTextColor = NULL;
 		ARGBREF refBkColor = NULL;
-		HFONT hFont = (HFONT)m_pShareInfo->FontArray->Select(m_nFontId);
 		CRenderEngine * pEngine = m_pShareInfo->pRenderEngine;
 
 		//开始绘制
 		
 		int index = 0;
-		int nColOffset = (rcItem.right - rcItem.left) / DATECOL;
-		int nRowOffset = (rcItem.bottom - rcItem.top - m_nWeekHeight) / DATEROW;
+		int nColOffset = (m_rcClient.right - m_rcClient.left) / DATECOL;
+		int nRowOffset = (m_rcClient.bottom - m_rcClient.top - m_nWeekHeight) / DATEROW;
 
 		//星期标签
-		rect.left = rcItem.left;
-		rect.top = rcItem.top;
+		rect.left = m_rcClient.left;
+		rect.top = m_rcClient.top;
 		rect.right = rect.left + nColOffset;
 		rect.bottom = rect.top + m_nWeekHeight;
 		for(int i = 0; DATECOL > i; i++)
@@ -499,13 +498,13 @@ static void get_month_all_date(DATESTURCT * calendar, int year, int month)
 				}
 			}
 
-			pEngine->OnDrawText(rect, mweek[i], refTextColor, hFont, DT_SINGLELINE | DT_CENTER | DT_VCENTER);
+			pEngine->OnDrawText(rect, mweek[i], refTextColor, m_hFont, DT_SINGLELINE | DT_CENTER | DT_VCENTER);
 			OffsetRect(&rect, nColOffset , 0);
 		}
 
 		//日期单元格
-		rect.left = rcItem.left;
-		rect.top = rcItem.top + m_nWeekHeight;
+		rect.left = m_rcClient.left;
+		rect.top = m_rcClient.top + m_nWeekHeight;
 		rect.right = rect.left + nColOffset;
 		rect.bottom = rect.top + nRowOffset;
 		if(m_refLineColor) rect.bottom -= 1;
@@ -574,20 +573,20 @@ static void get_month_all_date(DATESTURCT * calendar, int year, int month)
 				}
 
 				if(refBkColor) pEngine->OnDrawColor(rect, refBkColor);
-				pEngine->OnDrawText(rect, temp, refTextColor, hFont, DT_SINGLELINE | DT_CENTER | DT_VCENTER);
+				pEngine->OnDrawText(rect, temp, refTextColor, m_hFont, DT_SINGLELINE | DT_CENTER | DT_VCENTER);
 				OffsetRect(&rect, nColOffset , 0);
 			}/*日期单元格 *列*/
 
 			
 			if(m_refLineColor)
 			{
-				ptBegin.x = rcItem.left;
-				ptEnd.x = rcItem.right;
+				ptBegin.x = m_rcClient.left;
+				ptEnd.x = m_rcClient.right;
 				ptBegin.y = ptEnd.y = rect.top;
 				pEngine->OnDrawLine(ptBegin, ptEnd, 1, m_refLineColor);
 			}
 
-			OffsetRect(&rect, rcItem.left - rect.left , nRowOffset);
+			OffsetRect(&rect, m_rcClient.left - rect.left , nRowOffset);
 			
 		}/*日期单元格 *行*/
 
@@ -598,7 +597,7 @@ static void get_month_all_date(DATESTURCT * calendar, int year, int month)
 	{
 	}
 		
-	LRESULT CDateViewUI::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+	LRESULT CDateViewUI::WndProc(UINT message, WPARAM wParam, LPARAM lParam)
 	{
 		POINT point;
 		int index = -1;
@@ -622,10 +621,10 @@ static void get_month_all_date(DATESTURCT * calendar, int year, int month)
 				point.y = GET_Y_LPARAM(lParam);
 				index = GetPointItem(point);
 
-				if(-1 != index && hWnd)
+				if(-1 != index && GETHWND(this))
 				{
 					m_SelectDate = m_DateCalendar[index];
-					SendNotify(!hWnd, EnumNotifyMsg::SelectItem, index, (LPARAM)this);
+					SendNotify(EnumNotify::SelectItem, index, (LPARAM)this);
 				}
 			}break;
 		case WM_MOUSEMOVE:
@@ -652,16 +651,16 @@ static void get_month_all_date(DATESTURCT * calendar, int year, int month)
 		default:
 			break;
 		}
-		return __super::WndProc(hWnd, message, wParam, lParam);
+		return __super::WndProc(message, wParam, lParam);
 	}
 
-	bool CDateViewUI::GetSelect(DATESTURCT &date)
+	bool CDateViewUI::GetSelect(MUIDATE &date)
 	{
 		date = m_SelectDate;
 		return true;
 	}
 
-	bool CDateViewUI::SetSelect(DATESTURCT &date)
+	bool CDateViewUI::SetSelect(MUIDATE &date)
 	{
 		m_SelectDate = date;
 		Invalidate();
@@ -809,12 +808,12 @@ static void get_month_all_date(DATESTURCT * calendar, int year, int month)
 
 	}
 
-	bool CCalendarUI::GetDate(DATESTURCT &date)
+	bool CCalendarUI::GetDate(MUIDATE &date)
 	{
 		return m_pDateView->GetSelect(date);
 	}
 
-	bool CCalendarUI::SetDate(DATESTURCT &date)
+	bool CCalendarUI::SetDate(MUIDATE &date)
 	{
 		return m_pDateView->SetSelect(date);
 	}
@@ -935,7 +934,7 @@ static void get_month_all_date(DATESTURCT * calendar, int year, int month)
 
         if (m_pDialog)
         {
-            ASSERT(0 && "CCalendarUI::Popup 不合适的调用时机, m_pDialog应该为空");
+            MUIASSERT(0 && "CCalendarUI::Popup 不合适的调用时机, m_pDialog应该为空");
             return FALSE;
         }
 
@@ -953,7 +952,7 @@ static void get_month_all_date(DATESTURCT * calendar, int year, int month)
 
         pDialog = new CDateWnd(static_cast<CControlUI*>(this),
             static_cast<CControlUI*>(m_pDialogView));
-        pDialog->CloneResource(m_pShareInfo);//使用同步资源，同步父窗口资源
+        //pDialog->CloneResource(m_pShareInfo);//使用同步资源，同步父窗口资源
         pDialog->Create((HINSTANCE)GetWindowLong(GETHWND(this), GWL_HINSTANCE), GETHWND(this),
             WS_BORDER | WS_POPUP | WS_CLIPSIBLINGS,
             _T("{E0BAF9EC-36B5-41EE-A4B3-B2DF52844943}"), _T("CDateWnd"));
@@ -969,7 +968,7 @@ static void get_month_all_date(DATESTURCT * calendar, int year, int month)
         return lResult;
     }
 
-	LRESULT CCalendarUI::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+	LRESULT CCalendarUI::WndProc(UINT message, WPARAM wParam, LPARAM lParam)
 	{
 		POINT pt;
 		RECT rcButton;
@@ -977,14 +976,6 @@ static void get_month_all_date(DATESTURCT * calendar, int year, int month)
 		bool bRet = false;
 		switch(message)
 		{
-		case WM_GETSCROLL:
-			{
-				if(GSL_VERTICAL == wParam)
-				{
-					return (LRESULT)m_pYearBox->GetVerticalScrollBar();
-				}
-				return NULL;
-			}break;
 		case WM_LBUTTONDOWN:
 			{
 				pt.x = (short)GET_X_LPARAM(lParam);
@@ -997,11 +988,11 @@ static void get_month_all_date(DATESTURCT * calendar, int year, int month)
                 {
                     if (m_pDialog)
                     {
-                        m_pDialog->PostMessage(WM_BREAKLOOP, TRUE, NULL);
+                        m_pDialog->PostMessage(WMU_BREAKLOOP, TRUE, NULL);
                     }
                     else
                     {
-                        ::PostMessage(GETHWND(this), WM_POPUPDIALOG, (WPARAM)static_cast<IDialogPopup*>(this), NULL);
+                        ::PostMessage(GETHWND(this), WMU_POPUPDIALOG, (WPARAM)static_cast<IDialogPopup*>(this), NULL);
                     }
                 }
 			}break;
@@ -1011,11 +1002,11 @@ static void get_month_all_date(DATESTURCT * calendar, int year, int month)
             {
                 if (m_pDialog)
                 {
-                    m_pDialog->PostMessage(WM_BREAKLOOP, TRUE, NULL);
+                    m_pDialog->PostMessage(WMU_BREAKLOOP, TRUE, NULL);
                 }
                 else
                 {
-                    ::PostMessage(GETHWND(this), WM_POPUPDIALOG, (WPARAM)static_cast<IDialogPopup*>(this), NULL);
+                    ::PostMessage(GETHWND(this), WMU_POPUPDIALOG, (WPARAM)static_cast<IDialogPopup*>(this), NULL);
                 }
                 return false;
             }
@@ -1055,15 +1046,15 @@ static void get_month_all_date(DATESTURCT * calendar, int year, int month)
 			}break;
 		case WM_SETFOCUS:
 			{
-                TRACE(_T("CCalendarUI WM_SETFOCUS"));
+                MUITRACE(_T("CCalendarUI WM_SETFOCUS"));
 				//m_pBoxWnd->SendMessage(WM_PARENTNOTIFY, TRUE, NULL);
 			}break;
 		case WM_KILLFOCUS:
 			{
-                TRACE(_T("CCalendarUI WM_KILLFOCUS"));
+                MUITRACE(_T("CCalendarUI WM_KILLFOCUS"));
                 if (m_pDialog)
                 {
-                    ::PostMessage(::GetWindowOwner(*m_pDialog), WM_BREAKLOOP,
+                    ::PostMessage(::GetWindowOwner(*m_pDialog), WMU_BREAKLOOP,
                         TRUE, (LPARAM)static_cast<CControlUI*>(this));
                 }
 			}break;
@@ -1071,7 +1062,7 @@ static void get_month_all_date(DATESTURCT * calendar, int year, int month)
 			break;
 		}
 
-		return __super::WndProc(hWnd, message, wParam, lParam);
+		return __super::WndProc(message, wParam, lParam);
 	}
 
 //日历控件的属性非常多，下面是设置日历控件的代码

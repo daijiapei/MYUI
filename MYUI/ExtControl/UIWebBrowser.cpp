@@ -45,7 +45,7 @@ namespace MYUI
 		else if(0 == _tcsicmp(strItem, _T("AutoNavi")))
 		{
 #ifdef _DEBUG
-			ASSERT(CheckBoer(strValue));
+			MUIASSERT(CheckBoer(strValue));
 #endif
 			SetAutoNavigation(CheckTrue(strValue));
 		}
@@ -62,8 +62,8 @@ namespace MYUI
 
     HRESULT CWebBrowserUI::GetControl(const IID iid, LPVOID *ppRet)
     {
-        ASSERT(ppRet != NULL);
-        ASSERT(*ppRet == NULL);
+        MUIASSERT(ppRet != NULL);
+        MUIASSERT(*ppRet == NULL);
 
         if (NULL == ppRet) return E_POINTER;
         if (NULL == m_pOleObject) return E_PENDING;
@@ -213,7 +213,7 @@ namespace MYUI
 
     HRESULT CWebBrowserUI::RegisterEventHandler(BOOL inAdvise)
     {
-        TRACE(_T("CWebBrowserUI::RegisterEventHandler"));
+        MUITRACE(_T("CWebBrowserUI::RegisterEventHandler"));
         CComPtr<IWebBrowser2> pWebBrowser;
         CComPtr<IConnectionPointContainer>  pCPC;
         CComPtr<IConnectionPoint> pCP;
@@ -255,7 +255,7 @@ namespace MYUI
         SIZEL pxSize = { 0 };
         RECT rcItem = { 0 };
         //if(NULL == m_bInPlaceActive) return false;
-        TRACE(_T("AX: CWebBrowserUI::WndProc"));
+        MUITRACE(_T("AX: CWebBrowserUI::WndProc"));
 
         //if (message >= WM_MOUSEFIRST && WM_MOUSELAST >= message)
         //{
@@ -283,7 +283,7 @@ namespace MYUI
 
     void CWebBrowserUI::OnAttach(HWND hNewWnd)
     {
-        TRACE(_T("AX: CWebBrowserUI::OnAttach"));
+        MUITRACE(_T("AX: CWebBrowserUI::OnAttach"));
         this->CreateControl();
 
         if (!m_strUrl.IsEmpty())
@@ -298,7 +298,7 @@ namespace MYUI
 
     void CWebBrowserUI::OnDetach(HWND hOldWnd)
     {
-        TRACE(_T("AX: CActiveXUI::OnDetach"));
+        MUITRACE(_T("AX: CActiveXUI::OnDetach"));
         //我老实告诉大家，这样写我也不知道对不对，因为我对COM不了解，这里可能需要大家测试改正
         //先跟大家说一说OnAttach跟OnDetach函数是干嘛用的。一般我们都是先创建UI对象，再附加到
         //窗口中的，而有些控件在new命令中是无法初始化的，因为那个时候还不知道宿主窗口是谁，
@@ -342,7 +342,7 @@ namespace MYUI
     *************************************************************************/
     DISPID CWebBrowserUI::FindId(IDispatch *pObj, LPOLESTR pName)
     {
-        TRACE(_T("CWebBrowserUI::FindId"));
+        MUITRACE(_T("CWebBrowserUI::FindId"));
         DISPID id = 0;
         if (FAILED(pObj->GetIDsOfNames(IID_NULL, &pName, 1, LOCALE_SYSTEM_DEFAULT, &id))) id = -1;
         return id;
@@ -350,7 +350,7 @@ namespace MYUI
 
     HRESULT CWebBrowserUI::InvokeMethod(IDispatch *pObj, LPOLESTR pMehtod, VARIANT *pVarResult, VARIANT *ps, int cArgs)
     {
-        TRACE(_T("CWebBrowserUI::InvokeMethod"));
+        MUITRACE(_T("CWebBrowserUI::InvokeMethod"));
         DISPID dispid = FindId(pObj, pMehtod);
         if (dispid == -1) return E_FAIL;
 
@@ -365,7 +365,7 @@ namespace MYUI
 
     HRESULT CWebBrowserUI::SetProperty(IDispatch *pObj, LPOLESTR pName, VARIANT *pValue)
     {
-        TRACE(_T("CWebBrowserUI::SetProperty"));
+        MUITRACE(_T("CWebBrowserUI::SetProperty"));
         DISPID dispid = FindId(pObj, pName);
         if (dispid == -1) return E_FAIL;
 
@@ -380,7 +380,7 @@ namespace MYUI
 
     HRESULT CWebBrowserUI::GetProperty(IDispatch *pObj, LPOLESTR pName, VARIANT *pValue)
     {
-        TRACE(_T("CWebBrowserUI::GetProperty"));
+        MUITRACE(_T("CWebBrowserUI::GetProperty"));
         DISPID dispid = FindId(pObj, pName);
         if (dispid == -1) return E_FAIL;
 
@@ -399,19 +399,19 @@ namespace MYUI
     *************************************************************************/
     void CWebBrowserUI::SetHomePage(LPCTSTR lpszUrl)
     {
-        TRACE(_T("CWebBrowserUI::SetHomePage"));
+        MUITRACE(_T("CWebBrowserUI::SetHomePage"));
         m_strHomePage.Format(_T("%s"), lpszUrl);
     }
 
     LPCTSTR CWebBrowserUI::GetHomePage()
     {
-        TRACE(_T("CWebBrowserUI::GetHomePage"));
+        MUITRACE(_T("CWebBrowserUI::GetHomePage"));
         return m_strHomePage;
     }
 
     void CWebBrowserUI::SetAutoNavigation(bool bAuto /*= TRUE*/)
     {
-        TRACE(_T("CWebBrowserUI::SetAutoNavigation"));
+        MUITRACE(_T("CWebBrowserUI::SetAutoNavigation"));
         if (m_bAutoNavi == bAuto)	return;
 
         m_bAutoNavi = bAuto;
@@ -419,13 +419,13 @@ namespace MYUI
 
     bool CWebBrowserUI::IsAutoNavigation()
     {
-        TRACE(_T("CWebBrowserUI::IsAutoNavigation"));
+        MUITRACE(_T("CWebBrowserUI::IsAutoNavigation"));
         return m_bAutoNavi;
     }
 
     void CWebBrowserUI::Navigate2(LPCTSTR lpszUrl)
     {
-        TRACE(_T("CWebBrowserUI::Navigate2"));
+        MUITRACE(_T("CWebBrowserUI::Navigate2"));
         if (lpszUrl == NULL) return;
 
         if (m_pWebBrowser)
@@ -444,7 +444,7 @@ namespace MYUI
 
     void CWebBrowserUI::Refresh()
     {
-        TRACE(_T("CWebBrowserUI::Refresh"));
+        MUITRACE(_T("CWebBrowserUI::Refresh"));
         if (m_pWebBrowser)
         {
             m_pWebBrowser->Refresh();
@@ -453,7 +453,7 @@ namespace MYUI
 
     void CWebBrowserUI::Refresh2(int Level)
     {
-        TRACE(_T("CWebBrowserUI::Refresh2"));
+        MUITRACE(_T("CWebBrowserUI::Refresh2"));
         CVariant vLevel;
         vLevel.vt = VT_I4;
         vLevel.intVal = Level;
@@ -462,7 +462,7 @@ namespace MYUI
 
     void CWebBrowserUI::GoBack()
     {
-        TRACE(_T("CWebBrowserUI::GoBack"));
+        MUITRACE(_T("CWebBrowserUI::GoBack"));
         if (m_pWebBrowser)
         {
             m_pWebBrowser->GoBack();
@@ -471,7 +471,7 @@ namespace MYUI
 
     void CWebBrowserUI::GoForward()
     {
-        TRACE(_T("CWebBrowserUI::GoForward"));
+        MUITRACE(_T("CWebBrowserUI::GoForward"));
         if (m_pWebBrowser)
         {
             m_pWebBrowser->GoForward();
@@ -480,14 +480,14 @@ namespace MYUI
 
     void CWebBrowserUI::NavigateHomePage()
     {
-        TRACE(_T("CWebBrowserUI::NavigateHomePage"));
+        MUITRACE(_T("CWebBrowserUI::NavigateHomePage"));
         if (!m_strHomePage.IsEmpty())
             this->NavigateUrl(m_strHomePage);
     }
 
     void CWebBrowserUI::NavigateUrl(LPCTSTR lpszUrl)
     {
-        TRACE(_T("CWebBrowserUI::NavigateUrl"));
+        MUITRACE(_T("CWebBrowserUI::NavigateUrl"));
         if (m_pWebBrowser && lpszUrl)
         {
             m_pWebBrowser->Navigate((BSTR)SysAllocString(T2BSTR(lpszUrl)), NULL, NULL, NULL, NULL);
@@ -496,13 +496,13 @@ namespace MYUI
 
     IWebBrowser2* CWebBrowserUI::GetWebBrowser2(void)
     {
-        TRACE(_T("CWebBrowserUI::GetWebBrowser2"));
+        MUITRACE(_T("CWebBrowserUI::GetWebBrowser2"));
         return m_pWebBrowser;
     }
 
     IDispatch* CWebBrowserUI::GetHtmlWindow()
     {
-        TRACE(_T("CWebBrowserUI::GetHtmlWindow"));
+        MUITRACE(_T("CWebBrowserUI::GetHtmlWindow"));
         IDispatch* pDp = NULL;
         HRESULT hr = S_FALSE;
         if (m_pWebBrowser)
@@ -604,7 +604,7 @@ namespace MYUI
     // IObjectWithSite
     STDMETHODIMP CWebBrowserUI::SetSite(IUnknown *pUnkSite)
     {
-        TRACE(_T("AX: CActiveXCtrl::SetSite"));
+        MUITRACE(_T("AX: CActiveXCtrl::SetSite"));
         if (NULL != m_pUnkSite)
         {
             m_pUnkSite->Release();
@@ -620,7 +620,7 @@ namespace MYUI
 
     STDMETHODIMP CWebBrowserUI::GetSite(REFIID  riid, LPVOID * ppvSite)
     {
-        TRACE(_T("AX: CActiveXCtrl::GetSite"));
+        MUITRACE(_T("AX: CActiveXCtrl::GetSite"));
         if (NULL == ppvSite) return E_POINTER;
         *ppvSite = NULL;
         if (NULL == m_pUnkSite) return E_FAIL;
@@ -630,7 +630,7 @@ namespace MYUI
     // IOleWindow
     STDMETHODIMP CWebBrowserUI::GetWindow(HWND *phWnd)
     {
-        TRACE(_T("AX: CWebBrowserUI::GetWindow"));
+        MUITRACE(_T("AX: CWebBrowserUI::GetWindow"));
         if (NULL == m_pShareInfo || NULL == m_pShareInfo->hWnd) return E_FAIL;
         *phWnd = m_pShareInfo->hWnd;
         return S_OK;
@@ -638,20 +638,20 @@ namespace MYUI
 
     STDMETHODIMP CWebBrowserUI::ContextSensitiveHelp(BOOL bEnterMode)
     {
-        TRACE(_T("AX: CWebBrowserUI::ContextSensitiveHelp"));
+        MUITRACE(_T("AX: CWebBrowserUI::ContextSensitiveHelp"));
         return S_OK;
     }
 
     //IOleInPlaceSite
     HRESULT STDMETHODCALLTYPE CWebBrowserUI::CanInPlaceActivate(void)
     {
-        TRACE(_T("AX: CWebBrowserUI::CanInPlaceActivate"));
+        MUITRACE(_T("AX: CWebBrowserUI::CanInPlaceActivate"));
         return S_OK;
     }
 
     HRESULT STDMETHODCALLTYPE CWebBrowserUI::OnInPlaceActivate(void)
     {
-        TRACE(_T("AX: CWebBrowserUI::OnInPlaceActivate"));
+        MUITRACE(_T("AX: CWebBrowserUI::OnInPlaceActivate"));
         OleLockRunning(m_pOleObject, TRUE, FALSE);
         m_pOleObject->QueryInterface(&m_pOleInPlaceObject);
         m_pOleInPlaceObject->SetObjectRects(&m_rcPos, &m_rcPos);
@@ -660,7 +660,7 @@ namespace MYUI
 
     HRESULT STDMETHODCALLTYPE CWebBrowserUI::OnUIActivate(void)
     {
-        TRACE(_T("AX: CWebBrowserUI::OnUIActivate"));
+        MUITRACE(_T("AX: CWebBrowserUI::OnUIActivate"));
         return S_OK;
     }
 
@@ -671,7 +671,7 @@ namespace MYUI
         __RPC__out LPRECT lprcClipRect,
         __RPC__inout LPOLEINPLACEFRAMEINFO lpFrameInfo)
     {
-        TRACE(_T("AX: CWebBrowserUI::GetWindowContext"));
+        MUITRACE(_T("AX: CWebBrowserUI::GetWindowContext"));
         HWND hwnd = GETHWND(this);
 
         if (NULL == ppDoc) return E_POINTER;
@@ -692,37 +692,37 @@ namespace MYUI
 
     HRESULT STDMETHODCALLTYPE CWebBrowserUI::Scroll(SIZE scrollExtant)
     {
-        TRACE(_T("AX: CWebBrowserUI::Scroll"));
+        MUITRACE(_T("AX: CWebBrowserUI::Scroll"));
         return E_NOTIMPL;
     }
 
     HRESULT STDMETHODCALLTYPE CWebBrowserUI::OnUIDeactivate(BOOL fUndoable)
     {
-        TRACE(_T("AX: CWebBrowserUI::OnUIDeactivate"));
+        MUITRACE(_T("AX: CWebBrowserUI::OnUIDeactivate"));
         return S_OK;
     }
 
     HRESULT STDMETHODCALLTYPE CWebBrowserUI::OnInPlaceDeactivate(void)
     {
-        TRACE(_T("AX: CWebBrowserUI::OnInPlaceDeactivate"));
+        MUITRACE(_T("AX: CWebBrowserUI::OnInPlaceDeactivate"));
         return S_OK;
     }
 
     HRESULT STDMETHODCALLTYPE CWebBrowserUI::DiscardUndoState(void)
     {
-        TRACE(_T("AX: CWebBrowserUI::DiscardUndoState"));
+        MUITRACE(_T("AX: CWebBrowserUI::DiscardUndoState"));
         return E_NOTIMPL;
     }
 
     HRESULT STDMETHODCALLTYPE CWebBrowserUI::DeactivateAndUndo(void)
     {
-        TRACE(_T("AX: CWebBrowserUI::DeactivateAndUndo"));
+        MUITRACE(_T("AX: CWebBrowserUI::DeactivateAndUndo"));
         return E_NOTIMPL;
     }
 
     HRESULT STDMETHODCALLTYPE CWebBrowserUI::OnPosRectChange(__RPC__in LPCRECT lprcPosRect)
     {
-        TRACE(_T("AX: CWebBrowserUI::OnPosRectChange"));
+        MUITRACE(_T("AX: CWebBrowserUI::OnPosRectChange"));
         SIZEL hmSize = { 0 };
         SIZEL pxSize = { 0 };
 
@@ -747,19 +747,19 @@ namespace MYUI
     // IOleControlSite
     STDMETHODIMP CWebBrowserUI::OnControlInfoChanged(void)
     {
-        TRACE(_T("AX: CWebBrowserUI::OnControlInfoChanged"));
+        MUITRACE(_T("AX: CWebBrowserUI::OnControlInfoChanged"));
         return S_OK;
     }
 
     STDMETHODIMP CWebBrowserUI::LockInPlaceActive(BOOL bLock)
     {
-        TRACE(_T("AX: CWebBrowserUI::LockInPlaceActive"));
+        MUITRACE(_T("AX: CWebBrowserUI::LockInPlaceActive"));
         return S_OK;
     }
 
     STDMETHODIMP CWebBrowserUI::GetExtendedControl(IDispatch** ppDisp)
     {
-        TRACE(_T("AX: CWebBrowserUI::GetExtendedControl"));
+        MUITRACE(_T("AX: CWebBrowserUI::GetExtendedControl"));
         if (NULL == ppDisp) return E_POINTER;
         if (NULL == m_pOleObject) return E_UNEXPECTED;
         return m_pOleObject->QueryInterface(IID_IDispatch, (LPVOID*)ppDisp);
@@ -767,19 +767,19 @@ namespace MYUI
 
     STDMETHODIMP CWebBrowserUI::TransformCoords(POINTL * pPtlHimetric, POINTF *pPtfContainer, DWORD dwFlags)
     {
-        TRACE(_T("AX: CWebBrowserUI::TransformCoords"));
+        MUITRACE(_T("AX: CWebBrowserUI::TransformCoords"));
         return S_OK;
     }
 
     STDMETHODIMP CWebBrowserUI::TranslateAccelerator(MSG *pMsg, DWORD grfModifiers)
     {
-        TRACE(_T("AX: CWebBrowserUI::TranslateAccelerator"));
+        MUITRACE(_T("AX: CWebBrowserUI::TranslateAccelerator"));
         return S_FALSE;
     }
 
     STDMETHODIMP CWebBrowserUI::OnFocus(BOOL bGotFocus)
     {
-        TRACE(_T("AX: CWebBrowserUI::OnFocus"));
+        MUITRACE(_T("AX: CWebBrowserUI::OnFocus"));
 
         if (bGotFocus)
         {
@@ -795,20 +795,20 @@ namespace MYUI
 
     STDMETHODIMP CWebBrowserUI::ShowPropertyFrame(void)
     {
-        TRACE(_T("AX: CWebBrowserUI::ShowPropertyFrame"));
+        MUITRACE(_T("AX: CWebBrowserUI::ShowPropertyFrame"));
         return E_NOTIMPL;
     }
 
     //IOleClientSite
     STDMETHODIMP CWebBrowserUI::SaveObject(void)
     {
-        TRACE(_T("AX: CWebBrowserUI::SaveObject"));
+        MUITRACE(_T("AX: CWebBrowserUI::SaveObject"));
         return E_NOTIMPL;
     }
 
     STDMETHODIMP CWebBrowserUI::GetMoniker(DWORD dwAssign, DWORD dwWhichMoniker, IMoniker ** ppmk)
     {
-        TRACE(_T("AX: CWebBrowserUI::GetMoniker"));
+        MUITRACE(_T("AX: CWebBrowserUI::GetMoniker"));
         if ((dwAssign == OLEGETMONIKER_ONLYIFTHERE) && (dwWhichMoniker == OLEWHICHMK_CONTAINER))
             return E_FAIL;
         //if (ppmk) *ppmk = NULL;
@@ -817,14 +817,14 @@ namespace MYUI
 
     STDMETHODIMP CWebBrowserUI::GetContainer(IOleContainer ** ppContainer)
     {
-        TRACE(_T("AX: CWebBrowserUI::GetContainer"));
+        MUITRACE(_T("AX: CWebBrowserUI::GetContainer"));
         *ppContainer = NULL;
         return E_NOINTERFACE;
     }
 
     STDMETHODIMP CWebBrowserUI::ShowObject(void)
     {
-        TRACE(_T("AX: CWebBrowserUI::ShowObject"));
+        MUITRACE(_T("AX: CWebBrowserUI::ShowObject"));
         if (NULL == m_pShareInfo || NULL == m_pShareInfo->hWnd) return E_UNEXPECTED;
 
         /*HDC hdc = ::GetDC(m_hHostWindow);
@@ -839,13 +839,13 @@ namespace MYUI
 
     STDMETHODIMP CWebBrowserUI::OnShowWindow(BOOL bShow)
     {
-        TRACE(_T("AX: CWebBrowserUI::OnShowWindow"));
+        MUITRACE(_T("AX: CWebBrowserUI::OnShowWindow"));
         return S_OK;
     }
 
     STDMETHODIMP CWebBrowserUI::RequestNewObjectLayout(void)
     {
-        TRACE(_T("AX: CWebBrowserUI::RequestNewObjectLayout"));
+        MUITRACE(_T("AX: CWebBrowserUI::RequestNewObjectLayout"));
         return E_NOTIMPL;
     }
 
@@ -853,98 +853,98 @@ namespace MYUI
     HRESULT STDMETHODCALLTYPE CWebBrowserUI::CreateStream(const OLECHAR *pwcsName,
         DWORD grfMode, DWORD reserved1, DWORD reserved2, IStream **ppstm)
     {
-        TRACE(_T("AX: CWebBrowserUI::CreateStream"));
+        MUITRACE(_T("AX: CWebBrowserUI::CreateStream"));
         return E_NOTIMPL;
     }
 
     HRESULT STDMETHODCALLTYPE CWebBrowserUI::OpenStream(const OLECHAR *pwcsName,
         void *reserved1, DWORD grfMode, DWORD reserved2, IStream **ppstm)
     {
-        TRACE(_T("AX: CWebBrowserUI::OpenStream"));
+        MUITRACE(_T("AX: CWebBrowserUI::OpenStream"));
         return E_NOTIMPL;
     }
 
     HRESULT STDMETHODCALLTYPE CWebBrowserUI::CreateStorage(const OLECHAR *pwcsName,
         DWORD grfMode, DWORD reserved1, DWORD reserved2, IStorage **ppstg)
     {
-        TRACE(_T("AX: CWebBrowserUI::CreateStorage"));
+        MUITRACE(_T("AX: CWebBrowserUI::CreateStorage"));
         return E_NOTIMPL;
     }
 
     HRESULT STDMETHODCALLTYPE CWebBrowserUI::OpenStorage(const OLECHAR *pwcsName,
         IStorage *pstgPriority, DWORD grfMode, SNB snbExclude, DWORD reserved, IStorage **ppstg)
     {
-        TRACE(_T("AX: CWebBrowserUI::OpenStorage"));
+        MUITRACE(_T("AX: CWebBrowserUI::OpenStorage"));
         return E_NOTIMPL;
     }
 
     HRESULT STDMETHODCALLTYPE CWebBrowserUI::CopyTo(DWORD ciidExclude,
         const IID *rgiidExclude, SNB snbExclude, IStorage *pstgDest)
     {
-        TRACE(_T("AX: CWebBrowserUI::CopyTo"));
+        MUITRACE(_T("AX: CWebBrowserUI::CopyTo"));
         return E_NOTIMPL;
     }
 
     HRESULT STDMETHODCALLTYPE CWebBrowserUI::MoveElementTo(const OLECHAR *pwcsName,
         IStorage *pstgDest, const OLECHAR *pwcsNewName, DWORD grfFlags)
     {
-        TRACE(_T("AX: CWebBrowserUI::MoveElementTo"));
+        MUITRACE(_T("AX: CWebBrowserUI::MoveElementTo"));
         return E_NOTIMPL;
     }
 
     HRESULT STDMETHODCALLTYPE CWebBrowserUI::Commit(DWORD grfCommitFlags)
     {
-        TRACE(_T("AX: CWebBrowserUI::Commit"));
+        MUITRACE(_T("AX: CWebBrowserUI::Commit"));
         return E_NOTIMPL;
     }
 
     HRESULT STDMETHODCALLTYPE CWebBrowserUI::Revert(void)
     {
-        TRACE(_T("AX: CWebBrowserUI::Revert"));
+        MUITRACE(_T("AX: CWebBrowserUI::Revert"));
         return E_NOTIMPL;
     }
 
     HRESULT STDMETHODCALLTYPE CWebBrowserUI::EnumElements(DWORD reserved1,
         void *reserved2, DWORD reserved3, IEnumSTATSTG **ppenum)
     {
-        TRACE(_T("AX: CWebBrowserUI::EnumElements"));
+        MUITRACE(_T("AX: CWebBrowserUI::EnumElements"));
         return E_NOTIMPL;
     }
 
     HRESULT STDMETHODCALLTYPE CWebBrowserUI::DestroyElement(const OLECHAR *pwcsName)
     {
-        TRACE(_T("AX: CWebBrowserUI::DestroyElement"));
+        MUITRACE(_T("AX: CWebBrowserUI::DestroyElement"));
         return E_NOTIMPL;
     }
 
     HRESULT STDMETHODCALLTYPE CWebBrowserUI::RenameElement(const OLECHAR *pwcsOldName, const OLECHAR *pwcsNewName)
     {
-        TRACE(_T("AX: CWebBrowserUI::RenameElement"));
+        MUITRACE(_T("AX: CWebBrowserUI::RenameElement"));
         return E_NOTIMPL;
     }
 
     HRESULT STDMETHODCALLTYPE CWebBrowserUI::SetElementTimes(const OLECHAR *pwcsName,
         const FILETIME *pctime, const FILETIME *patime, const FILETIME *pmtime)
     {
-        TRACE(_T("AX: CWebBrowserUI::SetElementTimes"));
+        MUITRACE(_T("AX: CWebBrowserUI::SetElementTimes"));
         return E_NOTIMPL;
     }
 
     HRESULT STDMETHODCALLTYPE CWebBrowserUI::SetClass(REFCLSID clsid)
     {
-        TRACE(_T("AX: CWebBrowserUI::SetClass"));
+        MUITRACE(_T("AX: CWebBrowserUI::SetClass"));
         return S_OK;
     }
 
     HRESULT STDMETHODCALLTYPE CWebBrowserUI::SetStateBits(DWORD grfStateBits, DWORD grfMask)
     {
-        TRACE(_T("AX: CWebBrowserUI::SetStateBits"));
+        MUITRACE(_T("AX: CWebBrowserUI::SetStateBits"));
         return E_NOTIMPL;
     }
 
     HRESULT STDMETHODCALLTYPE CWebBrowserUI::Stat(STATSTG *pstatstg, DWORD grfStatFlag)
     {
-        TRACE(_T("AX: CWebBrowserUI::Stat"));
+        MUITRACE(_T("AX: CWebBrowserUI::Stat"));
         return E_NOTIMPL;
     }
 
@@ -952,7 +952,7 @@ namespace MYUI
     HRESULT STDMETHODCALLTYPE CWebBrowserUI::QueryStatus(__RPC__in_opt const GUID *pguidCmdGroup, 
         ULONG cCmds, __RPC__inout_ecount_full(cCmds) OLECMD prgCmds[], __RPC__inout_opt OLECMDTEXT *pCmdText)
     {
-        TRACE(_T("CWebBrowserUI::QueryStatus"));
+        MUITRACE(_T("CWebBrowserUI::QueryStatus"));
         //HRESULT hr = OLECMDERR_E_NOTSUPPORTED;
         //return hr;
         return E_NOTIMPL;
@@ -1061,7 +1061,7 @@ namespace MYUI
     // IDocHostUIHandler
     STDMETHODIMP CWebBrowserUI::ShowContextMenu(DWORD dwID, POINT* pptPosition, IUnknown* pCommandTarget, IDispatch* pDispatchObjectHit)
     {
-        TRACE(_T("CWebBrowserUI::ShowContextMenu"));
+        MUITRACE(_T("CWebBrowserUI::ShowContextMenu"));
         if (m_pWebBrowserEventHandler)
         {
             return m_pWebBrowserEventHandler->ShowContextMenu(dwID, pptPosition, pCommandTarget, pDispatchObjectHit);
@@ -1072,7 +1072,7 @@ namespace MYUI
     STDMETHODIMP CWebBrowserUI::GetHostInfo(DOCHOSTUIINFO* pInfo)
     {
         //选中文本
-        TRACE(_T("CWebBrowserUI::GetHostInfo"));
+        MUITRACE(_T("CWebBrowserUI::GetHostInfo"));
         if (m_pWebBrowserEventHandler)
         {
             return m_pWebBrowserEventHandler->GetHostInfo(pInfo);
@@ -1089,7 +1089,7 @@ namespace MYUI
 
     STDMETHODIMP CWebBrowserUI::ShowUI(DWORD dwID, IOleInPlaceActiveObject* pActiveObject, IOleCommandTarget* pCommandTarget, IOleInPlaceFrame* pFrame, IOleInPlaceUIWindow* pDoc)
     {
-        TRACE(_T("CWebBrowserUI::ShowUI"));
+        MUITRACE(_T("CWebBrowserUI::ShowUI"));
         if (m_pWebBrowserEventHandler)
         {
             return m_pWebBrowserEventHandler->ShowUI(dwID, pActiveObject, pCommandTarget, pFrame, pDoc);
@@ -1099,7 +1099,7 @@ namespace MYUI
 
     STDMETHODIMP CWebBrowserUI::HideUI()
     {
-        TRACE(_T("CWebBrowserUI::HideUI"));
+        MUITRACE(_T("CWebBrowserUI::HideUI"));
         if (m_pWebBrowserEventHandler)
         {
             return m_pWebBrowserEventHandler->HideUI();
@@ -1109,7 +1109,7 @@ namespace MYUI
 
     STDMETHODIMP CWebBrowserUI::UpdateUI()
     {
-        TRACE(_T("CWebBrowserUI::UpdateUI"));
+        MUITRACE(_T("CWebBrowserUI::UpdateUI"));
         if (m_pWebBrowserEventHandler)
         {
             return m_pWebBrowserEventHandler->UpdateUI();
@@ -1119,7 +1119,7 @@ namespace MYUI
 
     STDMETHODIMP CWebBrowserUI::EnableModeless(BOOL fEnable)
     {
-        TRACE(_T("CWebBrowserUI::EnableModeless"));
+        MUITRACE(_T("CWebBrowserUI::EnableModeless"));
         if (m_pWebBrowserEventHandler)
         {
             return m_pWebBrowserEventHandler->EnableModeless(fEnable);
@@ -1129,7 +1129,7 @@ namespace MYUI
 
     STDMETHODIMP CWebBrowserUI::OnDocWindowActivate(BOOL fActivate)
     {
-        TRACE(_T("CWebBrowserUI::OnDocWindowActivate"));
+        MUITRACE(_T("CWebBrowserUI::OnDocWindowActivate"));
         if (m_pWebBrowserEventHandler)
         {
             return m_pWebBrowserEventHandler->OnDocWindowActivate(fActivate);
@@ -1139,7 +1139,7 @@ namespace MYUI
 
     STDMETHODIMP CWebBrowserUI::OnFrameWindowActivate(BOOL fActivate)
     {
-        TRACE(_T("CWebBrowserUI::OnFrameWindowActivate"));
+        MUITRACE(_T("CWebBrowserUI::OnFrameWindowActivate"));
         if (m_pWebBrowserEventHandler)
         {
             return m_pWebBrowserEventHandler->OnFrameWindowActivate(fActivate);
@@ -1149,7 +1149,7 @@ namespace MYUI
 
     STDMETHODIMP CWebBrowserUI::ResizeBorder(LPCRECT prcBorder, IOleInPlaceUIWindow* pUIWindow, BOOL fFrameWindow)
     {
-        TRACE(_T("CWebBrowserUI::ResizeBorder"));
+        MUITRACE(_T("CWebBrowserUI::ResizeBorder"));
         if (m_pWebBrowserEventHandler)
         {
             return m_pWebBrowserEventHandler->ResizeBorder(prcBorder, pUIWindow, fFrameWindow);
@@ -1159,7 +1159,7 @@ namespace MYUI
 
     STDMETHODIMP CWebBrowserUI::TranslateAccelerator(LPMSG lpMsg, const GUID* pguidCmdGroup, DWORD nCmdID)
     {
-        TRACE(_T("CWebBrowserUI::TranslateAccelerator"));
+        MUITRACE(_T("CWebBrowserUI::TranslateAccelerator"));
         if (m_pWebBrowserEventHandler)
         {
             return m_pWebBrowserEventHandler->TranslateAccelerator(lpMsg, pguidCmdGroup, nCmdID);
@@ -1169,7 +1169,7 @@ namespace MYUI
 
     STDMETHODIMP CWebBrowserUI::GetOptionKeyPath(LPOLESTR* pchKey, DWORD dwReserved)
     {
-        TRACE(_T("CWebBrowserUI::GetOptionKeyPath"));
+        MUITRACE(_T("CWebBrowserUI::GetOptionKeyPath"));
         if (m_pWebBrowserEventHandler)
         {
             return m_pWebBrowserEventHandler->GetOptionKeyPath(pchKey, dwReserved);
@@ -1179,7 +1179,7 @@ namespace MYUI
 
     STDMETHODIMP CWebBrowserUI::GetDropTarget(IDropTarget* pDropTarget, IDropTarget** ppDropTarget)
     {
-        TRACE(_T("CWebBrowserUI::GetDropTarget"));
+        MUITRACE(_T("CWebBrowserUI::GetDropTarget"));
         if (m_pWebBrowserEventHandler)
         {
             return m_pWebBrowserEventHandler->GetDropTarget(pDropTarget, ppDropTarget);
@@ -1189,7 +1189,7 @@ namespace MYUI
 
     STDMETHODIMP CWebBrowserUI::GetExternal(IDispatch** ppDispatch)
     {
-        TRACE(_T("CWebBrowserUI::GetExternal"));
+        MUITRACE(_T("CWebBrowserUI::GetExternal"));
         if (m_pWebBrowserEventHandler)
         {
             return m_pWebBrowserEventHandler->GetExternal(ppDispatch);
@@ -1199,7 +1199,7 @@ namespace MYUI
 
     STDMETHODIMP CWebBrowserUI::TranslateUrl(DWORD dwTranslate, OLECHAR* pchURLIn, OLECHAR** ppchURLOut)
     {
-        TRACE(_T("CWebBrowserUI::TranslateUrl"));
+        MUITRACE(_T("CWebBrowserUI::TranslateUrl"));
         if (m_pWebBrowserEventHandler)
         {
             return m_pWebBrowserEventHandler->TranslateUrl(dwTranslate, pchURLIn, ppchURLOut);
@@ -1210,7 +1210,7 @@ namespace MYUI
 
     STDMETHODIMP CWebBrowserUI::FilterDataObject(IDataObject* pDO, IDataObject** ppDORet)
     {
-        TRACE(_T("CWebBrowserUI::FilterDataObject"));
+        MUITRACE(_T("CWebBrowserUI::FilterDataObject"));
         if (m_pWebBrowserEventHandler)
         {
             return m_pWebBrowserEventHandler->FilterDataObject(pDO, ppDORet);
@@ -1223,7 +1223,7 @@ namespace MYUI
     // IServiceProvider
     STDMETHODIMP CWebBrowserUI::QueryService(REFGUID guidService, REFIID riid, void** ppvObject)
     {
-        TRACE(_T("CWebBrowserUI::QueryService"));
+        MUITRACE(_T("CWebBrowserUI::QueryService"));
         HRESULT hr = E_NOINTERFACE;
         *ppvObject = NULL;
 
@@ -1241,7 +1241,7 @@ namespace MYUI
         /* [in] */ DWORD dwBindVerb, /* [in] */ LONG grfBINDF, /* [in] */ BINDINFO *pBindInfo, 
         /* [in] */ LPCOLESTR pszHeaders, /* [in] */ LPCOLESTR pszRedir, /* [in] */ UINT uiCP)
     {
-        TRACE(_T("CWebBrowserUI::Download"));
+        MUITRACE(_T("CWebBrowserUI::Download"));
         if (m_pWebBrowserEventHandler)
         {
             return m_pWebBrowserEventHandler->Download(pmk, pbc, dwBindVerb, grfBINDF, pBindInfo, pszHeaders, pszRedir, uiCP);
@@ -1289,25 +1289,25 @@ namespace MYUI
     // IDispatch
 	STDMETHODIMP CWebBrowserUI::GetTypeInfoCount(UINT *iTInfo )
 	{
-		TRACE(_T("CWebBrowserUI::GetTypeInfoCount"));
+		MUITRACE(_T("CWebBrowserUI::GetTypeInfoCount"));
         return S_OK;
 	}
 
 	STDMETHODIMP CWebBrowserUI::GetTypeInfo( UINT iTInfo, LCID lcid, ITypeInfo **ppTInfo )
 	{
-		TRACE(_T("CWebBrowserUI::GetTypeInfo"));
+		MUITRACE(_T("CWebBrowserUI::GetTypeInfo"));
         return S_OK;
 	}
 
 	STDMETHODIMP CWebBrowserUI::GetIDsOfNames( REFIID riid, OLECHAR **rgszNames, UINT cNames, LCID lcid,DISPID *rgDispId )
 	{
-		TRACE(_T("CWebBrowserUI::GetIDsOfNames"));
+		MUITRACE(_T("CWebBrowserUI::GetIDsOfNames"));
         return DISP_E_UNKNOWNNAME;
 	}
 
 	STDMETHODIMP CWebBrowserUI::Invoke( DISPID dispIdMember, REFIID riid, LCID lcid,WORD wFlags, DISPPARAMS* pDispParams,VARIANT* pVarResult, EXCEPINFO* pExcepInfo,UINT* puArgErr )
 	{
-		TRACE(_T("CWebBrowserUI::Invoke"));
+		MUITRACE(_T("CWebBrowserUI::Invoke"));
         if (IID_NULL != riid) return E_INVALIDARG;
 
 		switch(dispIdMember)
@@ -1360,7 +1360,7 @@ namespace MYUI
 	 	case DISPID_PROPERTYCHANGE:
 	 		if (pDispParams->cArgs>0 && pDispParams->rgvarg[0].vt == VT_BSTR) 
             {
-	 			TRACE(_T("PropertyChange(%s)\n"), pDispParams->rgvarg[0].bstrVal);
+	 			MUITRACE(_T("PropertyChange(%s)\n"), pDispParams->rgvarg[0].bstrVal);
 	 		}
 	 		break;
 		default:
@@ -1376,7 +1376,7 @@ namespace MYUI
     // DWebBrowserEvents2
     void CWebBrowserUI::SetWebBrowserEventHandler(CWebBrowserEventHandler* pEventHandler)
     {
-        TRACE(_T("CWebBrowserUI::SetWebBrowserEventHandler"));
+        MUITRACE(_T("CWebBrowserUI::SetWebBrowserEventHandler"));
         if (pEventHandler != NULL && m_pWebBrowserEventHandler != pEventHandler)
             m_pWebBrowserEventHandler = pEventHandler;
     }
@@ -1384,7 +1384,7 @@ namespace MYUI
     void CWebBrowserUI::BeforeNavigate2(IDispatch *pDisp, VARIANT *&url, VARIANT *&Flags, 
         VARIANT *&TargetFrameName, VARIANT *&PostData, VARIANT *&Headers, VARIANT_BOOL *&Cancel)
     {
-        TRACE(_T("CWebBrowserUI::BeforeNavigate2"));
+        MUITRACE(_T("CWebBrowserUI::BeforeNavigate2"));
         if (m_pWebBrowserEventHandler)
         {
             m_pWebBrowserEventHandler->BeforeNavigate2(pDisp, url, Flags, TargetFrameName, PostData, Headers, Cancel);
@@ -1393,7 +1393,7 @@ namespace MYUI
 
     void CWebBrowserUI::CommandStateChange(long Command, VARIANT_BOOL Enable)
     {
-        TRACE(_T("CWebBrowserUI::CommandStateChange"));
+        MUITRACE(_T("CWebBrowserUI::CommandStateChange"));
         if (m_pWebBrowserEventHandler)
         {
             m_pWebBrowserEventHandler->CommandStateChange(Command, Enable);
@@ -1402,7 +1402,7 @@ namespace MYUI
 
     void CWebBrowserUI::NavigateComplete2(IDispatch *pDisp, VARIANT *&url)
     {
-        TRACE(_T("CWebBrowserUI::NavigateComplete2"));
+        MUITRACE(_T("CWebBrowserUI::NavigateComplete2"));
         CComPtr<IDispatch> spDoc;
         m_pWebBrowser->get_Document(&spDoc);
 
@@ -1421,7 +1421,7 @@ namespace MYUI
 
     void CWebBrowserUI::DocumentComplete2(IDispatch *pDisp, VARIANT *&url)
     {
-        TRACE(_T("CWebBrowserUI::DocumentComplete2"));
+        MUITRACE(_T("CWebBrowserUI::DocumentComplete2"));
         if (m_pWebBrowserEventHandler)
         {
             m_pWebBrowserEventHandler->DocumentComplete2(pDisp, url);
@@ -1431,7 +1431,7 @@ namespace MYUI
     void CWebBrowserUI::NavigateError(IDispatch *pDisp, VARIANT * &url, VARIANT *&TargetFrameName, 
         VARIANT *&StatusCode, VARIANT_BOOL *&Cancel)
     {
-        TRACE(_T("CWebBrowserUI::NavigateError"));
+        MUITRACE(_T("CWebBrowserUI::NavigateError"));
         if (m_pWebBrowserEventHandler)
         {
             m_pWebBrowserEventHandler->NavigateError(pDisp, url, TargetFrameName, StatusCode, Cancel);
@@ -1440,7 +1440,7 @@ namespace MYUI
 
     void CWebBrowserUI::ProgressChange(LONG nProgress, LONG nProgressMax)
     {
-        TRACE(_T("CWebBrowserUI::ProgressChange"));
+        MUITRACE(_T("CWebBrowserUI::ProgressChange"));
         if (m_pWebBrowserEventHandler)
         {
             m_pWebBrowserEventHandler->ProgressChange(nProgress, nProgressMax);
@@ -1449,7 +1449,7 @@ namespace MYUI
 
     void CWebBrowserUI::NewWindow3(IDispatch **pDisp, VARIANT_BOOL *&Cancel, DWORD dwFlags, BSTR bstrUrlContext, BSTR bstrUrl)
     {
-        TRACE(_T("CWebBrowserUI::NewWindow3"));
+        MUITRACE(_T("CWebBrowserUI::NewWindow3"));
         if (m_pWebBrowserEventHandler)
         {
             m_pWebBrowserEventHandler->NewWindow3(pDisp, Cancel, dwFlags, bstrUrlContext, bstrUrl);

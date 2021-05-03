@@ -26,6 +26,7 @@
 #include "../Control/UISlider.h"
 #include "../Control/UIText.h"
 #include "../Control/UITreeView.h"
+#include "../Control/UIWidget.h"
 
 #include "..//ExtControl//UIActiveX.h"
 #include "..//ExtControl//UIFlash.h"
@@ -64,25 +65,25 @@ namespace MYUI
             if (0 == stricmp(strItem, "size"))
             {
                 Size.cx = strtol(pAttribute->Value(), &strValue, 10);
-                ASSERT(strValue);
+                MUIASSERT(strValue);
                 Size.cy = strtol(strValue + 1, &strValue, 10);
-                ASSERT(strValue);
+                MUIASSERT(strValue);
                 ::MoveWindow(*m_pWindow, 0, 0, Size.cx, Size.cy, FALSE);
             }
             else if (0 == stricmp(strItem, "mininfo"))
             {
                 Size.cx = strtol(pAttribute->Value(), &strValue, 10);
-                ASSERT(strValue);
+                MUIASSERT(strValue);
                 Size.cy = strtol(strValue + 1, &strValue, 10);
-                ASSERT(strValue);
+                MUIASSERT(strValue);
                 m_pWindow->SetMinSize(Size);
             }
             else if (0 == stricmp(strItem, "maxinfo"))
             {
                 Size.cx = strtol(pAttribute->Value(), &strValue, 10);
-                ASSERT(strValue);
+                MUIASSERT(strValue);
                 Size.cy = strtol(strValue + 1, &strValue, 10);
-                ASSERT(strValue);
+                MUIASSERT(strValue);
                 m_pWindow->SetMaxSize(Size);
             }
             else if (0 == stricmp(strItem, "font"))
@@ -104,7 +105,7 @@ namespace MYUI
             }
             else
             {
-                ASSERT(0 && "CBuilder::SetWindow: 没有对应的属性处理");
+                MUIASSERT(0 && "CBuilder::SetWindow: 没有对应的属性处理");
             }
             pAttribute = pAttribute->Next();
         }
@@ -224,13 +225,13 @@ end:
 			}
 			else
 			{
-				ASSERT(0 && strItem);
+				MUIASSERT(0 && strItem);
 			}
 
 			pAttribute = pAttribute->Next();
 		}
 
-		ASSERT(-1 != id);
+		MUIASSERT(-1 != id);
 		if(-1 == id) return false;
 
 		HFONT hFont = CreateFontA(height,0,0,0,weight,italic,underline,strikeOut,
@@ -311,9 +312,14 @@ end:
 
 	CControlUI * CBuilder::BuilderLayout(TiXmlElement *pNode, CControlUI * pParent)
 	{
+		enum
+		{
+			BufferItemSize = 64,
+			BufferValueSize = 1024 * 4,
+		};
 #ifdef _UNICODE
-		wchar_t * strItem = new wchar_t[MAX_PATH];
-		wchar_t * strValue = new wchar_t[MAX_PATH * 2];
+		wchar_t * strItem = new wchar_t[BufferItemSize];
+		wchar_t * strValue = new wchar_t[BufferValueSize];
 #else
 		const char * strItem = NULL;
 		const char * strValue = NULL;
@@ -329,7 +335,7 @@ end:
 
         if (pParent && NULL == pControlAddray)
         {
-            ASSERT(0 && "CBuilder::BuilderLayout pParent并不是一个控件容器");
+            MUIASSERT(0 && "CBuilder::BuilderLayout pParent并不是一个控件容器");
             return NULL;
         }
 
@@ -349,8 +355,8 @@ end:
 			{
 #ifdef _UNICODE
 				strValue[0] = strItem[0] = _T('\0');
-				::MultiByteToWideChar(::GetACP(), 0, pAttribute->Name(), -1, strItem, MAX_PATH) ;
-				::MultiByteToWideChar(::GetACP(), 0, pAttribute->Value(), -1, strValue, MAX_PATH * 2) ;
+				::MultiByteToWideChar(::GetACP(), 0, pAttribute->Name(), -1, strItem, BufferItemSize) ;
+				::MultiByteToWideChar(::GetACP(), 0, pAttribute->Value(), -1, strValue, BufferValueSize) ;
 #else
 				strItem = pAttribute->Name();
 				strValue = pAttribute->Value();
@@ -366,8 +372,10 @@ end:
 				else if(0 == _tcsicmp(strItem,_T("vScrollTheme")))
 				{
 					//vScrollTheme 属性要卸载 vScroll="true" 后面, 否则无效
-					CScrollBarUI * pScroll = (CScrollBarUI*)pControl->CallWndProc(NULL, WM_GETSCROLL, GSL_VERTICAL, 0);
-					ASSERT(pScroll && "滚动条为空，是否没有提前设置vScroll=\"true\"属性");
+					CContainerUI* pContainer = (CContainerUI*)pControl->GetInterface(_T("CContainerUI"));
+					CScrollBarUI* pScroll = pContainer->GetVerticalScrollBar();
+
+					MUIASSERT(pScroll && "滚动条为空，是否没有提前设置vScroll=\"true\"属性");
 					if(pScroll)
 					{
 						SetTheme(pScroll, strValue);
@@ -376,8 +384,10 @@ end:
 				else if(0 == _tcsicmp(strItem,_T("hScrollTheme")))
 				{
 					//hScrollTheme 属性要卸载 hScroll="true" 后面, 否则无效
-					CScrollBarUI * pScroll = (CScrollBarUI*)pControl->CallWndProc(NULL, WM_GETSCROLL, GSL_HORIZONTAIL, 0);
-					ASSERT(pScroll && "滚动条为空，是否没有提前设置hScroll=\"true\"属性");
+					CContainerUI* pContainer = (CContainerUI*)pControl->GetInterface(_T("CContainerUI"));
+					CScrollBarUI* pScroll = pContainer->GetHorizontalScrollBar();
+
+					MUIASSERT(pScroll && "滚动条为空，是否没有提前设置hScroll=\"true\"属性");
 					if(pScroll)
 					{
 						SetTheme(pScroll, strValue);
@@ -393,7 +403,7 @@ end:
 						m_pCaptionControl = pControl;
 					}
 				}
-                else if (0 == _tcsicmp(strItem, _T("menu")))
+                else if (0 == _tcsicmp(strItem, _T("Menu")))
                 {
                     pMenuDialog = reinterpret_cast<CMenuUI*>(m_MenuMap.Find(strValue));
 
@@ -403,7 +413,7 @@ end:
                     }
                     else
                     {
-                        ASSERT(0 && "CBuilder::BuilderLayout 没有为控件找到对应的菜单");
+                        MUIASSERT(0 && "CBuilder::BuilderLayout 没有为控件找到对应的菜单");
                     }
                 }
 				else
@@ -418,7 +428,7 @@ end:
                 if (0 == stricmp("Menu", pChildNode->Value()))
                 {
                     pMenuDialog = new CMenuUI;
-                    pMenuDialog->SetSyncResource(m_pWindow);
+                    //pMenuDialog->SetSyncResource(m_pWindow);
                     
                     CControlUI * pMenuUI = BuilderLayout(pChildNode, NULL);
 
@@ -466,11 +476,11 @@ next:
 		int nSize = 0;
 		nSize = ::WideCharToMultiByte(CP_ACP, 0, strClass, -1, NULL, 0, NULL, NULL);
 
-		ASSERT(nSize && "CBuilder::CreateControl 转换字符编码失败");
+		MUIASSERT(nSize && "CBuilder::CreateControl 转换字符编码失败");
 		strClassA = new char[nSize];
 		nSize =::WideCharToMultiByte(CP_ACP, 0, strClass, -1, strClassA, nSize, NULL, NULL);
 
-		ASSERT(nSize && "CBuilder::CreateControl 转换字符编码失败");
+		MUIASSERT(nSize && "CBuilder::CreateControl 转换字符编码失败");
 		pControl = CBuilder::CreateControl(strClassA);
 
 		delete strClassA;
@@ -570,6 +580,10 @@ next:
 		{
 			pControl = new CTreeViewUI();
 		}
+		else if (0 == stricmp(strClass, "Widget"))
+		{
+			pControl = new CWidgetUI();
+		}
 		//ExtControl
 		else if(0 == stricmp(strClass, "Calendar"))
 		{
@@ -620,11 +634,11 @@ next:
 			}
 			else
 			{
-				ASSERT(0 && "CBuilder::CreateControl : 找不到对应的控件类型, 自定义控件回调也为空");
+				MUIASSERT(0 && "CBuilder::CreateControl : 找不到对应的控件类型, 自定义控件回调也为空");
 			}
 		}
 
-		ASSERT(pControl && "CBuilder::CreateControl : 控件创建失败，没有找到对应的控件接口");
+		MUIASSERT(pControl && "CBuilder::CreateControl : 控件创建失败，没有找到对应的控件接口");
 		return pControl;
 	}
 
@@ -634,6 +648,9 @@ next:
 		CControlUI * pControl = NULL;
         CMenuUI * pMenu = NULL;
 		TiXmlDocument * pDocument = new TiXmlDocument();
+		TiXmlAttribute* pAttribute = NULL;
+		TiXmlElement* pChildNode = NULL;
+		TiXmlElement* pNode = NULL;
 		BYTE * pData = NULL;
 		DWORD dwSize = 0;
 		CSkinManager::LoadFile(strSkinFolder, strXmlFile, &pData, &dwSize);
@@ -641,19 +658,16 @@ next:
 		pDocument->Parse((char *)pData);
 		if(pDocument->Error())
 		{
-			 ASSERT(0 && "CBuilder::Create 输入参数不是标准的xml格式");
+			 MUIASSERT(0 && "CBuilder::Create 输入参数不是标准的xml格式");
 			 goto end;
 		}
 
-        TiXmlElement * pChildNode = NULL;
-        TiXmlElement * pNode = pDocument->RootElement();
-        if (stricmp(pNode->Value(), "UIFrame")) goto end;
+        pNode = pDocument->RootElement();
+        if (stricmp(pNode->Value(), "MYUI")) goto end;
 
         pNode = pNode->FirstChildElement();
 		while(pNode)
 		{
-			pNode->Value();
-
 			if(0 == stricmp(pNode->Value(), "theme"))
 			{
                 SaveTheme(pNode);
@@ -670,10 +684,30 @@ next:
             {
                 //AddLanguage(pNode->Attribute("file"), pNode->Attribute("script"));
             }
+			else if (0 == stricmp(pNode->Value(), "include"))
+			{
+				pAttribute = pNode->FirstAttribute();
+				while (pAttribute)
+				{
+					if (0 == stricmp(pAttribute->Name(), "file"))
+					{
+#ifdef _UNICODE
+						wchar_t* strFile = new wchar_t[MAX_PATH];
+						::MultiByteToWideChar(::GetACP(), 0, pAttribute->Value(), -1, strFile, MAX_PATH);
+#else
+						const char* strFile = pAttribute->Value();
+#endif
+						this->Create(strSkinFolder, strFile);
+						break;
+					}
+
+					pAttribute = pAttribute->Next();
+				}
+			}
             else if (0 == stricmp(pNode->Value(), "Menu"))
             {
                 CMenuUI * pMenuDialog = new CMenuUI;
-                pMenuDialog->SetSyncResource(m_pWindow);
+                //pMenuDialog->SetSyncResource(m_pWindow);
 
                 pControl = BuilderLayout(pNode, NULL);
                 pMenuDialog->Create(m_pWindow ? m_pWindow->m_hInstance : NULL, pControl->GetName());
@@ -682,8 +716,8 @@ next:
                 if (pControl->GetName() == _T(""))
                 {
                     //如果没有名字的话，那么将其他地方将不能引用这个菜单，那么这个菜单存在也没有意义了
-                    ASSERT(0 && "CBuilder::Create 没有名字的菜单将会被删除");
-                    delete pMenuDialog;
+                    MUIASSERT(0 && "CBuilder::Create 没有名字的菜单将会被删除");
+                    delete pMenuDialog;//因为没有地方引用它，不提前删除会引起内存泄漏
                 }
                 else
                 {

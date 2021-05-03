@@ -6,37 +6,38 @@
 
 namespace MYUI
 {
-#define WM_HITTEST          WM_NCHITTEST
+	class CControlUI;
 
-
-#define WM_BREAKLOOP        (WM_USER + 1)//退出当前loop
-    //break loop wparam flag
+	enum
+	{
+		WMU_MOUSEENTER = WM_USER + 1,
+		WMU_POPUPDIALOG,
+		WMU_POPUPMENU,
+		WMU_BREAKLOOP,
+		//break loop wparam flag
 #define BLWF_UNCHECK         0x00 //不需要进行任何检查，直接退出
 #define BLWF_CHECKFOCUS      0x01 //退出前检查父子控件是否拥有焦点
 
+		WMU_LBUTTONCLICK,
+		WMU_MBUTTONCLICK,
+		WMU_RBUTTONCLICK,
 
-#define WM_MOUSEENTER       (WM_USER + 2)
-#define WM_POPUPMENU        (WM_USER + 3)
-#define WM_POPUPDIALOG      (WM_USER + 4)
+
+		WMU_MYUI = WM_USER + 128,
+		WMU_USER = WM_APP,
+	};
+
+
+
+
+
+
 
 #define WM_MYUIMSG			(WM_USER + 128)//窗口与控件同用
 #define WM_MYCONTROLMSG     (WM_USER + 256)//控件私有
 #define WM_MYCM             WM_MYCONTROLMSG
 
-#define WM_NOTIFYEX			(WM_MYUIMSG + 1)
 
-/*WM_SETTIMER */
-#define WM_SETTIMER         (WM_MYUIMSG + 2)
-
-    typedef struct __CONTROLTIMER
-	{
-		PVOID pControl;
-		UINT nIDEvnet;
-		UINT uElapse;
-	}CONTROLTIMER;
-/*WM_SETTIMER */
-
-#define WM_DEPENDCHANGE		(WM_MYUIMSG + 4)
 
 
 /*WM_REQUESTINFO user WPARAM return InfoPtr*/
@@ -46,12 +47,7 @@ namespace MYUI
 #define MRQF_GETFOCUS    0x03
 /*WM_REQUESTINFO*/
 
-#define WM_LBUTTONCLICK          (WM_MYUIMSG + 11)
-#define WM_MBUTTONCLICK          (WM_MYUIMSG + 12)
-#define WM_RBUTTONCLICK          (WM_MYUIMSG + 13)
 
-#define WM_CONTROLMSG_SEND   (WM_MYUIMSG + 21)
-#define WM_CONTROLMSG_POST   (WM_MYUIMSG + 22)
 
 /*WM_XETSTATE user WPARAM return DWORD or BOOL*/
 #define WM_SETSTATE          (WM_MYUIMSG + 23)
@@ -59,10 +55,6 @@ namespace MYUI
 //wParam使用 STATE_XXXXXX，返回BOOL，若wParam = NULL, 返回所有状态
 /*WM_XETSTATE user WPARAM return BOOL*/
 
-/*WM_GETSCROLL user WPARAM return   CScrollUI*/
-#define WM_GETSCROLL         (WM_MYUIMSG + 25)
-#define GSL_VERTICAL         1
-#define GSL_HORIZONTAIL      2
 
 //WM_MYCM 控件私有
 #define WMU_GETGROUP           (WM_MYCM + 1)
@@ -78,17 +70,40 @@ namespace MYUI
 #define WMU_SETMINVALUE        (WM_MYCM + 34)
 #define WMU_GETMINVALUE        (WM_MYCM + 35)
 
-//某些控件包含子窗口，子窗口私有消息处理
-#define WM_CHECKHIDE    (WM_APP + 1)//检查是否需要关闭,使用PostMessage，详情看消息处理
 
-    typedef struct __MSGCALL
+	typedef struct __MUICARET_INFO
 	{
-		BOOL bRelease;//TRUE = 自动释放MSGCALL； FALSE = 手动释放MSGCALL
-		LPVOID pSender;
-		MSG msg;
-	}MSGCALL, *PMSGCALL;
+		HBITMAP Bitmap;
+		ARGBREF Color;
+		POINT Point;
+		SIZE Size;
+		BYTE Visible;
+		BYTE Showing;
+	} MUICARETINFO, * LPMUICARETINFO;
 
-	enum EnumNotifyMsg
+	//光标
+	class MYUI_API CUICaret
+	{
+	public:
+		CUICaret()
+		{
+			memset(&m_CaretInfo, 0, sizeof(MUICARETINFO));
+		}
+		virtual ~CUICaret()
+		{
+			if (m_CaretInfo.Bitmap)
+			{
+				::DeleteObject(m_CaretInfo.Bitmap);
+			}
+		}
+
+	protected:
+		virtual void OnDrawCaret(const RECT& rcUpdate) = 0;
+	protected:
+		MUICARETINFO m_CaretInfo;
+	};
+
+	enum EnumNotify
 	{
 		//处理消息后，如果返回false，表明不需要调用OnNotify
 		NonMessage = 0,
@@ -106,30 +121,34 @@ namespace MYUI
 		SetFocus,//控件获得焦点
 		KillFocus,//控件失去焦点
 		TimerCall,//消息通知
+
+		ShowTip,//展示tip
 	};
 
-    class CControlUI;
-    typedef struct __TNOTIFYUI
+    
+
+    typedef struct __MUINOTIFY
 	{
-		CControlUI *  pSender;
-		EnumNotifyMsg   dwType;
+		CControlUI* pSender;
+		
+		EnumNotify   dwType;
 		WPARAM      wParam;
 		LPARAM      lParam;
-		//DWORD       time;
-		//POINT       pt;
-	}TNOTIFYUI;
+		DWORD       dwTime;
+		POINT       ptMouse;
+	}MUINOTIFY;
 
 	class INotify
 	{
 	public:
 		//这个接口用来过滤notify，过滤完成后，再调用 IControlNotify
-        virtual void SendNotify(TNOTIFYUI &Notify) = 0;
+        virtual void SendNotify(MUINOTIFY& Notify) = 0;
 	};
 
 	class IControlNotify
 	{
 	public:
-        virtual void OnNotify(TNOTIFYUI &notify) = 0;
+        virtual void OnNotify(MUINOTIFY& Notify) = 0;
 	};
 
     class IMenuPopup
@@ -146,7 +165,7 @@ namespace MYUI
         virtual LRESULT Popup(LPARAM lParam) = 0;
     };
 
-	enum EnumEventType
+	enum EnumEvent
 	{
 		WindowInit = 0,//WM_NCCREATE
 		RequestRenderEngine,//WM_CREATE
@@ -161,27 +180,29 @@ namespace MYUI
 		DragOver,//一般是拖动结束时，触发的消息
 	};
 
-	typedef struct __TEVENT
+	typedef struct __MUIEVENT
 	{
 		DWORD	  dwType;
 		WPARAM    wParam;
 		LPARAM    lParam;
-	}TEVENT;
+	}MUIEVENT;
 
 	class IWindowEvent
 	{
 	public:
-		virtual LRESULT OnEvent(TEVENT &event) = 0;
+		virtual LRESULT OnEvent(MUIEVENT & Event) = 0;
 	};
+
+	
 
 	class IControlHooker
 	{
 	public:
 		//消息处理之前流入OnBefore，返回true则消息不会流入控件处理
-		virtual bool OnBefore(PVOID pControl, HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam, LRESULT &lResule) = 0;
+		virtual bool OnBefore(CControlUI * pControl, HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam, LRESULT &lResule) = 0;
 
 		//消息处理后再流入OnAfter
-		virtual bool OnAfter(PVOID pControl, HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam, LRESULT &lResule) = 0;
+		virtual bool OnAfter(CControlUI * pControl, HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam, LRESULT &lResule) = 0;
 	};
 
 	class IListElemenDraw
@@ -202,32 +223,7 @@ namespace MYUI
 		virtual LRESULT TranslateAccelerator(MSG *pMsg) = 0;
 	};
 
-	class IBaseWindow
-	{
-	public:
-		virtual LRESULT SendMessage(UINT message, WPARAM wParam, LPARAM lParam);
-		virtual LRESULT PostMessage(UINT message, WPARAM wParam, LPARAM lParam);
-		virtual BOOL Update();
-	};
 
-	class IScrollBarMove
-	{
-		//pSender = 目标滚动条
-	public:
-		virtual void OnScrollBarMove(LPCVOID pSender, int nShift) = 0;
-		virtual const SIZE &GetScrollBarShift() const = 0 ;
-	};
-
-	typedef struct _tag_msg
-	{
-		HWND hWnd;//当消息不是从窗口传出，需要设置为空
-		UINT message;
-		WPARAM wParam;
-		LPARAM lParam;
-		POINT point;
-	}TMSG,* PTMSG;
-
-	
 }
 
 #endif

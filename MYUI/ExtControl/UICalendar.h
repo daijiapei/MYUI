@@ -7,25 +7,34 @@
 
 namespace MYUI
 {
-#define DATEROW   6  //行
-#define DATECOL   7  //列
-#define DATESTULEN   (sizeof(DATESTURCT) * (DATEROW) * (DATECOL))
 
-    typedef struct __DATESTURCT{
+
+    typedef struct __MUIDATE{
 	    int year;
 	    int month;
 	    int day;
-    }DATESTURCT, *PDATESTURCT;
+    }MUIDATE, *LPMUIDATE;
 
-    typedef struct __DATESTRING{
+
+    typedef struct __MUIDATESTRING{
 	    TCHAR year[4];
 	    TCHAR tch1[1];
 	    TCHAR month[2];
 	    TCHAR tch2[1];
 	    TCHAR day[2];
 	    TCHAR end[1];
-    }DATESTRING, *PDATESTRING;
+    }MUIDATESTRING, *LPMUIDATESTRING;
 
+#define DATEROW   6  //行
+#define DATECOL   7  //列
+#define DATESTULEN   (sizeof(MUIDATE) * (DATEROW) * (DATECOL))
+
+	enum
+	{
+		DateRow = 6,
+		DateCol = 7,
+		DateStructSize = (sizeof(MUIDATE) * (DateRow) * (DateCol))
+	};
 
 	class CDateWnd;
 
@@ -34,12 +43,12 @@ namespace MYUI
 	public:
 		CDateViewUI();
 		~CDateViewUI();
-		virtual void PaintText(const RECT& rcItem, const RECT& rcPaint);
+		virtual void PaintText(const RECT& rcUpdate) override;
 		virtual void SetAttribute(LPCTSTR strItem, LPCTSTR strValue);
 		//绘制
 		
-		bool GetSelect(DATESTURCT &date);
-		bool SetSelect(DATESTURCT &date);
+		bool GetSelect(MUIDATE &date);
+		bool SetSelect(MUIDATE &date);
 
 		bool ShowCalendar(int nYear, int nMonth);
 		bool ChangeCalendarYear(int nYear);
@@ -69,15 +78,15 @@ namespace MYUI
 	protected:
 		//void DrawItem(HDC hdc, RECT * rect , DATESTURCT * date, int month, DWORD state);
 		//void DrawLine(HDC hdc, int x, int y, int xend);
-		virtual LRESULT WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
+		virtual LRESULT WndProc(UINT message, WPARAM wParam, LPARAM lParam);
 		virtual void OnAttach(HWND hNewWnd);//当控件附加到新的窗口时，会调用一次该函数
 
 		int GetPointItem(POINT point);
 	protected:
 		int m_nHotIndex;
 		int m_nWeekHeight;
-		DATESTURCT m_SelectDate;
-		DATESTURCT m_DateCalendar[DATEROW * DATECOL];
+		MUIDATE m_SelectDate;
+		MUIDATE m_DateCalendar[DATEROW * DATECOL];
 		ARGBREF m_refLineColor;
 		ARGBREF m_refRestTextColor;
 		ARGBREF m_refWorkTextColor;
@@ -95,7 +104,6 @@ namespace MYUI
 	};
 
 	
-
     class MYUI_API CCalendarUI : public CLableUI, protected IDialogPopup
 	{
 	public:
@@ -112,8 +120,8 @@ namespace MYUI
 		virtual void SetAttribute(LPCTSTR strItem, LPCTSTR strValue);
 		//绘制
 		
-		bool GetDate(DATESTURCT &date);
-		bool SetDate(DATESTURCT &date);
+		bool GetDate(MUIDATE &date);
+		bool SetDate(MUIDATE &date);
 	public:
 		//SetDateViewAttribute
 		void SetDateViewLineColor(ARGBREF refColor);
@@ -181,12 +189,12 @@ namespace MYUI
 		virtual void OnDetach(HWND hOldWnd);//当控件离开一个窗口时，会调用一次该函数 
 
         LRESULT Popup(LPARAM lParam);
-		virtual LRESULT WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
+		virtual LRESULT WndProc(UINT message, WPARAM wParam, LPARAM lParam);
 		CControlUI * CreateDialogView();
 
 	protected:
 		CDateWnd * m_pDialog;
-		DATESTURCT m_date;
+		MUIDATE m_date;
 		bool m_bMouseInButton;
 
 		CControlUI * m_pDialogView;

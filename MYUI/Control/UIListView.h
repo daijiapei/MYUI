@@ -7,38 +7,38 @@
 
 namespace MYUI
 {
-	typedef struct _LINKED_
+	typedef struct __MUILINKED
 	{
-		struct _LINKED_ * pre;
-		struct _LINKED_ * next;
-	}LINKED, * PLINKED;
+		struct __MUILINKED* pPrev;
+		struct __MUILINKED* pNext;
+	}MUILINKED, * PMUILINKED;
 
-	typedef struct _LVROWINFO_
+	typedef struct __MUILVROW_INFO
 	{
 		int nHeight;
 		LPVOID lParam;
-	}LVROWINFO, *PLVROWINFO;
+	}MUILVROWINFO, *PMUILVROWINFO;
 
-	typedef struct _LISTVIEWROW_
+	typedef struct __MUILISTVIEW_ROW
 	{
-		LINKED link;//这个用来指向上一行下一行
-		LVROWINFO info;
-	}LISTVIEWROW, *PLISTVIEWROW;
+		MUILINKED Link;//这个用来指向上一行下一行
+		MUILVROWINFO Info;
+	}MUILISTVIEWROW, *PMUILISTVIEWROW;
 
-	typedef struct _HDROWINFO_
+	typedef struct __MUIHDROW_INFO
 	{
 		DWORD dwState;
 		ARGBREF refBkColor;
 		LPARAM lParam;
 		int nTextLenght;
 		TCHAR * strText;
-	}HDROWINFO, PHDROWINFO;
+	}MUIHDROWINFO, PMUIHDROWINFO;
 
-	typedef struct _HEADERROW_
+	typedef struct __HEADER_ROW
 	{
-		LINKED link;//这个用来指向同一列上一行下一行，是同一列！！
-		HDROWINFO info;
-	}HEADERROW, * PHEADERROW;
+		MUILINKED Link;//这个用来指向同一列上一行下一行，是同一列！！
+		MUIHDROWINFO Info;
+	}MUIHEADERROW, * PMUIHEADERROW;
 
 /*********************************************************************************************
  * CListHeaderUI 设计格式
@@ -72,7 +72,7 @@ namespace MYUI
 		friend class CListViewUI;
 	public:
 		CListHeaderUI();
-		~CListHeaderUI();
+		virtual ~CListHeaderUI();
 
 		/*
 		//virtual bool Add(CControlUI* pControl);
@@ -85,9 +85,9 @@ namespace MYUI
 		//virtual int GetCount() const;
 		*/
 
-		bool AddRow(HDROWINFO &info,int nRow = -1);
-		bool GetRow(HDROWINFO &info, int nRow = -1);
-		bool SetRow(HDROWINFO &info, int nRow = -1);
+		bool AddRow(MUIHDROWINFO &info,int nRow = -1);
+		bool GetRow(MUIHDROWINFO &info, int nRow = -1);
+		bool SetRow(MUIHDROWINFO &info, int nRow = -1);
 		bool DelRow(int nRow = -1);
 
 	protected:
@@ -100,7 +100,7 @@ namespace MYUI
 #define LHDT_FLOAT 0x0002//浮点数
 		DWORD m_dwDateType;//数据类型
 		//CMuiPtrArray m_Nodes;
-		HEADERROW * m_pHdRow;//CListHeaderUI不绘制m_pHdRow的数据，由ListView负责绘制
+		MUIHEADERROW * m_pHdRow;//CListHeaderUI不绘制m_pHdRow的数据，由ListView负责绘制
 		int m_nRowCount;
 	};
 
@@ -139,7 +139,7 @@ namespace MYUI
 	public:
 		CListViewUI();
 		virtual ~CListViewUI();
-		static CMuiString g_strClassName;
+		const static CMuiString g_strClassName;
 		virtual CMuiString GetClassName() const;
 		virtual void SetAttribute(LPCTSTR strItem, LPCTSTR strValue);
 
@@ -151,26 +151,24 @@ namespace MYUI
 		virtual void RemoveAll();
 		virtual CControlUI * Find(int nIndex);
 		virtual int Find(CControlUI * pControl);
-		virtual int GetCount() const;
+		virtual int GetCount();
 
 		int GetColumnCount();//有多少列
 		int GetRowCount();//有多少行
 
-		virtual void SetShareInfo(TSHAREINFO * pShareInfo);
-		virtual bool OnPaint(RECT rcItem, RECT rcPaint, RECT rcUpdate);
-		virtual bool SetItem(RECT rcItem, bool bMustUpdate);
+		virtual void SetShareInfo(MUISHAREINFO * pShareInfo);
+		virtual bool SetItem(RECT rcItem, bool bMustUpdate) override;
 		virtual SIZE GetContentSize();
 
-		bool AddRow(LVROWINFO &info,int nRow = -1/* -1 最后一行*/); //增加一行
-		bool GetRow(LVROWINFO &info, int nRow);
-		bool SetRow(LVROWINFO &info, int nRow);
+		bool AddRow(MUILVROWINFO &info,int nRow = -1/* -1 最后一行*/); //增加一行
+		bool GetRow(MUILVROWINFO &info, int nRow);
+		bool SetRow(MUILVROWINFO &info, int nRow);
 		bool DelRow(int nRow = -1);//删除行
 		//或许你发现怎么没有AddCol[添加列]等函数，其实IControlArray接口就是用来添加列的
 
 		//首先AddRow新增一行，然后再SetSubItem
-		bool SetSubItem(HDROWINFO &info, int nCol, int nRow = -1);
-		bool GetSubItem(HDROWINFO &info, int nCol, int nRow = -1);
-		bool ExportExcel(LPCTSTR strFilePath);//将数据导出到execl
+		bool SetSubItem(MUIHDROWINFO &info, int nCol, int nRow = -1);
+		bool GetSubItem(MUIHDROWINFO &info, int nCol, int nRow = -1);
 		
 	public:
 		void SetHeaderBkColor(ARGBREF refColor);
@@ -183,13 +181,12 @@ namespace MYUI
 		int GetInfoBarWidth() const;
 
 	protected:
-		virtual LRESULT WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
+		virtual LRESULT WndProc(UINT message, WPARAM wParam, LPARAM lParam) override;
 		bool AddHeaderRow(int nRow = -1);
 		bool DelHeaderRow(int nRow = -1);
 
-		virtual void PaintStatusImage( const RECT& rcItem, const RECT& rcPaint);
-		void PaintHeader(const RECT& rcItem, const RECT &rcPaint,const RECT &rcUpdate);
-		void PaintBody(const RECT& rcItem, const RECT &rcPaint);
+		virtual void PaintStatusImage(const RECT& rcUpdate) override;
+		virtual void PaintContent(const RECT & rcUpdate) override;
 
 		CListHeaderUI * FindHeaderByPoint(POINT &pt);
 		CListHeaderUI * FindHeaderByName(LPCTSTR strName);
@@ -200,7 +197,6 @@ namespace MYUI
 		ARGBREF m_refHeaderBkColor;
 		CMuiString m_strHeaderBkImage;
 
-
 		ARGBREF m_refBetweenLinesColor;//分隔线颜色
 		ARGBREF m_refGridLinesColor;//网格线颜色
 		ARGBREF m_refBetweenRowColor;//每隔一行，背景色就不一样
@@ -209,7 +205,7 @@ namespace MYUI
 		int m_nHeaderHeight;
 		int m_nInfoBarWidth;
 
-		LISTVIEWROW * m_pLvRow;
+		MUILISTVIEWROW * m_pLvRow;
 		int m_nRowCount;
 		int m_nRowAutoHeight;
 

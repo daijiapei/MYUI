@@ -16,7 +16,7 @@ namespace MYUI
 	{
 	}
 
-	CMuiString CSliderUI::g_strClassName(_T("SliderUI"));
+	const CMuiString CSliderUI::g_strClassName(_T("SliderUI"));
 
 	CMuiString CSliderUI::GetClassName() const
 	{
@@ -74,7 +74,7 @@ namespace MYUI
 		return m_strStepImage;
 	}
 
-	void CSliderUI::PaintStatusImage(const RECT &rcItem,const RECT &rcPaint)
+	void CSliderUI::PaintStatusImage(const RECT & rcUpdate)
 	{
 		RECT rcDraw = {0};
 		rcDraw.right = m_szStepBar.cx;
@@ -82,20 +82,18 @@ namespace MYUI
 		int nValue = m_nValue;
 		int nShift = 0;
 
-		__super::PaintStatusImage(rcItem, rcPaint);
+		__super::PaintStatusImage(rcUpdate);
 
 		if(MPGS_VERTICAL & m_dwStyle)//´¹Ö±
 		{
-			nShift = m_nValue * ((rcItem.bottom - rcItem.top) - m_szStepBar.cy)
+			nShift = m_nValue * ((m_rcClient.bottom - m_rcClient.top) - m_szStepBar.cy)
 				/ m_nMaxValue ;
-			OffsetRect(&rcDraw, rcItem.left, rcItem.bottom - m_szStepBar.cy);
 			OffsetRect(&rcDraw, 0, -nShift);
 		}
 		else//Ë®Æ½
 		{
-			nShift = m_nValue * ((rcItem.right - rcItem.left) - m_szStepBar.cx)
+			nShift = m_nValue * ((m_rcClient.right - m_rcClient.left) - m_szStepBar.cx)
 				/ m_nMaxValue;
-			OffsetRect(&rcDraw, rcItem.left, rcItem.top);
 			OffsetRect(&rcDraw, nShift, 0);
 		}
 
@@ -111,7 +109,7 @@ namespace MYUI
 		return;
 	}
 
-	LRESULT CSliderUI::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+	LRESULT CSliderUI::WndProc(UINT message, WPARAM wParam, LPARAM lParam)
 	{
 		POINT point;
 		DWORD dwPos;
@@ -205,6 +203,6 @@ namespace MYUI
 				return 0;
 			}break;
 		}
-		return __super::WndProc(hWnd, message, wParam, lParam);
+		return __super::WndProc(message, wParam, lParam);
 	}
 }

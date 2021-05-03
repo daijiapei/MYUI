@@ -16,7 +16,7 @@ namespace MYUI
 	public:
 		CProgressUI();
 		virtual ~CProgressUI();
-		static CMuiString g_strClassName;
+		const static CMuiString g_strClassName;
 		virtual CMuiString GetClassName() const;
 		virtual void SetAttribute(LPCTSTR strItem, LPCTSTR strValue);
 
@@ -31,10 +31,10 @@ namespace MYUI
 		void SetValue(int nValue);
 		
 		//»æÖÆ
-		virtual void PaintStatusImage( const RECT& rcItem, const RECT& rcPaint);
+		virtual void PaintStatusImage(const RECT& rcUpdate) override;
 
 	protected:
-		virtual LRESULT WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
+		virtual LRESULT WndProc( UINT message, WPARAM wParam, LPARAM lParam) override;
 	protected:
 		
 		int m_nMinValue;

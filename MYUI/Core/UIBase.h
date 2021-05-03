@@ -1,6 +1,6 @@
 
-#ifndef _MYUI_UI_BASE_ATTRIBUTE_H_
-#define _MYUI_UI_BASE_ATTRIBUTE_H_
+#ifndef __MYUI_UI_BASE_ATTRIBUTE_H__
+#define __MYUI_UI_BASE_ATTRIBUTE_H__
 
 #include "..//Utils//Utils.h"
 
@@ -11,7 +11,7 @@ namespace MYUI
 	{
 	public:
 		CItemViewInfo();
-		~CItemViewInfo();
+		virtual ~CItemViewInfo();
 
 	public:
 		virtual void SetStyle(DWORD dwStyle);
@@ -48,7 +48,7 @@ namespace MYUI
 	protected:
 		//更改通知
 		virtual void OnViewChange(LPVOID pElement) = 0;
-
+		//virtual void OnFontChange(LPVOID pElement) = 0;
 	protected:
 
 //MCS_CONTROLUI主要用于布局中
@@ -57,6 +57,7 @@ namespace MYUI
 		DWORD m_dwStyleEx;
 		ARGBREF m_refTextColor;
 		int m_nFontId;
+		HFONT m_hFont;
 		CMuiString m_strText;
 
 		ARGBREF m_refBkColor;
@@ -89,7 +90,7 @@ namespace MYUI
 		//修改CItemPosition的值，不会导致页面更新
 		//所以记得调用父类的update函数
 		CItemPosition();
-		~CItemPosition();
+		virtual ~CItemPosition();
 		
 	public:
 		

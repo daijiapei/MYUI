@@ -6,6 +6,7 @@
 #include "../Render/RenderEngine.h"
 #include "UIInterface.h"
 #include "../ExtControl/UIToolTip.h"
+#include "UIThread.h"
 
 namespace MYUI
 {
@@ -23,6 +24,17 @@ namespace MYUI
         T* m_p;
     };
 
+	enum EnumControlState
+	{
+		StateDefault     = 0x00,//默认
+		StateSelect      = 0x01,//选中
+		StateHot         = 0x02,//热点
+		StateFocued      = 0x04,//焦点
+		StatePushed      = 0x08,//按下
+		StateChecked     = 0x10,//选中
+		StateUnknow      = 0x80,//未确定
+	};
+
 #define STATE_DEFAULT    0x0000//默认
 #define STATE_SELECT     0x0001//选中
 #define STATE_HOT        0x0002//热点
@@ -34,24 +46,22 @@ namespace MYUI
 	//该结构体CWindowUI设置，提供给所有控件共享
 	class CControlUI;
 
-    typedef struct __SHAREINFO
+    typedef struct __MUISHAREINFO
 	{
 		HWND hWnd;
 		HDC  hPaintDC;
 		CRenderEngine * pRenderEngine;//渲染引擎
 		
-//一旦使用了某种模式，就不能更改，所以要么是同步模式，要么宿主模式(作为申请和释放资源指针的主窗口)
-//TRUE = 宿主模式，不需要释放资源，FALSE = 使用同步资源信息，不需要释放资源指针，由宿主释放
-		BOOL bHostType;
-		TCHAR * strSkinFolder;//皮肤
-		CMuiIdArray * FontArray;//字体数组
+		CMuiString strSkinFolder;//皮肤
+		CMuiIdArray FontArray;//字体数组
 		INotify * pNotify;
 		CToolTipUI * pToolTip;
-	}TSHAREINFO, * PSHAREINFO;
+		DWORD dwThreadId;
+	}MUISHAREINFO, * PMUISHAREINFO;
 
 #define GETHWND(_this)  ((_this)->m_pShareInfo ? (_this)->m_pShareInfo->hWnd : NULL)
 
-	class MYUI_API CControlUI :  public CItemViewInfo , public CItemPosition 
+	class MYUI_API CControlUI :  public CItemViewInfo , public CItemPosition , public CUIMessage
 	{
 	public:
 		CControlUI();
@@ -60,31 +70,23 @@ namespace MYUI
 		bool IsControl();
 		//设置共享信息，共享信息由窗口传递给始祖控件，始祖控件再递归传给每一个子控件
 		//共享信息就是CControlUI和CWindowUI通信的桥梁，可作为一个信息管理器
-		virtual void SetShareInfo(TSHAREINFO * pShareInfo);
+		virtual void SetShareInfo(MUISHAREINFO* pShareInfo);
 		virtual void SetAttribute(LPCTSTR strItem, LPCTSTR strValue);
+		virtual LPVOID GetInterface(LPCTSTR strName);
 		virtual CMuiString GetClassName() const;
 		
-		//有关这个CallWndProc/WndProc/SendMessage/PostMessage我跟大家说一下，
-		//这四个函数我是写到一半的时候折腾出来，所以很多操作没放WndProc里面
-		//比如SetText()函数，应该将消息投递到WndProc(WM_SETTEXT)里面处理的。
-		//但是因为已经写到一半了，这样工作量太大，所以偶尔有空才会整理这些函数
-		//目前到这里，这个界面库已经高度模仿了WIN32窗口和控件，如果大家有精力
-		//和兴趣的话，可以自己整理一下。我写这套界面的目的，只是为了给大家整理
-		//一套思路，至于细节的问题，还需要大家自己调整一下，当然，如果我的项目
-		//用到某个功能的话，我也会进行测试和调整
-		
 		//先调用Hook，再调用WndProc
-		virtual LRESULT CallWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
+		virtual LRESULT CallWndProc(UINT message, WPARAM wParam, LPARAM lParam);
 		
 		virtual CControlUI* GetParent() const;
 		virtual VOID SetParent(CControlUI* pParentContrl);
 		virtual CControlUI * GetAncestorControl();//始祖控件，处于最顶层的父控件
+
 		HWND GetWindow() const;
-		bool SendNotify(BOOL bChild, EnumNotifyMsg dwType, WPARAM wParam = 0L, LPARAM lParam = NULL);
-		LRESULT SendMessage(UINT message, WPARAM wParam = 0L, LPARAM lParam = NULL);
-		LRESULT PostMessage(UINT message, WPARAM wParam = 0L, LPARAM lParam = NULL);
-		BOOL SetTimer(UINT nIDEvnet, UINT uElapse);
-		BOOL KillTimer(UINT nIDEvnet);
+		BOOL SendNotify(EnumNotify emNotify, WPARAM wParam = 0L, LPARAM lParam = NULL);
+		BOOL SendWindowMessage(UINT message, WPARAM wParam = 0L, LPARAM lParam = NULL, LRESULT * lResult = NULL);
+		BOOL PostWindowMessage(UINT message, WPARAM wParam = 0L, LPARAM lParam = NULL);
+
         void SetMenu(IMenuPopup * pMenu);
         IMenuPopup * GetMenu() const;
 
@@ -100,8 +102,9 @@ namespace MYUI
 		virtual bool Update();//我会更新父布局的区域，所以兄弟控件也会调整
         virtual bool Renewal();//我会将子窗口的位置都更新一次，并刷新视图
 		virtual bool Invalidate();//我只更新自己的区域，所以其他控件不会受到影响
-		virtual bool OnPaint(RECT rcItem, RECT rcPaint, RECT rcUpdate);
-		virtual bool SetItem(RECT rcItem, bool bMustUpdate);
+		virtual bool OnPaint(const RECT& rcUpdate);
+		virtual bool SetItem(RECT rcItem, bool bMustUpdate) override;
+		virtual void SetTextFont(int FontId);
 
 		virtual void SetVisible(bool bVisible);
 		virtual bool IsVisible();
@@ -110,7 +113,7 @@ namespace MYUI
 		virtual void SetPenetrated(bool bPenetrated);
 		virtual bool IsPenetrated();
 
-		virtual CControlUI * FindControlByPoint(POINT &pt);
+		virtual CControlUI * FindControlByPoint(POINT& Point);
 		virtual CControlUI * FindControlByName(LPCTSTR strName);
 
 		//一些高级控件将内部的控件隐藏起来了，使用FindControl并不能找到他们的内部控件指针
@@ -130,7 +133,7 @@ namespace MYUI
 		//而GetFixedRect会只计算滚动条偏移与父控件是否隐藏，并不计算遮挡部分，
 		//所以只有父控件或自身隐藏的时候，才会返回失败，否则返回控件在窗口中的绝对位置
 		virtual bool GetItemFixedRect(RECT &rcFixed);
-		virtual bool GetClientFixedRect(RECT &rcFixed);
+		virtual bool GetClientFixedRect(RECT& rcFixed);
 
 		virtual CMuiString GetName() const;
 		virtual void SetName(LPCTSTR pstrName);
@@ -149,7 +152,7 @@ namespace MYUI
 		void SetTipText(LPCTSTR strTipText);
 		LPCTSTR GetTipText() const;
 	protected:
-		virtual LRESULT WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
+		virtual LRESULT WndProc(UINT message, WPARAM wParam, LPARAM lParam);
 
 		//控件在窗口中的绝对位置，跟GetDisplayRect不同，如果控件发生遮挡GetDisplayRect会减去遮挡部分
 		//而GetFixedRect会只计算滚动条偏移与父控件是否隐藏，并不计算遮挡部分，
@@ -169,22 +172,21 @@ namespace MYUI
 		//virtual bool GetDisplayRectEx(RECT &rcDisplay);
 
 		//绘制
-		virtual void PaintBkColor(const RECT& rcItem, const RECT& rcPaint);
-		virtual void PaintBkImage(const RECT& rcItem, const RECT& rcPaint);
-		virtual void PaintStatusImage( const RECT& rcItem, const RECT& rcPaint);
-		virtual void PaintText(const RECT& rcItem, const RECT& rcPaint);
-		virtual void PaintBorder(const RECT& rcItem, const RECT& rcPaint);
+		virtual void PaintBkColor(const RECT& rcUpdate);
+		virtual void PaintBkImage(const RECT& rcUpdate);
+		virtual void PaintStatusImage(const RECT& rcUpdate);
+		virtual void PaintText(const RECT& rcUpdate);
+		virtual void PaintBorder(const RECT& rcUpdate);
 		
 		//通知
-		virtual void OnAttach(HWND hNewWnd);//当控件附加到新的窗口时，会调用一次该函数
-		virtual void OnDetach(HWND hOldWnd);//当控件离开一个窗口时，会调用一次该函数 
 		virtual void OnPosChange(LPVOID pElement);//当位置属性发生变化
 		virtual void OnViewChange(LPVOID pElement);//当界面属性发生变化
-		
+		virtual void OnAttach(HWND hNewWnd);//当控件附加到新的窗口时，会调用一次该函数
+		virtual void OnDetach(HWND hOldWnd);//当控件离开一个窗口时，会调用一次该函数 
 	private:
 		
 	protected:
-		TSHAREINFO * m_pShareInfo;
+		MUISHAREINFO* m_pShareInfo;
 		CMuiString m_strToolTip;
 		UINT_PTR m_pTag;
         IMenuPopup * m_pMenu;//子菜单句柄，如果该句柄不为空，那么表明该元素为父菜单
@@ -198,7 +200,8 @@ namespace MYUI
 		bool m_bPenetrated;//鼠标点击时，直接穿过，或点击到后面的控件
 
 		DWORD m_dwState;
-		CMuiPtrArray m_pHookers;
+		CMuiPtrArray m_Hookers;
+		CMuiPtrArray m_Timers;
 
 		RECT m_rcSizeBox;
 
@@ -218,7 +221,7 @@ namespace MYUI
 		virtual void RemoveAll() = 0;
 		virtual CControlUI * Find(int nIndex) = 0;
 		virtual int Find(CControlUI * pControl) = 0;
-		virtual int GetCount() const = 0;
+		virtual int GetCount() = 0;
 	};
 
 }

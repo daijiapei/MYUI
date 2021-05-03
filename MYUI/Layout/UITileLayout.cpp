@@ -18,7 +18,7 @@ namespace MYUI
 	{
 	}
 
-	CMuiString CTileLayoutUI::g_strClassName(_T("TileLayoutUI"));
+	const CMuiString CTileLayoutUI::g_strClassName(_T("TileLayoutUI"));
 
 	CMuiString CTileLayoutUI::GetClassName() const
 	{
@@ -195,6 +195,7 @@ namespace MYUI
 	{
 		RECT rcChildItem;
 		RECT rcChildMargin;
+		RECT rcThisRegoin;
 		int nColumn = 0, nRow = 0;//计算出需要显示多少列和行
 		POINT ptNextPos={0};//下一个控件的位置
 
@@ -204,14 +205,16 @@ namespace MYUI
 		if(nControlCount == 0 ) return true;//布局中没有其他控件就直接返回
 
 		//根据布局风格计算列
+		rcThisRegoin = m_rcContent;
+		IndentRect(&rcThisRegoin, &m_rcInset);
 		nColumn = GetAdaptColumn();
 		nRow = 0;
 		for(int i=0; nControlCount > i; i++)
 		{
 			if(0 == i % nColumn)
 			{
-				ptNextPos.x = m_rcInset.left;
-				ptNextPos.y = m_rcInset.top + m_siAdaptItem.cy * nRow;
+				ptNextPos.x = rcThisRegoin.left;
+				ptNextPos.y = rcThisRegoin.top + m_siAdaptItem.cy * nRow;
 				++nRow;
 			}
 			pControl =  (CControlUI*)m_Items[i];
@@ -230,13 +233,13 @@ namespace MYUI
 			rcChildItem.bottom = rcChildItem.top + m_siAdaptItem.cy;
 
 			ptNextPos.x += m_siAdaptItem.cx;
-			//添加adapt item内间距，
+			//添加adapt item内间距
 			IndentRect(&rcChildItem, &m_rcAdaptPadding);
 			//缩进外边距
 			rcChildMargin = pControl->GetMargin();
 			IndentRect(&rcChildItem, &rcChildMargin);
 loop:
-			pControl->SetItem(rcChildItem, false);
+			pControl->SetItem(rcChildItem, bMustUpdate);
 		}
 		return true;
 	}

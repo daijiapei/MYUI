@@ -4,10 +4,10 @@
 namespace MYUI
 {
 
-	static LINKED * find_index_for_linked(int index, LINKED * link, int size)
+	static MUILINKED * find_index_for_linked(int index, MUILINKED * link, int size)
 	{
 		int offset = 0;
-		LINKED * target = link;
+		MUILINKED * target = link;
 
 		if(NULL == link || 0 == size) return NULL;
 		if(0 == index) return link;
@@ -51,7 +51,7 @@ gonext:
 		
 		while(offset)
 		{
-			target = target->next;
+			target = target->pNext;
 			offset --;
 		}
 		return target;
@@ -59,7 +59,7 @@ gonext:
 gopre:
 		while(offset)
 		{
-			target = target->pre;
+			target = target->pPrev;
 			offset --;
 		}
 		return target;
@@ -137,25 +137,25 @@ failed:
 
 */
 
-	bool CListHeaderUI::AddRow(HDROWINFO &info, int nRow)
+	bool CListHeaderUI::AddRow(MUIHDROWINFO &info, int nRow)
 	{
-		HEADERROW * pNewRow = NULL;
-		HEADERROW * pTmpRow = NULL;
+		MUIHEADERROW * pNewRow = NULL;
+		MUIHEADERROW * pTmpRow = NULL;
 		CListHeaderUI * pHeader = NULL;
 		int len = 0;
 		if(NULL == m_pHdRow)
 		{
 			if(0 == nRow || -1 == nRow)
 			{
-				pNewRow = new HEADERROW;
-				pNewRow->link.pre = pNewRow->link.next = (LINKED*)pNewRow;
-				pNewRow->info = info;
+				pNewRow = new MUIHEADERROW;
+				pNewRow->Link.pPrev = pNewRow->Link.pNext = (MUILINKED*)pNewRow;
+				pNewRow->Info = info;
 
 				if(info.strText)
 				{
 					len = _tcslen(info.strText);
-					pNewRow->info.strText = new TCHAR[len + 1];
-					_tcscpy(pNewRow->info.strText, info.strText);
+					pNewRow->Info.strText = new TCHAR[len + 1];
+					_tcscpy(pNewRow->Info.strText, info.strText);
 				}
 				m_pHdRow = pNewRow;
 				m_nRowCount ++;
@@ -164,26 +164,26 @@ failed:
 		}
 		else
 		{
-			pTmpRow = (HEADERROW*) find_index_for_linked(nRow - 1,&m_pHdRow->link, m_nRowCount);
+			pTmpRow = (MUIHEADERROW*) find_index_for_linked(nRow - 1,&m_pHdRow->Link, m_nRowCount);
 
 			if(pTmpRow)
 			{
-				pNewRow = new HEADERROW;
-				pNewRow->link.pre = pNewRow->link.next = (LINKED*)pNewRow;
-				pNewRow->info = info;
+				pNewRow = new MUIHEADERROW;
+				pNewRow->Link.pPrev = pNewRow->Link.pNext = (MUILINKED*)pNewRow;
+				pNewRow->Info = info;
 
 				if(info.strText)
 				{
 					len = _tcslen(info.strText);
-					pNewRow->info.strText = new TCHAR[len + 1];
-					_tcscpy(pNewRow->info.strText, info.strText);
+					pNewRow->Info.strText = new TCHAR[len + 1];
+					_tcscpy(pNewRow->Info.strText, info.strText);
 				}
 
-				pNewRow->link.pre = (LINKED*)pTmpRow;
-				pNewRow->link.next = pTmpRow->link.next;
+				pNewRow->Link.pPrev = (MUILINKED*)pTmpRow;
+				pNewRow->Link.pNext = pTmpRow->Link.pNext;
 
-				pTmpRow->link.next->pre = (LINKED*)pNewRow;
-				pTmpRow->link.next = (LINKED*)pNewRow;
+				pTmpRow->Link.pNext->pPrev = (MUILINKED*)pNewRow;
+				pTmpRow->Link.pNext = (MUILINKED*)pNewRow;
 				
 				
 				m_nRowCount ++;
@@ -196,43 +196,43 @@ failed:
 		return false;
 	}
 
-	bool CListHeaderUI::GetRow(HDROWINFO &info, int nRow)
+	bool CListHeaderUI::GetRow(MUIHDROWINFO &info, int nRow)
 	{
-		HEADERROW * pRow;
-		pRow = (HEADERROW*) find_index_for_linked(nRow ,&m_pHdRow->link, m_nRowCount);
+		MUIHEADERROW * pRow;
+		pRow = (MUIHEADERROW*) find_index_for_linked(nRow ,&m_pHdRow->Link, m_nRowCount);
 
 		if(pRow)
 		{
-			info = pRow->info;
+			info = pRow->Info;
 			return true;
 		}
 
 		return false;
 	}
 
-	bool CListHeaderUI::SetRow(HDROWINFO &info, int nRow)
+	bool CListHeaderUI::SetRow(MUIHDROWINFO &info, int nRow)
 	{
-		HEADERROW * pRow;
-		pRow = (HEADERROW*) find_index_for_linked(nRow ,&m_pHdRow->link, m_nRowCount);
+		MUIHEADERROW * pRow;
+		pRow = (MUIHEADERROW*) find_index_for_linked(nRow ,&m_pHdRow->Link, m_nRowCount);
 
 		if(pRow)
 		{
-			pRow->info.dwState = info.dwState;
-			pRow->info.lParam = info.lParam;
-			pRow->info.refBkColor = info.refBkColor;
+			pRow->Info.dwState = info.dwState;
+			pRow->Info.lParam = info.lParam;
+			pRow->Info.refBkColor = info.refBkColor;
 
 			//如果info.strText为空，不会删除原来的strText
-			if(info.strText && info.strText != pRow->info.strText)
+			if(info.strText && info.strText != pRow->Info.strText)
 			{
-				if(pRow->info.strText)
+				if(pRow->Info.strText)
 				{
-					delete pRow->info.strText;
-					pRow->info.strText = NULL;
+					delete pRow->Info.strText;
+					pRow->Info.strText = NULL;
 				}
 
 				int len = _tcslen(info.strText);
-				pRow->info.strText = new TCHAR[len + 1];
-				_tcscpy(pRow->info.strText, info.strText);
+				pRow->Info.strText = new TCHAR[len + 1];
+				_tcscpy(pRow->Info.strText, info.strText);
 			}
 			
 			return true;
@@ -243,17 +243,17 @@ failed:
 
 	bool CListHeaderUI::DelRow(int nRow)
 	{
-		HEADERROW * pRow;
-		HEADERROW * pPreRow, * pNextRow;
-		pRow = (HEADERROW*) find_index_for_linked(nRow, &m_pHdRow->link, m_nRowCount);
+		MUIHEADERROW * pRow;
+		MUIHEADERROW * pPreRow, * pNextRow;
+		pRow = (MUIHEADERROW*) find_index_for_linked(nRow, &m_pHdRow->Link, m_nRowCount);
 
 		if(pRow)
 		{
-			pPreRow = (HEADERROW *)pRow->link.pre;
-			pNextRow = (HEADERROW *)pRow->link.next;
+			pPreRow = (MUIHEADERROW *)pRow->Link.pPrev;
+			pNextRow = (MUIHEADERROW *)pRow->Link.pNext;
 
-			pPreRow->link.next = pRow->link.next;
-			pNextRow->link.pre = pRow->link.pre;
+			pPreRow->Link.pNext = pRow->Link.pNext;
+			pNextRow->Link.pPrev = pRow->Link.pPrev;
 
 			if(pRow == m_pHdRow)
 			{
@@ -307,7 +307,7 @@ failed:
 	{
 	}
 
-	CMuiString CListViewUI::g_strClassName = _T("ListViewUI");
+	const CMuiString CListViewUI::g_strClassName = _T("ListViewUI");
 
 	CMuiString CListViewUI::GetClassName() const
 	{
@@ -382,7 +382,7 @@ failed:
 		return m_Headers.Find(pControl);
 	}
 
-	int CListViewUI::GetCount() const
+	int CListViewUI::GetCount()
 	{
 		return m_Headers.GetSize();
 	}
@@ -397,7 +397,7 @@ failed:
 		return m_nRowCount;
 	}
 
-	void CListViewUI::SetShareInfo(TSHAREINFO * pShareInfo)
+	void CListViewUI::SetShareInfo(MUISHAREINFO * pShareInfo)
 	{
 		__super::SetShareInfo(pShareInfo);
 
@@ -411,7 +411,7 @@ failed:
 	SIZE CListViewUI::GetContentSize()
 	{
 		SIZE szContent = {0};
-		LISTVIEWROW * pLvRow = m_pLvRow;
+		MUILISTVIEWROW * pLvRow = m_pLvRow;
 		CListHeaderUI * pHeader = nullptr;
 		int nRowCount = m_nRowCount;
 		int nHeaderCount = m_Headers.GetSize();
@@ -430,8 +430,8 @@ failed:
 
 		while(nRowCount--)
 		{
-			szContent.cy += pLvRow->info.nHeight;
-			pLvRow = (LISTVIEWROW*)pLvRow->link.next;
+			szContent.cy += pLvRow->Info.nHeight;
+			pLvRow = (MUILISTVIEWROW*)pLvRow->Link.pNext;
 		}
 
 		//body底部靠近滚动条不好看
@@ -459,8 +459,9 @@ failed:
 		}
 		//欺骗完成后，再设置真正的rcItem
 		m_rcRawItem = m_rcItem = rcItem;
-		OffsetRect(&m_rcRawItem, - rcItem.left, - rcItem.top);
+		OffsetRect(&m_rcRawItem, -m_rcRawItem.left, -m_rcRawItem.top);
 		OffsetRect(&m_rcClient, 0, m_nHeaderHeight);
+		OffsetRect(&m_rcContent, 0, m_nHeaderHeight);
 
 		if(m_pVerticalScrollBar)
 		{
@@ -478,7 +479,8 @@ failed:
 
 		if(nHeaderCount == 0 ) return true;//布局中没有其他控件就直接返回
 		
-		ptNextPos.x = ptNextPos.y = 0;
+		ptNextPos.x = m_rcContent.left;
+		ptNextPos.y = 0;
 		for(int i=0; nHeaderCount > i; i++)
 		{
 			pControl =  (CControlUI*)m_Headers[i];
@@ -492,8 +494,8 @@ failed:
 				goto loop;
 			}
 
-			rcHeaderItem.left += ptNextPos.x;
-			rcHeaderItem.top += ptNextPos.y;
+			rcHeaderItem.left = ptNextPos.x;
+			rcHeaderItem.top = ptNextPos.y;
 			
 			rcHeaderItem.right = rcHeaderItem.left + pControl->GetWidth();
 			rcHeaderItem.bottom = rcHeaderItem.top + m_nHeaderHeight;
@@ -505,101 +507,42 @@ loop:
 		return true;
 	}
 
-	bool CListViewUI::OnPaint(RECT rcItem, RECT rcPaint, RECT rcUpdate)
+	void CListViewUI::PaintStatusImage(const RECT &rcUpdate)
 	{
 		SIZE szRound = {0};//listview子控件中，不存在外缩进和半圆效果
 		POINT ptBegin, ptEnd;
-		RECT rcHeaderPaint, rcHeaderClient;
-		RECT rcThisRaw;
-		CControlUI * pHeader;
-		int nHeaderCount = m_Headers.GetSize();
-		RECT rcContainer = rcItem;//用来欺骗CContainerUI
-		//控件绘制，并不是仅仅把画面画出来和处理时间这么简单，还有一个很重要的问题，就是
-		//大数据插入，常规的做法是没插入一条数据，就新建一个控件，这样做必然存在严重的效
-		//率问题，而listView这种专门处理数据的控件，就不得不考虑大数据插入和显示的问题，
-		//所以这个Listview的很多地方必须做优化，目的是为了加快插入和显示的效率
-		
-
-		HCLIP hRawOldClip = m_pShareInfo->pRenderEngine->EnterClip(rcItem, m_szBorderRound);
-
-		__super::OnPaint(rcItem ,rcPaint, rcUpdate);
-
-		//先绘制表头
-		if(nHeaderCount)
-		{
-			PaintHeader(rcItem, rcPaint, rcUpdate);
-		}
-
-		
-		//rcContainer.top += m_nHeaderHeight;
-		//if(TRUE == IsValidRect(rcContainer))
-		//{
-		//	//用来欺骗CContainerUI,让它为我们调整滚动条
-		//	__super::OnPaint(rcContainer ,rcPaint);
-		//}
-
-		//再绘制过滤区
-
-		//然后绘制表体
-		RECT rcThisPaint;
-		RECT rcThisClient = m_rcClient;
-
-		::OffsetRect(&rcThisClient, rcItem.left, rcItem.top);
-
-		if(TRUE == IntersectRect(&rcThisPaint, &rcThisClient, &rcPaint))
-		{
-			HCLIP hClientOldClip = m_pShareInfo->pRenderEngine->EnterClip(rcThisClient, szRound);
-			PaintBody(rcThisClient, rcThisPaint);
-			m_pShareInfo->pRenderEngine->LeaveClip(hClientOldClip);
-		}
-
-		
-finish:
-		m_pShareInfo->pRenderEngine->LeaveClip(hRawOldClip);
-		return true;
-	}
-
-	void CListViewUI::PaintStatusImage( const RECT& rcItem, const RECT& rcPaint)
-	{
-		return ;
-	}
-
-	void CListViewUI::PaintHeader(const RECT& rcItem, const RECT &rcPaint, const RECT &rcUpdate)
-	{
-		SIZE szRound = {0};//listview子控件中，不存在外缩进和半圆效果
-		POINT ptBegin, ptEnd;
-		RECT rcHeaderPaint, rcHeaderItem;
-		RECT rcThisRaw;
+		RECT rcHeaderUpdate, rcHeaderItem;
 		CControlUI * pHeader;
 		int xOffset = 0;
 		int nHeaderCount = m_Headers.GetSize();
 
-		rcThisRaw = m_rcRawItem;
-		OffsetRect(&rcThisRaw, rcItem.left, rcItem.top);
 		for(int i=0; nHeaderCount > i; i++)
 		{
 			pHeader = (CControlUI*)m_Headers[i];
 			rcHeaderItem = pHeader->GetItem();
-			OffsetRect(&rcHeaderItem, rcThisRaw.left - m_szScrollOffset.cx , rcThisRaw.top);
 
-			if(false == pHeader->IsVisible() || rcPaint.left > rcHeaderItem.right)
+			if(false == pHeader->IsVisible() || m_rcRawItem.left > rcHeaderItem.right)
 			{
 				//这一列没显示区域，不用绘制了
 				continue;
 			}
 
-			if(rcHeaderItem.left > rcPaint.right)//超出绘制区域的列
+			if(rcHeaderItem.left > m_rcRawItem.right)//超出绘制区域的列
 			{
 				xOffset = rcHeaderItem.right;//保存一下记录
 				break;
 			}
 
 			//进行交叉运算，计算出子控件的有效绘图区域
-			if(TRUE == IntersectRect(&rcHeaderPaint, &rcHeaderItem, &rcPaint))
+			if(TRUE == IntersectRect(&rcHeaderUpdate, &rcHeaderItem, &rcUpdate))
 			{
 				xOffset = rcHeaderItem.right;//保存一下记录
 				//拥有相交区域才能绘制
-				pHeader->OnPaint(rcHeaderItem ,rcHeaderPaint, rcUpdate);
+				OffsetRect(&rcHeaderUpdate, -rcHeaderItem.left, -rcHeaderItem.top);
+
+				m_pShareInfo->pRenderEngine->OffsetDrawPoint(rcHeaderItem.left, rcHeaderItem.top);
+				pHeader->OnPaint(rcHeaderUpdate);
+				m_pShareInfo->pRenderEngine->OffsetDrawPoint(-rcHeaderItem.left, -rcHeaderItem.top);
 
 				if(GetAValue(m_refBetweenLinesColor))//绘制分隔线，要放在pControl->OnPaint后面，免得覆盖
 				{
@@ -608,15 +551,16 @@ finish:
 					ptEnd.y = rcHeaderItem.bottom;
 					m_pShareInfo->pRenderEngine->OnDrawLine(ptBegin, ptEnd, 1, m_refBetweenLinesColor);
 				}
+				
 			}
 		}
 
 		//最后将空闲区域填补上
-		if(rcPaint.right > xOffset)
+		if(rcUpdate.right > xOffset)
 		{
-			rcHeaderItem.top = rcThisRaw.top;
+			rcHeaderItem.top = m_rcRawItem.top;
 			rcHeaderItem.left = xOffset;
-			rcHeaderItem.right = rcThisRaw.right;
+			rcHeaderItem.right = m_rcRawItem.right;
 			rcHeaderItem.bottom = rcHeaderItem.top + m_nHeaderHeight;
 
 			if(IsValidRect(rcHeaderItem))
@@ -635,30 +579,26 @@ finish:
 			if(GetAValue(m_refBetweenLinesColor))//绘制分隔线，要放在pControl->OnPaint后面，免得覆盖
 			{
 				ptBegin.x = ptEnd.x = xOffset;
-				ptBegin.y = rcItem.top;
 				ptEnd.y = ptBegin.y + m_nHeaderHeight;
 				m_pShareInfo->pRenderEngine->OnDrawLine(ptBegin, ptEnd, 1, m_refBetweenLinesColor);
 
-				ptBegin.x = ptEnd.x = rcItem.right - 1;
+				ptBegin.x = ptEnd.x = m_rcRawItem.right - 1;
 				m_pShareInfo->pRenderEngine->OnDrawLine(ptBegin, ptEnd, 1, m_refBetweenLinesColor);
 			}
 		}
-
-
 	}
 
-	void CListViewUI::PaintBody(const RECT& rcItem, const RECT &rcPaint)
+	void CListViewUI::PaintContent(const RECT & rcUpdate)
 	{
 		SIZE szRound = {0};//listview子控件中，不存在外缩进和半圆效果
 		POINT ptBegin, ptEnd;
 		RECT rcHeaderItem;
 		RECT rcDraw;
-		RECT rcThisClient = rcItem;
 		SIZE siOffset;
 		ARGBREF refItemBkColor = NULL;
 		CListHeaderUI * pHeader;
-		LISTVIEWROW * pLvRow = m_pLvRow;
-		HEADERROW * pHdRow = NULL;
+		MUILISTVIEWROW * pLvRow = m_pLvRow;
+		MUIHEADERROW * pHdRow = NULL;
 		RECT rcSelectRegion;//选择的区域
 		CRenderEngine * pEnglne = m_pShareInfo->pRenderEngine;
 
@@ -685,31 +625,31 @@ finish:
 			rcSelectRegion.top = m_ptSelectEndItem.y;
 			rcSelectRegion.bottom = m_ptSelectBeginItem.y;
 		}
-
 		
 		int nHeaderCount = m_Headers.GetSize();
 
 		int nBeginCol = 0, nBeginRow = 0;//从哪一行开始绘制
-		int xOffset = 0, yOffset = 0;
+		int xOffset = m_rcContent.left;
+		int yOffset = m_rcContent.top;
 		int nClientWidht = m_rcClient.right - m_rcClient.left;
 		int nClientHeight = m_rcClient.bottom - m_rcClient.top;
-		::OffsetRect(&rcThisClient,  - m_szScrollOffset.cx, - m_szScrollOffset.cy);
-		HFONT hFont = (HFONT)m_pShareInfo->FontArray->Select(m_nFontId);
+		//::OffsetRect(&rcThisClient,  - m_szScrollOffset.cx, - m_szScrollOffset.cy);
+
 		//找出从那一行开始绘制，在大数据时效果明显
 
 		if(0 == m_nRowCount) return;
 
 		for(int i = 0; m_nRowCount > i; i++)
 		{
-			yOffset += pLvRow->info.nHeight;
-			if(yOffset > m_szScrollOffset.cy)
+			yOffset += pLvRow->Info.nHeight;
+			if(yOffset > m_rcClient.left)
 			{
-				yOffset -= pLvRow->info.nHeight;//还原
+				yOffset -= pLvRow->Info.nHeight;//还原
 				nBeginRow = i;
 				break;
 			}
 
-			pLvRow = (LISTVIEWROW*)pLvRow->link.next;
+			pLvRow = (MUILISTVIEWROW*)pLvRow->Link.pNext;
 		}
 
 		for(int col = 0; nHeaderCount > col; col++)
@@ -717,33 +657,32 @@ finish:
 			pHeader = (CListHeaderUI*)m_Headers[col];
 			rcHeaderItem = pHeader->GetItem();
 
-			if(false == pHeader->IsVisible() || m_szScrollOffset.cx > rcHeaderItem.right)
+			if(false == pHeader->IsVisible() || m_rcClient.left > rcHeaderItem.right)
 			{
 				//这一列没显示区域，不用绘制了
 				continue;
 			}
 
-			if(rcItem.left + rcHeaderItem.left - m_szScrollOffset.cx > rcPaint.right)//超出绘制区域的列
+			if(rcHeaderItem.left > m_rcClient.right)//超出绘制区域的列
 			{
 				break;
 			}
 
-			pHdRow = (HEADERROW *)find_index_for_linked(nBeginRow, &pHeader->m_pHdRow->link, pHeader->m_nRowCount);
-			pLvRow = (LISTVIEWROW *)find_index_for_linked(nBeginRow, &this->m_pLvRow->link, this->m_nRowCount);
+			pHdRow = (MUIHEADERROW *)find_index_for_linked(nBeginRow, &pHeader->m_pHdRow->Link, pHeader->m_nRowCount);
+			pLvRow = (MUILISTVIEWROW *)find_index_for_linked(nBeginRow, &this->m_pLvRow->Link, this->m_nRowCount);
 			rcDraw.left = rcHeaderItem.left;
 			rcDraw.right = rcHeaderItem.right;
 			rcDraw.top = yOffset;
-			rcDraw.bottom = rcDraw.top + pLvRow->info.nHeight;
-			OffsetRect(&rcDraw, rcThisClient.left , rcThisClient.top);
+			rcDraw.bottom = rcDraw.top + pLvRow->Info.nHeight;
 
 			for(int row = nBeginRow; m_nRowCount > row; row++)
 			{
-				if(rcDraw.top - m_szScrollOffset.cy > rcPaint.bottom)//超出绘制区域的行
+				if(rcDraw.top > m_rcClient.bottom)//超出绘制区域的行
 				{
 					break;
 				}
 
-				refItemBkColor = pHdRow->info.refBkColor;
+				refItemBkColor = pHdRow->Info.refBkColor;
 
 				if(TRUE == PointInRect2(col, row, rcSelectRegion))
 				{
@@ -767,12 +706,12 @@ finish:
 					pEnglne->OnDrawFrame(rcDraw, m_refGridLinesColor);
 				}
 
-				pEnglne->OnDrawText(rcDraw, pHdRow->info.strText, 0xff000000, hFont, DT_SINGLELINE | DT_CENTER | DT_VCENTER);
+				pEnglne->OnDrawText(rcDraw, pHdRow->Info.strText, 0xff000000, m_hFont, DT_SINGLELINE | DT_CENTER | DT_VCENTER);
 				
-				rcDraw.top += pLvRow->info.nHeight;
-				pLvRow = (LISTVIEWROW *)pLvRow->link.next;
-				pHdRow = (HEADERROW *)pHdRow->link.next;
-				rcDraw.bottom += pLvRow->info.nHeight;
+				rcDraw.top += pLvRow->Info.nHeight;
+				pLvRow = (MUILISTVIEWROW *)pLvRow->Link.pNext;
+				pHdRow = (MUIHEADERROW *)pHdRow->Link.pNext;
+				rcDraw.bottom += pLvRow->Info.nHeight;
 
 			}
 		}
@@ -780,18 +719,18 @@ finish:
 		return ;
 	}
 
-	bool CListViewUI::AddRow(LVROWINFO &info,int nRow /* -1 最后一行*/)
+	bool CListViewUI::AddRow(MUILVROWINFO &Info,int nRow /* -1 最后一行*/)
 	{
-		LISTVIEWROW * pNewRow = NULL;
-		LISTVIEWROW * pTmpRow = NULL;
+		MUILISTVIEWROW * pNewRow = NULL;
+		MUILISTVIEWROW * pTmpRow = NULL;
 		CListHeaderUI * pHeader = NULL;
 		if(NULL == m_pLvRow)
 		{
 			if(0 == nRow || -1 == nRow)
 			{
-				pNewRow = new LISTVIEWROW;
-				pNewRow->link.pre = pNewRow->link.next = (LINKED*)pNewRow;
-				pNewRow->info = info;
+				pNewRow = new MUILISTVIEWROW;
+				pNewRow->Link.pPrev = pNewRow->Link.pNext = (MUILINKED*)pNewRow;
+				pNewRow->Info = Info;
 
 				AddHeaderRow(nRow);
 				m_pLvRow = pNewRow;
@@ -801,19 +740,19 @@ finish:
 		}
 		else
 		{
-			pTmpRow = (LISTVIEWROW*) find_index_for_linked(nRow - 1, (LINKED*)m_pLvRow, m_nRowCount);
+			pTmpRow = (MUILISTVIEWROW*) find_index_for_linked(nRow - 1, (MUILINKED*)m_pLvRow, m_nRowCount);
 
 			if(pTmpRow)
 			{
-				pNewRow = new LISTVIEWROW;
-				pNewRow->link.pre = pNewRow->link.next = (LINKED*)pNewRow;
-				pNewRow->info = info;
+				pNewRow = new MUILISTVIEWROW;
+				pNewRow->Link.pPrev = pNewRow->Link.pNext = (MUILINKED*)pNewRow;
+				pNewRow->Info = Info;
 
-				pNewRow->link.pre = (LINKED*)pTmpRow;
-				pNewRow->link.next = pTmpRow->link.next;
+				pNewRow->Link.pPrev = (MUILINKED*)pTmpRow;
+				pNewRow->Link.pNext = pTmpRow->Link.pNext;
 
-				pTmpRow->link.next->pre = (LINKED*)pNewRow;
-				pTmpRow->link.next = (LINKED*)pNewRow;
+				pTmpRow->Link.pNext->pPrev = (MUILINKED*)pNewRow;
+				pTmpRow->Link.pNext = (MUILINKED*)pNewRow;
 
 				AddHeaderRow(nRow);
 				m_nRowCount ++;
@@ -826,14 +765,14 @@ finish:
 		return false;
 	}
 
-	bool CListViewUI::GetRow(LVROWINFO &info, int nRow)
+	bool CListViewUI::GetRow(MUILVROWINFO &info, int nRow)
 	{
-		LISTVIEWROW * pRow;
-		pRow = (LISTVIEWROW*) find_index_for_linked(nRow ,&m_pLvRow->link, m_nRowCount);
+		MUILISTVIEWROW * pRow;
+		pRow = (MUILISTVIEWROW*) find_index_for_linked(nRow ,&m_pLvRow->Link, m_nRowCount);
 
 		if(pRow)
 		{
-			info = pRow->info;
+			info = pRow->Info;
 			return true;
 		}
 
@@ -841,14 +780,14 @@ finish:
 
 	}
 
-	bool CListViewUI::SetRow(LVROWINFO &info, int nRow)
+	bool CListViewUI::SetRow(MUILVROWINFO &info, int nRow)
 	{
-		LISTVIEWROW * pRow;
-		pRow = (LISTVIEWROW*) find_index_for_linked(nRow ,&m_pLvRow->link, m_nRowCount);
+		MUILISTVIEWROW * pRow;
+		pRow = (MUILISTVIEWROW*) find_index_for_linked(nRow ,&m_pLvRow->Link, m_nRowCount);
 
 		if(pRow)
 		{
-			pRow->info = info;
+			pRow->Info = info;
 			return true;
 		}
 
@@ -857,17 +796,17 @@ finish:
 
 	bool CListViewUI::DelRow(int nRow)
 	{
-		LISTVIEWROW * pRow;
-		LISTVIEWROW * pPreRow, * pNextRow;
-		pRow = (LISTVIEWROW*) find_index_for_linked(nRow, &m_pLvRow->link, m_nRowCount);
+		MUILISTVIEWROW * pRow;
+		MUILISTVIEWROW * pPreRow, * pNextRow;
+		pRow = (MUILISTVIEWROW*) find_index_for_linked(nRow, &m_pLvRow->Link, m_nRowCount);
 
 		if(pRow)
 		{
-			pPreRow = (LISTVIEWROW *)pRow->link.pre;
-			pNextRow = (LISTVIEWROW *)pRow->link.next;
+			pPreRow = (MUILISTVIEWROW *)pRow->Link.pPrev;
+			pNextRow = (MUILISTVIEWROW *)pRow->Link.pNext;
 
-			pPreRow->link.next = pRow->link.next;
-			pNextRow->link.pre = pRow->link.pre;
+			pPreRow->Link.pNext = pRow->Link.pNext;
+			pNextRow->Link.pPrev = pRow->Link.pPrev;
 
 			if(pRow == m_pLvRow)
 			{
@@ -894,7 +833,7 @@ finish:
 	bool CListViewUI::AddHeaderRow(int nRow)
 	{
 		CListHeaderUI * pHeader = NULL;
-		HDROWINFO info ={0};
+		MUIHDROWINFO info ={0};
 
 		int nHeaderCount = m_Headers.GetSize();
 
@@ -922,7 +861,7 @@ finish:
 	}
 
 	//首先AddRow新增一行，然后再SetSubItem
-	bool CListViewUI::SetSubItem(HDROWINFO &info, int nCol, int nRow)
+	bool CListViewUI::SetSubItem(MUIHDROWINFO &info, int nCol, int nRow)
 	{
 		CListHeaderUI * pHeader = (CListHeaderUI *)m_Headers[nCol];
 		if(NULL == pHeader) return false;
@@ -930,7 +869,7 @@ finish:
 		return pHeader->SetRow(info, nRow);
 	}
 
-	bool CListViewUI::GetSubItem(HDROWINFO &info, int nCol, int nRow)
+	bool CListViewUI::GetSubItem(MUIHDROWINFO &info, int nCol, int nRow)
 	{
 		CListHeaderUI * pHeader = (CListHeaderUI *)m_Headers[nCol];
 		if(NULL == pHeader) return false;
@@ -1035,7 +974,7 @@ finish:
 		int nColWidht = - m_szScrollOffset.cx;
 		int nRowHeight = m_nHeaderHeight - m_szScrollOffset.cy;
 
-		LISTVIEWROW * pLvRow = m_pLvRow;
+		MUILISTVIEWROW * pLvRow = m_pLvRow;
 		CListHeaderUI * pHeader; 
 		int nHeaderCount = m_Headers.GetSize();
 
@@ -1069,14 +1008,14 @@ finish:
 
 		for(int i=0; m_nRowCount > i ; i++)
 		{
-			nRowHeight += pLvRow->info.nHeight;
+			nRowHeight += pLvRow->Info.nHeight;
 
 			if(nRowHeight > pt.y)
 			{
 				nRow = i;
 				break;//跳出，执行下一步
 			}
-			pLvRow = (LISTVIEWROW *) pLvRow->link.next;
+			pLvRow = (MUILISTVIEWROW *) pLvRow->Link.pNext;
 		}
 
 		if(-1 == nRow)
@@ -1125,7 +1064,7 @@ finish:
 		}
 		else
 		{
-			ASSERT(0 && "CListViewUI::SetSelect 不支持这种赋值操作");
+			MUIASSERT(0 && "CListViewUI::SetSelect 不支持这种赋值操作");
 		}
 
 		if(true == bRet)
@@ -1135,11 +1074,11 @@ finish:
 		return false;
 	}
 
-	LRESULT CListViewUI::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+	LRESULT CListViewUI::WndProc(UINT message, WPARAM wParam, LPARAM lParam)
 	{
 		CListHeaderUI * pHeader;
-		LISTVIEWROW * pLvRow = NULL;
-		HEADERROW * pHdRow = NULL;
+		MUILISTVIEWROW * pLvRow = NULL;
+		MUIHEADERROW * pHdRow = NULL;
 		POINT point;
 		int nCol, nRow;
 		switch(message)
@@ -1148,12 +1087,12 @@ finish:
 			{
 				if(m_pHotHeader)
 				{
-					m_pHotHeader->CallWndProc(NULL, message, 0, 0);
+					m_pHotHeader->CallWndProc(message, 0, 0);
 					m_pHotHeader = NULL;
 				}
 				if(m_pPushedHeader && m_pPushedHeader != m_pHotHeader)
 				{
-					m_pPushedHeader->CallWndProc(NULL, message, 0, 0);
+					m_pPushedHeader->CallWndProc(message, 0, 0);
 				}
 				this->Invalidate();
 			}break;
@@ -1172,20 +1111,20 @@ finish:
 					//先发出离开通知，
 					if(NULL != m_pHotHeader)
 					{
-						m_pHotHeader->CallWndProc(NULL, WM_MOUSELEAVE, 0, 0);
+						m_pHotHeader->CallWndProc(WM_MOUSELEAVE, 0, 0);
 					}
 					m_pHotHeader = pHeader;
 					//再发出进入通知
 					if(NULL != m_pHotHeader)
 					{
-						m_pHotHeader->CallWndProc(NULL, WM_MOUSEENTER, wParam, MAKELONG(point.x, point.y));
+						m_pHotHeader->CallWndProc(WMU_MOUSEENTER, wParam, MAKELONG(point.x, point.y));
 					}
 					Invalidate();
 				}
 
 				if(pHeader)
 				{
-					pHeader->CallWndProc(NULL, message, wParam, MAKELONG(point.x, point.y));
+					pHeader->CallWndProc(message, wParam, MAKELONG(point.x, point.y));
 				}
 				else
 				{
@@ -1194,7 +1133,7 @@ finish:
 
 				if(m_pPushedHeader && m_pPushedHeader != pHeader)
 				{
-					m_pPushedHeader->CallWndProc(NULL, message, 0, lParam);
+					m_pPushedHeader->CallWndProc(message, 0, lParam);
 				}
 
 				if(pHeader) break;//鼠标在表头，就不用检查是否在表体了
@@ -1226,9 +1165,9 @@ finish:
 					else
 					{
 						//基本不会出现这种情况
-						m_pPushedHeader->CallWndProc(NULL, message, wParam, lParam);
+						m_pPushedHeader->CallWndProc(message, wParam, lParam);
 					}
-					pHeader->CallWndProc(NULL, message, wParam, MAKELONG(point.x, point.y));
+					pHeader->CallWndProc(message, wParam, MAKELONG(point.x, point.y));
 				}
 				else
 				{
@@ -1247,15 +1186,15 @@ finish:
 			{
 				if(pHeader = FindHeaderByPoint(point))
 				{
-					pHeader->CallWndProc(NULL, message, wParam, MAKELONG(point.x, point.y));
+					pHeader->CallWndProc(message, wParam, MAKELONG(point.x, point.y));
 				}
 				if(m_pPushedHeader && m_pPushedHeader != pHeader)
 				{
-					m_pPushedHeader->CallWndProc(NULL, message, 0, lParam);
+					m_pPushedHeader->CallWndProc(message, 0, lParam);
 					m_pPushedHeader = NULL;
 				}
 			}break;
-		case WM_LBUTTONCLICK:
+		case WMU_LBUTTONCLICK:
 			{
 				
 			}break;
@@ -1263,7 +1202,7 @@ finish:
 			{
 				if(pHeader = FindHeaderByPoint(point))
 				{
-					pHeader->CallWndProc(NULL, message, wParam, MAKELONG(point.x, point.y));
+					pHeader->CallWndProc(message, wParam, MAKELONG(point.x, point.y));
 				}
 			}break;
 		case WM_KILLFOCUS:
@@ -1271,7 +1210,7 @@ finish:
 				m_dwFocus = LVDF_NON;
 			}break;
 		}
-		return __super::WndProc(hWnd, message, wParam, lParam);
+		return __super::WndProc(message, wParam, lParam);
 	}
 
 }

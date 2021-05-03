@@ -9,7 +9,7 @@ namespace MYUI
 		, m_pPropertyItem(NULL)
 		, m_nFrameCount(0)
 		, m_nFramePosition(0)
-		, m_bIsAutoPlay(false)
+		, m_bIsAutoPlay(true)
 		, m_bIsAutoSize(false)
 		, m_gdiplusToken(0)
 		, m_bIsPlaying(false)
@@ -22,7 +22,7 @@ namespace MYUI
 		GdiplusShutdown(m_gdiplusToken);
 	}
 
-	CMuiString CGifUI::g_strClassName = _T("GifUI");
+	const CMuiString CGifUI::g_strClassName = _T("GifUI");
 
 	CMuiString CGifUI::GetClassName() const
 	{
@@ -154,7 +154,7 @@ namespace MYUI
 		{
 			pStream->Release(); 
 			GlobalUnlock(hMem);
-			TRACE(_T("CGifUI::LoadGif GetLastError = %d"), GetLastError());
+			MUITRACE(_T("CGifUI::LoadGif GetLastError = %d"), GetLastError());
 		}
 
 		delete pData;
@@ -182,11 +182,11 @@ namespace MYUI
 		}
 	}
 
-	bool CGifUI::OnPaint(RECT rcItem, RECT rcPaint, RECT rcUpdate)
+	bool CGifUI::OnPaint(const RECT& rcUpdate)
 	{
 		RECT rcClient = m_rcClient;
 		
-		if(FALSE == IsContainRect(rcPaint, rcUpdate)) return false;
+		if(FALSE == IsContainRect(rcClient, rcUpdate)) return false;
 		if (NULL == m_pGifImage) return true;
 
 		if(m_bIsAutoSize)
@@ -195,28 +195,30 @@ namespace MYUI
 			rcClient.bottom = rcClient.top + m_pGifImage->GetHeight();
 		}
 
-		::OffsetRect(&rcClient, rcItem.left, rcItem.top);
-
 		if(0 == (MGIFS_FLAG & m_dwStyle))
 		{
 
 		}
 
 		HDC hMemDc = m_pShareInfo->pRenderEngine->GetMemDC();
-		
+		POINT ptDraw = m_pShareInfo->pRenderEngine->GetDrawPoint();
 		GUID pageGuid = Gdiplus::FrameDimensionTime;
 		Gdiplus::Graphics graphics(hMemDc);
-		//绘制当前帧
-		graphics.DrawImage(m_pGifImage, rcClient.left, rcClient.top, 
-			rcClient.right - rcClient.left, rcClient.bottom - rcClient.top );
+
 		//选择当前活动帧
 		m_pGifImage->SelectActiveFrame(&pageGuid, m_nFramePosition);
+
+		//绘制当前帧
+		OffsetRect(&rcClient, ptDraw.x, ptDraw.y);
+		graphics.DrawImage(m_pGifImage, rcClient.left, rcClient.top, 
+			rcClient.right - rcClient.left, rcClient.bottom - rcClient.top );
+		
 
 		m_pShareInfo->pRenderEngine->ReleaseMemDC(hMemDc);
 		return true;
 	}
 
-	LRESULT CGifUI::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+	LRESULT CGifUI::WndProc(UINT message, WPARAM wParam, LPARAM lParam)
 	{
 		switch (message)
 		{
@@ -239,7 +241,7 @@ namespace MYUI
 			break;
 		}
 
-		return __super::WndProc(hWnd, message, wParam, lParam);
+		return __super::WndProc(message, wParam, lParam);
 	}
 
 

@@ -5,11 +5,7 @@
 * @date 2013/11/18
 */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include "rbtree.h"
-#include <tchar.h>
 
 #define RED        0    // 红色节点
 #define BLACK      1    // 黑色节点
@@ -23,78 +19,15 @@
 #define rb_set_parent(r,p)  do { (r)->parent = (p); } while (0)
 #define rb_set_color(r,c)  do { (r)->color = (c); } while (0)
 
-//typedef struct __node_key_t2
-//{
-//    unsigned int LowPart1;
-//    unsigned int LowPart2;
-//    unsigned int HeightPart1;
-//    unsigned int HeightPart2;
-//}node_key_t2;
+#define RBMALLOC   malloc
+#define RBREALLOC  realloc
+#define RBFREE     free
 
-typedef RBKEY node_key_t2;
-
-#define CMPKEY(key1, key2) cmpkey2((const node_key_t2 *)(key1), (const node_key_t2 *)(key2))
-
-static int cmpkey2(const node_key_t2 * key1, const node_key_t2 * key2)
+RBNODE* rbtree_find(RBTREEROOT* root, const void* key)
 {
     int ret = 0;
-
-#if 0
-    if (ret = key1->LowPart1 - key2->LowPart1) return ret;
-    if (ret = key1->LowPart2 - key2->LowPart2) return ret;
-    if (ret = key1->HeightPart1 - key2->HeightPart1) return ret;
-    if (ret = key1->HeightPart2 - key2->HeightPart2) return ret;
-#else
-    return _tcsicmp(key1->strText, key2->strText);
-#endif
-
-    return 0;
-}
-
-
-static int rbtree_enum_(RBNODE * node, int etype, rbtree_enum_fnptr eproc, void * eparam)
-{
-    if (0 == node) return 0;
-
-    if (RBTREE_ENUM_PRE == etype && 0 != eproc(node, eparam))
-    {
-        return 1;
-    }
-
-    if (0 != rbtree_enum_(node->left, etype, eproc, eparam))
-    {
-        return 1;
-    }
-
-    if (RBTREE_ENUM_MID == etype && 0 != eproc(node, eparam))
-    {
-        return 1;
-    }
-
-    if (0 != rbtree_enum_(node->right, etype, eproc, eparam))
-    {
-        return 1;
-    }
-
-    if (RBTREE_ENUM_AFT == etype && 0 != eproc(node, eparam))
-    {
-        return 1;
-    }
-
-    return 1;
-}
-
-void rbtree_enum(RBTREEROOT * root, int etype, rbtree_enum_fnptr eproc, void * eparam)
-{
-    RBNODE * node = root->node;
-    rbtree_enum_(node, etype, eproc, eparam);
-}
-
-
-static RBNODE * rbtree_find_(RBNODE *node, const RBKEY * key)
-{
-    int ret = 0;
-    while ((0 != node) && 0 != (ret = CMPKEY(&node->key, key)))
+    RBNODE* node = root->node;
+    while ((0 != node) && 0 != (ret = root->cmpfn(node->key, key)))
     {
         if (ret > 0)
         {
@@ -109,22 +42,9 @@ static RBNODE * rbtree_find_(RBNODE *node, const RBKEY * key)
     return node;
 }
 
-RBNODE *  rbtree_find(RBTREEROOT *root, const RBKEY * key)
+RBNODE* rbtree_create_node(const void* key, void* data)
 {
-    return rbtree_find_(root->node, key);
-}
-
-
-void rbtree_init_node(RBNODE * node, const RBKEY * key, void * data)
-{
-    memset(node, 0, sizeof(RBNODE));
-    memmove(&node->key, key, sizeof(RBKEY));
-    node->data = data;
-}
-
-RBNODE * rbtree_create_node(const RBKEY * key, void * data)
-{
-    RBNODE * node = (RBNODE *)malloc(sizeof(RBNODE));
+    RBNODE* node = (RBNODE*)RBMALLOC(sizeof(RBNODE));
 
     if (node)
     {
@@ -134,13 +54,22 @@ RBNODE * rbtree_create_node(const RBKEY * key, void * data)
     return node;
 }
 
-void rbtree_free_node(RBNODE * node)
+
+void rbtree_init_node(RBNODE* node, const void* key, void* data)
 {
-    free(node);
+    memset(node, 0, sizeof(RBNODE));
+    node->key = key;
+    node->data = data;
 }
 
 
-static void rbtree_destroy_(RBNODE * node)
+void rbtree_free_node(RBNODE* node)
+{
+    RBFREE(node);
+}
+
+
+static void rbtree_destroy_(RBNODE* node)
 {
     if (0 == node) return;
     //虽然已经提前做了不为空的判断, 但还是要再判断一下才进行函数调用, 
@@ -156,20 +85,20 @@ static void rbtree_destroy_(RBNODE * node)
         rbtree_destroy_(node->right);
     }
 
-    free(node);
+    rbtree_free_node(node);
 }
 
-void rbtree_destroy(RBTREEROOT *root)
+void rbtree_destroy(RBTREEROOT* root)
 {
-    if (root != NULL)
+    if (0 != root)
     {
         rbtree_destroy_(root->node);
-        root->node = NULL;
+        root->node = 0;
     }
 }
 
 
-static RBNODE * rbtree_get_min_(RBNODE * node)
+static RBNODE* rbtree_get_min_(RBNODE* node)
 {
     if (0 == node) return 0;
     while (0 != node->left)
@@ -178,13 +107,13 @@ static RBNODE * rbtree_get_min_(RBNODE * node)
     return node;
 }
 
-RBNODE * rbtree_get_min(RBTREEROOT * root)
+RBNODE* rbtree_get_min(RBTREEROOT* root)
 {
     return rbtree_get_min_(root->node);
 }
 
 
-static RBNODE * rbtree_get_max_(RBNODE * node)
+static RBNODE* rbtree_get_max_(RBNODE* node)
 {
     if (0 == node) return 0;
     while (0 != node->right)
@@ -193,23 +122,23 @@ static RBNODE * rbtree_get_max_(RBNODE * node)
     return node;
 }
 
-RBNODE * rbtree_get_max(RBTREEROOT * root)
+RBNODE* rbtree_get_max(RBTREEROOT* root)
 {
     return rbtree_get_max_(root->node);
 }
 
 
-static void rbtree_left_rotate(RBTREEROOT *root, RBNODE * node)
+static void rbtree_left_rotate(RBTREEROOT* root, RBNODE* node)
 {
-    RBNODE *node2 = node->right;
+    RBNODE* node2 = node->right;
 
     node->right = node2->left;
-    if (node2->left != NULL)
+    if (0 != node2->left)
         node2->left->parent = node;
 
     node2->parent = node->parent;
 
-    if (node->parent == NULL)
+    if (0 == node->parent)
     {
         root->node = node2;
     }
@@ -226,17 +155,17 @@ static void rbtree_left_rotate(RBTREEROOT *root, RBNODE * node)
 }
 
 
-static void rbtree_right_rotate(RBTREEROOT *root, RBNODE * node)
+static void rbtree_right_rotate(RBTREEROOT* root, RBNODE* node)
 {
-    RBNODE *node2 = node->left;
+    RBNODE* node2 = node->left;
 
     node->left = node2->right;
-    if (node2->right != NULL)
+    if (0 != node2->right)
         node2->right->parent = node;
 
     node2->parent = node->parent;
 
-    if (node->parent == NULL)
+    if (0 == node->parent)
     {
         root->node = node2;
     }
@@ -263,9 +192,9 @@ static void rbtree_right_rotate(RBTREEROOT *root, RBNODE * node)
 *     root 红黑树的根
 *     node 插入的结点        // 对应《算法导论》中的z
 */
-static void rbtree_insert_fixup(RBTREEROOT *root, RBNODE *node)
+static void rbtree_insert_fixup(RBTREEROOT* root, RBNODE* node)
 {
-    RBNODE *parent = NULL, *grandpa = NULL;
+    RBNODE* parent = 0, * grandpa = 0;
 
     // 若“父节点存在，并且父节点的颜色是红色”
     while ((parent = rb_parent(node)) && rb_is_red(parent))
@@ -278,7 +207,7 @@ static void rbtree_insert_fixup(RBTREEROOT *root, RBNODE *node)
             // Case 1条件：叔叔节点是红色
             if (1)
             {
-                RBNODE *uncle = grandpa->right;
+                RBNODE* uncle = grandpa->right;
                 if (uncle && rb_is_red(uncle))
                 {
                     rb_set_black(uncle);
@@ -292,7 +221,7 @@ static void rbtree_insert_fixup(RBTREEROOT *root, RBNODE *node)
             // Case 2条件：叔叔是黑色，且当前节点是右孩子
             if (parent->right == node)
             {
-                RBNODE *tmp;
+                RBNODE* tmp;
                 rbtree_left_rotate(root, parent);
                 tmp = parent;
                 parent = node;
@@ -312,7 +241,7 @@ static void rbtree_insert_fixup(RBTREEROOT *root, RBNODE *node)
             // Case 1条件：叔叔节点是红色
             if (1)
             {
-                RBNODE *uncle = grandpa->left;
+                RBNODE* uncle = grandpa->left;
                 if (uncle && rb_is_red(uncle))
                 {
                     rb_set_black(uncle);
@@ -326,7 +255,7 @@ static void rbtree_insert_fixup(RBTREEROOT *root, RBNODE *node)
             // Case 2条件：叔叔是黑色，且当前节点是左孩子
             if (parent->left == node)
             {
-                RBNODE *tmp;
+                RBNODE* tmp;
                 rbtree_right_rotate(root, parent);
                 tmp = parent;
                 parent = node;
@@ -354,29 +283,29 @@ static void rbtree_insert_fixup(RBTREEROOT *root, RBNODE *node)
 *     root 红黑树的根
 *     node 插入的结点        // 对应《算法导论》中的z
 */
-int rbtree_insert(RBTREEROOT *root, RBNODE *node)
+int rbtree_insert(RBTREEROOT* root, RBNODE* node)
 {
-    RBNODE * parent = NULL;
-    RBNODE * son = root->node;
+    RBNODE* parent = 0;
+    RBNODE* son = root->node;
 
     // 不允许插入相同键值的节点。
     // (若想允许插入相同键值的节点，注释掉下面两句话即可！)
-    if (NULL != rbtree_find_(root->node, &node->key)) return -1;
+    if (0 != rbtree_find(root, node->key)) return -1;
 
     // 1. 将红黑树当作一颗二叉查找树，将节点添加到二叉查找树中。
-    while (son != NULL)
+    while (son != 0)
     {
         parent = son;
-        if (CMPKEY(&son->key, &node->key) > 0)
+        if (root->cmpfn(son->key, node->key) > 0)
             son = son->left;
         else
             son = son->right;
     }
     rb_parent(node) = parent;
 
-    if (parent != NULL)
+    if (parent != 0)
     {
-        if (CMPKEY(&parent->key, &node->key) > 0)
+        if (root->cmpfn(parent->key, node->key) > 0)
             parent->left = node;                // 情况2：若“node所包含的值” < “parent所包含的值”，则将node设为“parent的左孩子”
         else
             parent->right = node;            // 情况3：(“node所包含的值” >= “parent所包含的值”)将node设为“parent的右孩子” 
@@ -405,9 +334,9 @@ int rbtree_insert(RBTREEROOT *root, RBNODE *node)
 *     root 红黑树的根
 *     node 待修正的节点
 */
-static void rbtree_remove_fixup(RBTREEROOT *root, RBNODE *node, RBNODE *parent)
+static void rbtree_remove_fixup(RBTREEROOT* root, RBNODE* node, RBNODE* parent)
 {
-    RBNODE *other;
+    RBNODE* other;
 
     while ((!node || rb_is_black(node)) && node != root->node)
     {
@@ -499,21 +428,21 @@ static void rbtree_remove_fixup(RBTREEROOT *root, RBNODE *node, RBNODE *parent)
 *     tree 红黑树的根结点
 *     node 删除的结点
 */
-static void rbtree_remove_(RBTREEROOT *root, RBNODE *node)
+static void rbtree_remove_(RBTREEROOT* root, RBNODE* node)
 {
-    RBNODE *child, *parent;
+    RBNODE* child, * parent;
     int color;
 
     // 被删除节点的"左右孩子都不为空"的情况。
-    if ((node->left != NULL) && (node->right != NULL))
+    if ((node->left != 0) && (node->right != 0))
     {
         // 被删节点的后继节点。(称为"取代节点")
         // 用它来取代"被删节点"的位置，然后再将"被删节点"去掉。
-        RBNODE *replace = node;
+        RBNODE* replace = node;
 
         // 获取后继节点
         replace = replace->right;
-        while (replace->left != NULL)
+        while (replace->left != 0)
             replace = replace->left;
 
         // "node节点"不是根节点(只有根节点不存在父节点)
@@ -558,12 +487,12 @@ static void rbtree_remove_(RBTREEROOT *root, RBNODE *node)
 
         if (color == BLACK)
             rbtree_remove_fixup(root, child, parent);
-        free(node);
+        //RBFREE(node);
 
         return;
     }
 
-    if (node->left != NULL)
+    if (node->left != 0)
         child = node->left;
     else
         child = node->right;
@@ -597,11 +526,11 @@ static void rbtree_remove_(RBTREEROOT *root, RBNODE *node)
 *     root 红黑树的根结点
 *     key 键值
 */
-RBNODE * rbtree_remove(RBTREEROOT *root, const RBKEY * key)
+RBNODE* rbtree_remove(RBTREEROOT* root, const void* key)
 {
-    RBNODE * node = rbtree_find(root, key);
+    RBNODE* node = rbtree_find(root, key);
 
-    if (NULL == node) return NULL;
+    if (0 == node) return 0;
 
     rbtree_remove_(root, node);
 
@@ -609,7 +538,47 @@ RBNODE * rbtree_remove(RBTREEROOT *root, const RBKEY * key)
 }
 
 
-static void rbtree_print_(RBNODE * node, int direction)
+static int rbtree_enum_(RBNODE* node, int etype, PFN_RBTREE_ENUM eproc, void* eparam)
+{
+    if (0 == node) return 0;
+
+    if (RBTREE_ENUM_PRE == etype && 0 != eproc(node, eparam))
+    {
+        return 1;
+    }
+
+    if (0 != rbtree_enum_(node->left, etype, eproc, eparam))
+    {
+        return 1;
+    }
+
+    if (RBTREE_ENUM_MID == etype && 0 != eproc(node, eparam))
+    {
+        return 1;
+    }
+
+    if (0 != rbtree_enum_(node->right, etype, eproc, eparam))
+    {
+        return 1;
+    }
+
+    if (RBTREE_ENUM_AFT == etype && 0 != eproc(node, eparam))
+    {
+        return 1;
+    }
+
+    return 1;
+}
+
+void rbtree_enum(RBTREEROOT* root, int etype, PFN_RBTREE_ENUM eproc, void* eparam)
+{
+    RBNODE* node = root->node;
+    rbtree_enum_(node, etype, eproc, eparam);
+}
+
+
+
+static void rbtree_print_(RBNODE* node, int direction)
 {
 #if 0
     if (node)
@@ -618,7 +587,7 @@ static void rbtree_print_(RBNODE * node, int direction)
             printf("%4d(B) is root\n", (int)node->key.LowPart);
         else                // tree是分支节点
             printf("%4d(%s) is %2d's %6s child\n", (int)node->key.LowPart, rb_is_red(node) ? "R" : "B", node,
-            direction == 1 ? "right" : "left");
+                direction == 1 ? "right" : "left");
 
         rbtree_print_(node->left, -1);
         rbtree_print_(node->right, 1);
@@ -626,8 +595,8 @@ static void rbtree_print_(RBNODE * node, int direction)
 #endif
 }
 
-void rbtree_print(RBTREEROOT *root)
+void rbtree_print(RBTREEROOT* root)
 {
-    if (root != NULL && root->node != NULL)
+    if (root != 0 && root->node != 0)
         rbtree_print_(root->node, 0);
 }

@@ -20,12 +20,12 @@ public:
 	CFrameWindow();
 	~CFrameWindow();
 
-	void OnNotify(TNOTIFYUI &notify);
-	LRESULT OnEvent(TEVENT &event);
+	void OnNotify(MUINOTIFY&notify);
+	LRESULT OnEvent(MUIEVENT &event);
 
 public:
-	virtual bool OnBefore(PVOID pControl, HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam, LRESULT &lResule);
-	virtual bool OnAfter(PVOID pControl, HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam, LRESULT &lResule);
+	virtual bool OnBefore(CControlUI* pControl, HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam, LRESULT &lResule);
+	virtual bool OnAfter(CControlUI* pControl, HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam, LRESULT &lResule);
 
 protected:
 	virtual LRESULT CALLBACK WndProc(UINT message, WPARAM wParam, LPARAM lParam);

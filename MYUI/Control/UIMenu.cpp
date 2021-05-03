@@ -1,7 +1,7 @@
 
 #include "UIMenu.h"
 #include "../Core/UIBuilder.h"
-#include "../Core/UserHandle.h"
+
 
 #define WMU_SHOWCHILDMENU          (WM_APP + 1)
 #define WMU_CHILDMENUHIDE          (WM_APP + 2)
@@ -50,7 +50,7 @@ namespace MYUI
 
     bool CMenuUI::Add(CControlUI* pControl)
     {
-        CBaseLayoutUI * pLayout = dynamic_cast<CBaseLayoutUI*>(m_pViewInfo ? m_pViewInfo->pRootControl : NULL);
+        CBaseLayoutUI * pLayout = dynamic_cast<CBaseLayoutUI*>(GetRootControl());
 
         if (pLayout)
         {
@@ -61,7 +61,7 @@ namespace MYUI
 
     bool CMenuUI::AddAt(CControlUI* pControl, int nIndex)
     {
-        CBaseLayoutUI * pLayout = dynamic_cast<CBaseLayoutUI*>(m_pViewInfo ? m_pViewInfo->pRootControl : NULL);
+        CBaseLayoutUI * pLayout = dynamic_cast<CBaseLayoutUI*>(GetRootControl());
 
         if (pLayout)
         {
@@ -124,7 +124,7 @@ namespace MYUI
         return false;
     }
 
-    int CMenuUI::GetCount() const
+    int CMenuUI::GetCount()
     {
         CBaseLayoutUI * pLayout = this->GetMenuUI();
 
@@ -140,9 +140,9 @@ namespace MYUI
         return NULL;
     }
 
-    CBaseLayoutUI * CMenuUI::GetMenuUI() const
+    CBaseLayoutUI * CMenuUI::GetMenuUI()
     {
-        return dynamic_cast<CBaseLayoutUI*>(m_pViewInfo ? m_pViewInfo->pRootControl : NULL);
+        return dynamic_cast<CBaseLayoutUI*>(GetRootControl());
     }
 
     LRESULT CMenuUI::Popup(INotify *pNotify, POINT ptPopup)
@@ -151,10 +151,8 @@ namespace MYUI
         SIZE Size = { 180, 30 };
         SIZE szScreen = { 0 };
         RECT rcPos = { 0 };
-        TNOTIFYUI Notify = { 0 };
+        MUINOTIFY Notify = { 0 };
         MSG Msg = { 0 };
-
-        ASSERT(pNotify != m_pShareInfo->pNotify && "CMenuUI::Popup 形成了一个死环");
         
         Size = this->GetSize();
 
@@ -175,7 +173,7 @@ namespace MYUI
     SIZE CMenuUI::GetSize()
     {
         SIZE Size = { 180, 30 };
-        CBaseLayoutUI * pLayout = dynamic_cast<CBaseLayoutUI*>(m_pViewInfo ? m_pViewInfo->pRootControl : NULL);
+        CBaseLayoutUI * pLayout = dynamic_cast<CBaseLayoutUI*>(GetRootControl());
 
         if (pLayout->GetCount() > 0)
         {
@@ -185,84 +183,6 @@ namespace MYUI
         }
 
         return Size;
-    }
-
-    LRESULT CMenuUI::DoModal()
-    {
-        ASSERT(::IsWindow(m_hWnd));
-        LRESULT lResult = 0;
-        MSG Msg = { 0 };
-        IUserHandle * pHandle = CUserHandleTable::GetThreadHandle(NULL);
-
-        RECT rcPos = { 0 };
-        ::SetWindowPos(m_hWnd, HWND_TOPMOST, rcPos.left, rcPos.top, rcPos.right - rcPos.left,
-            rcPos.bottom - rcPos.top, SWP_SHOWWINDOW);
-
-        while (TRUE)
-        {
-            if (::IsWindow(m_hWnd) && PeekMessage(&Msg, 0, 0, 0, PM_NOREMOVE))
-            {
-                switch (Msg.hwnd ? Msg.message : 0)
-                {
-                case WM_POPUPDIALOG:
-                {
-                    if (m_hWnd != Msg.hwnd) break;
-                }break;
-                case WM_POPUPMENU:
-                {
-                    if (static_cast<IMenuPopup*>(this) == reinterpret_cast<IMenuPopup*>(Msg.wParam))
-                    {
-                        //同一个菜单, 不需要重复弹出
-                        PeekMessage(&Msg, 0, Msg.message, Msg.message, PM_REMOVE);
-                        continue;
-                    }
-
-                    if (m_hWnd != Msg.hwnd) break;
-                }break;
-                case WM_BREAKLOOP:
-                {
-                    if (NULL == Msg.lParam || m_hWnd == (HWND)Msg.lParam) break;
-                }break;
-                default:
-                    break;
-                }
-
-                PeekMessage(&Msg, 0, Msg.message, Msg.message, PM_REMOVE);
-
-                if (NULL == Msg.hwnd)
-                {
-                    if (pHandle)
-                    {
-                        if (Msg.message >= WM_USER && WM_USER + 0x7FFF >= Msg.message)
-                        {
-                            pHandle->Callback(Msg.message - WM_USER, Msg.wParam, Msg.lParam);
-                            continue;
-                        }
-                    }
-                }
-#ifdef ENABLE_TIMER_LPARAM
-                else
-                {
-                    if (WM_TIMER == Msg.message)
-                    {
-                        ::SendMessage(Msg.hwnd, Msg.message, Msg.wParam, Msg.lParam);
-                        continue;
-                    }
-                }
-#endif
-
-                ::TranslateMessage(&Msg);
-                ::DispatchMessage(&Msg);
-            }
-            else
-            {
-                WaitMessage();
-            }
-        }
-
-        if (::IsWindow(m_hWnd)) ShowWindow(FALSE);
-
-        return Msg.message;
     }
 
     LPVOID CMenuUI::GetInterface(LPCTSTR strName)
@@ -283,11 +203,11 @@ namespace MYUI
         return CWindowUI::GetInterface(strName);
     }
 
-    void CMenuUI::OnNotify(TNOTIFYUI &Notify)
+    void CMenuUI::OnNotify(MUINOTIFY &Notify)
     {
         switch (Notify.dwType)
         {
-        case EnumNotifyMsg::CheckItem:
+        case EnumNotify::CheckItem:
         {
             if (Notify.pSender->GetClassName() == CMenuElementUI::g_strClassName && m_pNotify)
             {
@@ -298,11 +218,11 @@ namespace MYUI
         }
     }
 
-    LRESULT CMenuUI::OnEvent(TEVENT &Event)
+    LRESULT CMenuUI::OnEvent(MUIEVENT &Event)
     {
         switch (Event.dwType)
         {
-        case EnumEventType::WindowInit:
+        case EnumEvent::WindowInit:
         {
             CVerticalLayoutUI * pRootLayout = new CVerticalLayoutUI();
 
@@ -312,11 +232,11 @@ namespace MYUI
 
             this->AttachFrameView(pRootLayout);
         }break;
-        case EnumEventType::OnTimer:
+        case EnumEvent::OnTimer:
         {
 
         }break;
-        case EnumEventType::WindowShow:
+        case EnumEvent::WindowShow:
         {
             CMenuUI * pParentMenu = dynamic_cast<CMenuUI *>(m_pNotify);
             if (TRUE == Event.wParam && pParentMenu)
@@ -324,11 +244,11 @@ namespace MYUI
                 pParentMenu->SendMessage(WMU_CHILDMENUHIDE, NULL, (LPARAM)this);
             }
         }break;
-        case EnumEventType::SetFocued:
+        case EnumEvent::SetFocued:
         {
-            TRACE(_T("EnumEventType::SetFocued %s"), this->GetWindowText());
+            //MUITRACE(_T("EnumEventType::SetFocued %s"), this->GetWindowText());
         }break;
-        case EnumEventType::KillFocued:
+        case EnumEvent::KillFocued:
         {
             //if (NULL == m_pChildMenu)
             //{
@@ -336,11 +256,11 @@ namespace MYUI
             //}
             //
             
-            ::PostMessage(m_hWnd, WM_BREAKLOOP, TRUE, NULL);
+            ::PostMessage(m_hWnd, WMU_BREAKLOOP, TRUE, NULL);
             
-            TRACE(_T("EnumEventType::KillFocued %s"), this->GetWindowText());
+            //MUITRACE(_T("EnumEventType::KillFocued %s"), this->GetWindowText());
         }break;
-        case EnumEventType::WindowDestroy:
+        case EnumEvent::WindowDestroy:
         {
         }break;
         default:
@@ -428,14 +348,14 @@ namespace MYUI
         else if (0 == _tcsicmp(strItem, _T("SelectMode")))
         {
 #ifdef _DEBUG
-            ASSERT(CheckBoer(strValue));
+            MUIASSERT(CheckBoer(strValue));
 #endif
             SetSelectMode(CheckTrue(strValue));
         }
         else if (0 == _tcsicmp(strItem, _T("LineMode")))
         {
 #ifdef _DEBUG
-            ASSERT(CheckBoer(strValue));
+            MUIASSERT(CheckBoer(strValue));
 #endif
             SetLineMode(CheckTrue(strValue));
         }
@@ -480,7 +400,7 @@ namespace MYUI
         return MMUS_LINEMODE & m_dwStyle;
     }
 
-    LRESULT CMenuElementUI::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+    LRESULT CMenuElementUI::WndProc(UINT message, WPARAM wParam, LPARAM lParam)
     {
         CControlUI * pControl = NULL;
         RECT rcPos = { 0 };
@@ -496,16 +416,16 @@ namespace MYUI
         {
 
             //要先post,免得处理SendNotify的时候掺杂其他消息在前面,比如WM_CLOSE
-            ::PostMessage(GETHWND(this), WM_BREAKLOOP, FALSE, NULL);
-            this->SendNotify(FALSE, EnumNotifyMsg::CheckItem, NULL, (LPARAM)this);
+            ::PostMessage(GETHWND(this), WMU_BREAKLOOP, FALSE, NULL);
+            this->SendNotify(EnumNotify::CheckItem, NULL, (LPARAM)this);
 
         }break;
         case WM_MOUSEMOVE:
         {
-            Point.x = (short)LOWORD(lParam);
-            Point.y = (short)HIWORD(lParam);
+            Point.x = (short)GET_X_LPARAM(lParam);
+            Point.y = (short)GET_Y_LPARAM(lParam);
         }break;
-        case WM_MOUSEENTER://鼠标第一次进入
+        case WMU_MOUSEENTER://鼠标第一次进入
         {
             if (m_pMenu && TRUE == this->GetItemFixedRect(rcPos))
             {
@@ -521,23 +441,15 @@ namespace MYUI
                 ::MapWindowPoints(m_pShareInfo->hWnd, NULL, (LPPOINT)&rcPos, 2);
                 Point = CalcPopupPoint(&rcPos, &Size, CPOT_RIGHT);
 
-                ASSERT(GETHWND(this));
+                MUIASSERT(GETHWND(this));
             }
 
-            ::PostMessage(GETHWND(this), WM_POPUPMENU, (WPARAM)m_pMenu, MAKELONG(Point.x, Point.y));
+            ::PostMessage(GETHWND(this), WMU_POPUPMENU, (WPARAM)m_pMenu, MAKELONG(Point.x, Point.y));
         }//流入WM_MOUSELEAVE
         case WM_MOUSELEAVE://鼠标离开
         {
             //需要有对应的Hot设置才会更新
-            if (true == m_bEnabled)
-            {
-                //if (NULL != m_refHotColor || !m_strHotLogo.IsEmpty() ||
-                //    NULL != m_refHotTextColor)
-                //{
-                    this->Invalidate();
-                    break;//产生一次刷新即可
-                //}
-            }
+            this->Invalidate();
         }break;
         case WM_MOUSEHOVER://鼠标停留
         {
@@ -546,10 +458,10 @@ namespace MYUI
             break;
         }
 
-        return __super::WndProc(hWnd, message, wParam, lParam);
+        return __super::WndProc(message, wParam, lParam);
     }
 
-    void CMenuElementUI::PaintBkColor(const RECT& rcItem, const RECT& rcPaint)
+    void CMenuElementUI::PaintBkColor(const RECT& rcUpdate)
     {
         ARGBREF refColor = m_refBkColor;
 
@@ -561,24 +473,24 @@ namespace MYUI
 
         if (NULL != refColor)
         {
-            m_pShareInfo->pRenderEngine->OnDrawColor(rcItem, refColor);
+            m_pShareInfo->pRenderEngine->OnDrawColor(m_rcClient, refColor);
             return;
         }
         return;
     }
 
-    void CMenuElementUI::PaintStatusImage(const RECT& rcItem, const RECT& rcPaint)
+    void CMenuElementUI::PaintStatusImage(const RECT& rcUpdate)
     {
         LPCTSTR strLogoImage = m_strNormalLogo;
         LPCTSTR strGuideImage = m_strNormalGuide;
-        RECT rcLogoDraw = rcItem, rcGuideDraw = rcItem;
+        RECT rcLogoDraw = m_rcClient, rcGuideDraw = m_rcClient;
         RECT rcIndent = { 0 };
-        INT nIndent = ((rcItem.bottom - rcItem.top) / 10) * 3;
+        INT nIndent = ((m_rcClient.bottom - m_rcClient.top) / 10) * 3;
 
         if (MMUS_LINEMODE & m_dwStyle) return;//分隔线
 
-        rcLogoDraw.right = rcLogoDraw.left + (rcItem.bottom - rcItem.top);
-        rcGuideDraw.left = rcGuideDraw.right - (rcItem.bottom - rcItem.top);
+        rcLogoDraw.right = rcLogoDraw.left + (m_rcClient.bottom - m_rcClient.top);
+        rcGuideDraw.left = rcGuideDraw.right - (m_rcClient.bottom - m_rcClient.top);
         rcIndent.left = rcIndent.right = rcIndent.top = rcIndent.bottom = nIndent;
 
         if (false == m_bEnabled)
@@ -649,14 +561,13 @@ namespace MYUI
 
     }
 
-    void CMenuElementUI::PaintText(const RECT& rcItem, const RECT& rcPaint)
+    void CMenuElementUI::PaintText(const RECT& rcUpdate)
     {
-        RECT rcDraw = rcItem;
+        RECT rcDraw = m_rcClient;
         ARGBREF refTextColor = m_refTextColor;
-        HFONT hFont = (HFONT)m_pShareInfo->FontArray->Select(m_nFontId);
 
-        rcDraw.left += rcItem.bottom - rcItem.top;
-        rcDraw.right -= rcItem.bottom - rcItem.top;
+        rcDraw.left += m_rcClient.bottom - m_rcClient.top;
+        rcDraw.right -= m_rcClient.bottom - m_rcClient.top;
 
         if (FALSE == IndentRect(&rcDraw, &m_rcTextPadding)) return;
 
@@ -667,8 +578,8 @@ namespace MYUI
 
             if (0 >= m_nLineSize) return;
 
-            ptBegin.x = rcItem.left + 2;
-            ptEnd.x = rcItem.right - 2;
+            ptBegin.x = m_rcClient.left + 2;
+            ptEnd.x = m_rcClient.right - 2;
 
             ptBegin.y = ptEnd.y = rcDraw.top + ((rcDraw.bottom - rcDraw.top) / 2 - m_nLineSize / 2) + 1;
 
@@ -695,14 +606,13 @@ namespace MYUI
         }
 
         m_pShareInfo->pRenderEngine->OnDrawText(rcDraw, m_strText,
-            refTextColor, hFont, DT_SINGLELINE | DT_LEFT | DT_VCENTER);
+            refTextColor, m_hFont, DT_SINGLELINE | DT_LEFT | DT_VCENTER);
     }
 
     SIZE CMenuElementUI::GetValidSize()//取得真正有效的尺寸
     {
         SIZE Size = { 0 };
         RECT rcItem = { 0 };
-        HFONT hFont = (HFONT)m_pShareInfo->FontArray->Select(m_nFontId);
 
         Size.cy = this->GetHeight();
 
@@ -717,7 +627,7 @@ namespace MYUI
             if (m_pShareInfo && m_pShareInfo->pRenderEngine)
             {
                 Size.cx += m_pShareInfo->pRenderEngine->GetTextSize(rcItem, m_strText,
-                    m_strText.GetLength(), hFont, 0, TOS_SINGLELINE).cx;
+                    m_strText.GetLength(), m_hFont, 0, TOS_SINGLELINE).cx;
             }
         }
 

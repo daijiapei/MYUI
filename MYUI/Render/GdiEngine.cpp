@@ -248,8 +248,14 @@ namespace MYUI
 		,m_hMemDc(NULL)
 		,m_hTmpDc(NULL)
 		,m_hWindowFont(NULL)
+		,m_hClip(NULL)
 	{
 		m_hPaintDc = ::GetDC((HWND)m_hWnd);
+	}
+
+	LPCTSTR CGdiRenderEngine::GetName() const
+	{
+		return _T("GdiRenderEngine");
 	}
 
 	CGdiRenderEngine::~CGdiRenderEngine()
@@ -274,6 +280,7 @@ namespace MYUI
 			rcScreen.right - rcScreen.left , rcScreen.bottom - rcScreen.top);
 		SelectObject(m_hMemDc, m_hMemBitmap);
 		m_hWindowFont = (HFONT)::SendMessage((HWND)m_hWnd, WM_GETFONT, NULL, NULL);
+		
 		return true;//不作检查，简单返回TRUE
 	}
 
@@ -295,7 +302,7 @@ namespace MYUI
 		return bResult;
 	}
 
-	HCLIP CGdiRenderEngine::EnterClip(const RECT &rcClient, SIZE &szRound)
+	HCLIP CGdiRenderEngine::EnterClipImp(const RECT &rcClient, SIZE &szRound)
 	{
 		//返回旧的有效区域给用户自己保存
 		RECT rcClip = {0,0,1,1};
@@ -322,13 +329,6 @@ namespace MYUI
 		return hOldRgn;
 	}
 
-	void  CGdiRenderEngine::LeaveClip(HCLIP hOldClip)
-	{
-		if(NULL == hOldClip) return;
-		::SelectClipRgn(m_hMemDc, (HRGN)hOldClip);
-		::DeleteObject(hOldClip);
-	}
-
 	HDC CGdiRenderEngine::GetMemDC()
 	{
 		return m_hMemDc;
@@ -339,7 +339,15 @@ namespace MYUI
 		return;
 	}
 
-	bool CGdiRenderEngine::OnDrawFrame(const RECT &rcDraw, ARGBREF refColor)
+	void  CGdiRenderEngine::LeaveClipImp(HCLIP hOldClip)
+	{
+		if(NULL == hOldClip) return;
+		::SelectClipRgn(m_hMemDc, (HRGN)hOldClip);
+		::DeleteObject(hOldClip);
+	}
+
+	
+	bool CGdiRenderEngine::DrawFrameImp(const RECT &rcDraw, ARGBREF refColor)
 	{
 		RECT rcFrame = rcDraw;
 		if(0 == GetAValue(refColor)) return true;
@@ -352,9 +360,9 @@ namespace MYUI
 		return true;
 	}
 
-	bool CGdiRenderEngine::OnDrawLine(const POINT &ptBegin, const POINT &ptEnd, int nPenSize, ARGBREF refColor)
+	bool CGdiRenderEngine::DrawLineImp(const POINT &ptBegin, const POINT &ptEnd, int nPenSize, ARGBREF refColor)
 	{
-		HPEN hPen = CreatePen(PS_SOLID,nPenSize ,0x00FFFFFF & refColor);
+		HPEN hPen = CreatePen(PS_SOLID, nPenSize ,0x00FFFFFF & refColor);
 		HPEN hPenOld = (HPEN) SelectObject(m_hMemDc, hPen);
 
 		MoveToEx(m_hMemDc, ptBegin.x, ptBegin.y,NULL);
@@ -365,7 +373,7 @@ namespace MYUI
 		return true;
 	}
 
-	bool CGdiRenderEngine::OnDrawColor(const RECT &rcDraw, ARGBREF refColor)
+	bool CGdiRenderEngine::DrawColorImp(const RECT &rcDraw, ARGBREF refColor)
 	{
 		//FillRect 使用画刷绘制rect内部
 		//FrameRect 使用画刷绘制rect边框
@@ -417,7 +425,7 @@ namespace MYUI
 		return bResult;
 	}
 
-	bool CGdiRenderEngine::OnDrawText(const RECT &rcDraw, LPCTSTR strText, ARGBREF refTextColor, HFONT hFont, DWORD dwType)
+	bool CGdiRenderEngine::DrawTextImp(const RECT &rcDraw, LPCTSTR strText, ARGBREF refTextColor, HFONT hFont, DWORD dwType)
 	{
 		//完全透明，没有必要绘制
 		if(0 == GetAValue(refTextColor)) return true;
@@ -441,7 +449,7 @@ namespace MYUI
 		{
 			//存在透明效果
 			//文字半透明处理的开销挺大
-			ASSERT(FALSE);
+			MUIASSERT(FALSE);
 			HFONT hOldFont = NULL;
 
 			int nWidth = rcDraw.right - rcDraw.left;
@@ -490,7 +498,7 @@ namespace MYUI
 		return true;
 	}
 
-	bool CGdiRenderEngine::OnDrawBroder(const RECT &rcDraw, ARGBREF refColor, int nBroderSize, SIZE &szRound)
+	bool CGdiRenderEngine::DrawBroderImp(const RECT &rcDraw, ARGBREF refColor, int nBroderSize, SIZE &szRound)
 	{
 		if(0 == GetAValue(refColor) || 0 == nBroderSize) return true;//完全透明，不绘制
 
@@ -519,7 +527,7 @@ namespace MYUI
 		else
 		{
 			//有透明效果
-			ASSERT(FALSE);
+			MUIASSERT(FALSE);
 			int nWidth = rcDraw.right - rcDraw.left;
 			int nHeight = rcDraw.bottom - rcDraw.top;
 			BITMAPINFO bmi = { 0 };
@@ -534,7 +542,7 @@ namespace MYUI
 			HBITMAP hTmpBitmap = ::CreateDIBSection(m_hPaintDc, &bmi, DIB_RGB_COLORS, (LPVOID*) &pDest, NULL, 0);
 			if( !hTmpBitmap ) return false;
 
-			HBITMAP hOldBitmap = (HBITMAP)SelectObject(m_hTmpDc, hTmpBitmap);
+			HBITMAP hOldBitmap = (HBITMAP)::SelectObject(m_hTmpDc, hTmpBitmap);
 
 			if(szRound.cx > 0 || szRound.cy > 0)//有圆角
 			{
@@ -560,7 +568,7 @@ namespace MYUI
 			BitBlt(m_hMemDc, rcDraw.left ,rcDraw.top,
 				rcDraw.right - rcDraw.left, rcDraw.bottom - rcDraw.top,
 				m_hTmpDc, 0 ,0 ,SRCPAINT);//颜色合并
-			DeleteObject(hTmpBitmap);
+			::DeleteObject(hTmpBitmap);
 		}
 
 		::SelectObject(hCache, hOldBrush);
@@ -569,8 +577,8 @@ namespace MYUI
 		return true;
 	}
 
-	bool CGdiRenderEngine::OnDrawImage(const RECT &rcDraw, IMAGEINFO * pImageInfo, const RECT &rcSource,
-		const RECT &rcCorner, ARGBREF refMask, DWORD dwFade, bool bHole)
+	bool CGdiRenderEngine::DrawImageImp(const RECT &rcDraw, MUIIMAGEINFO * pImageInfo, const RECT &rcSource,
+		const RECT &rcCorner, ARGBREF refMask, DWORD dwFade, BOOL bHole)
 	{
 		//TransparentBlt屏蔽颜色
 		//AlphaBlend指定透明度
@@ -583,13 +591,13 @@ namespace MYUI
 		HDC hCacheDc = NULL;
 		BITMAPINFO bmi = { 0 };
 		ARGBREF * pDest = NULL;
-		bool bAlpha = pImageInfo->bAlpha;
+		BOOL bAlpha = pImageInfo->bAlpha;
 		//使用refMask会增加额外开销，看下面的函数就知道了，它需要申请新的对象
 		if(GetRGBValue(refMask))
 		{
 			//完全透明，且屏蔽颜色不为黑色
-			hCacheDc = CreateCompatibleDC(m_hPaintDc);
-			SelectObject(hCacheDc, pImageInfo->hBitmap);
+			hCacheDc = ::CreateCompatibleDC(m_hPaintDc);
+			::SelectObject(hCacheDc, pImageInfo->hBitmap);
 			rcSrc.left = rcSrc.top = 0;
 			rcSrc.right = rcSource.right - rcSource.left;
 			rcSrc.bottom = rcSource.bottom - rcSource.top;
@@ -607,7 +615,7 @@ namespace MYUI
 			bmi.bmiHeader.biSizeImage = bmi.bmiHeader.biWidth * bmi.bmiHeader.biHeight * sizeof(ARGBREF);
 			
 			hTmpBitmap = ::CreateDIBSection(m_hPaintDc, &bmi, DIB_RGB_COLORS, (LPVOID*) &pDest, NULL, 0);
-			hOldBitmap = (HBITMAP)SelectObject(m_hTmpDc, hTmpBitmap);
+			hOldBitmap = (HBITMAP)::SelectObject(m_hTmpDc, hTmpBitmap);
 
 			if(hOldBitmap)
 			{
@@ -628,7 +636,7 @@ namespace MYUI
 		else
 		{
 			rcSrc = rcSource;
-			hOldBitmap = (HBITMAP)SelectObject(m_hTmpDc, pImageInfo->hBitmap);
+			hOldBitmap = (HBITMAP)::SelectObject(m_hTmpDc, pImageInfo->hBitmap);
 			if(hOldBitmap) bResult = true;
 		}
 
@@ -657,8 +665,7 @@ end:
 		return bResult;
 	}
 
-
-	bool CGdiRenderEngine::OnDrawHtmlText(const RECT &rcDraw, LPCTSTR strText, CMuiIdArray * FontArray, ARGBREF refTextColor)
+	bool CGdiRenderEngine::DrawHtmlTextImp(const RECT &rcDraw, LPCTSTR strText, CMuiIdArray * FontArray, ARGBREF refTextColor)
 	{
 		//初始化环境
 		bool bRet = false;
@@ -704,7 +711,7 @@ end:
 #ifdef _DEBUG
 #define OFFSET_TO_END \
 	while(_T('}')!=strText[index] && _T('\0')!=strText[index]){++index;}\
-	TRACE(_T("strText[%d] = %c"), index, strText[index])
+	MUITRACE(_T("strText[%d] = %c"), index, strText[index])
 #else
 	while(_T('}')!=strText[index] && _T('\0')!=strText[index]){++index;}
 #endif
@@ -719,7 +726,7 @@ end:
 	{strParam[i++] = strText[index++];}\
 	strParam[i] = _T('\0');\
 	i=0;\
-	TRACE(_T("strText[%d] = %c, strParam = %s"), index, strText[index], strParam)
+	MUITRACE(_T("strText[%d] = %c, strParam = %s"), index, strText[index], strParam)
 #else
 #define GET_PARAM_STRING \
 	i =0;\
@@ -750,7 +757,7 @@ end:
 		RECT rcDraw = {0};
 		BOOL bCommandMode = FALSE;
 		TCHAR cmd = _T('\0');
-		int i =0;
+		int i = 0;
 		
 		int nBufIndex = 0;
 
@@ -788,7 +795,7 @@ end:
                         CGdiRenderEngine::DrawHtmlTextLine(rcLine, strText, nLenght, index, FontArray,
 							 nFontId, refTextColor, refTextBkColor, dwTextStyle);
 
-						TRACE(_T("goback strText[%d] = %c"), index, strText[index]);
+						MUITRACE(_T("goback strText[%d] = %c"), index, strText[index]);
 						++index;
 						continue;
 					}
@@ -797,7 +804,7 @@ end:
 				//进入指令模式
 				bCommandMode = TRUE;
 				++index; while(_T(' ')==strText[index]){++index;};
-				TRACE(_T("strText[%d] = %c"), index, strText[index]);
+				MUITRACE(_T("strText[%d] = %c"), index, strText[index]);
 				if(_T('/') != strText[index])
 				{
 					cmd = strText[index];
@@ -809,10 +816,10 @@ end:
 					{
 						//进行绘制
 						++index; while(_T(' ')==strText[index]){++index;};
-						TRACE(_T("cmd=%c \t strText[%d] = %c"),cmd, index, strText[index]);
-						ASSERT(cmd == strText[index] && "{?}指令首尾不对应");
+						MUITRACE(_T("cmd=%c \t strText[%d] = %c"),cmd, index, strText[index]);
+						MUIASSERT(cmd == strText[index] && "{?}指令首尾不对应");
 
-						CGdiRenderEngine::ShowHtmlText(rcLine, strBuffer, nBufIndex,FontArray,
+						CGdiRenderEngine::ShowHtmlText(rcLine, strBuffer, nBufIndex, FontArray,
 							nFontId, refTextColor, refTextBkColor,  dwTextStyle);
 						OFFSET_TO_END;
 						goto finish;
@@ -827,7 +834,7 @@ end:
 					{
 						GET_PARAM_STRING;
 
-                        IMAGEINFO * pImageInfo = CSkinManager::GetImageInfo(m_strSkin, strParam);
+						MUIIMAGEINFO * pImageInfo = CSkinManager::GetImageInfo(m_strSkin, strParam);
 						if(pImageInfo)
 						{
 							rcDraw = rcLine;
@@ -838,7 +845,7 @@ end:
 							rcDraw.top += nOffset;
 							rcDraw.bottom -= nOffset;
 							rcLine.left = rcDraw.right;
-							CRenderEngine::OnDrawImage(rcDraw,strParam);
+							CRenderEngine::DrawImageImp(rcDraw,strParam);
 						}
 						OFFSET_TO_END;
 						goto finish;
@@ -848,7 +855,7 @@ end:
 						GET_PARAM_STRING;
 						refTextColor = GetArgbFromString(strParam);
 						OFFSET_TO_END;
-						TRACE(_T("指令{c} param=%s, color=0x%x"), strParam, refTextColor);
+						MUITRACE(_T("指令{c} param=%s, color=0x%x"), strParam, refTextColor);
 					}break;
 				case _T('b'):
 					{
@@ -874,8 +881,8 @@ end:
 						}
 						else
 						{
-							TRACE(_T("{a} 指令中，检测到未能识别的参数: %s"), strParam);
-							ASSERT(0 && "{a} 指令中，检测到未能识别的参数");
+							MUITRACE(_T("{a} 指令中，检测到未能识别的参数: %s"), strParam);
+							MUIASSERT(0 && "{a} 指令中，检测到未能识别的参数");
 						}
 
 						OFFSET_TO_END;
@@ -894,8 +901,8 @@ end:
 					}break;
 				default:
 					{
-						TRACE(_T("DrawHtmlTextLine中，检测到未能识别的指令: %c"), strText[index]);
-						ASSERT(0 && "CGdiRenderEngine::DrawHtmlTextLine，检测到未能识别的指令");
+						MUITRACE(_T("DrawHtmlTextLine中，检测到未能识别的指令: %c"), strText[index]);
+						MUIASSERT(0 && "CGdiRenderEngine::DrawHtmlTextLine，检测到未能识别的指令");
 					}break;
 				}
 			}
@@ -944,7 +951,7 @@ finish:
 		int &nHeight, int &nRowSpace)
 	{
 		TCHAR * strBuffer = new TCHAR[1024];
-		IMAGEINFO * pImageInfo = NULL;
+		MUIIMAGEINFO * pImageInfo = NULL;
 		int i =0;
 		nRowSpace = 0;
 		int index = 0;
@@ -966,7 +973,7 @@ finish:
 					}
 					else
 					{
-						i =0;
+						i = 0;
 						index++; while(_T(' ')==strText[index]){++index;};
 						while(_T(' ') != strText[index] && _T('}') != strText[index])
 						{
@@ -981,7 +988,7 @@ finish:
 					(_T(' ') == strText[index+2] || _T('}') == strText[index+2]))
 				{
 					//找到一行的转换
-					ASSERT(bParagraph && "{/p}前面必须有{p}命令对应");
+					MUIASSERT(bParagraph && "{/p}前面必须有{p}命令对应");
 					while(_T('}') != strText[++index]);
 					return index;
 				}
@@ -1003,7 +1010,7 @@ finish:
 				else if(_T('i') == strText[index] && _T(' ') == strText[index+1])
 				{
 					strBuffer[0] = _T('\0');
-					i =0;
+					i = 0;
 
 					index++; while(_T(' ')==strText[index]){++index;};
 					while(_T(' ') != strText[index] && _T('}') != strText[index])
@@ -1014,7 +1021,7 @@ finish:
 
 					pImageInfo = CSkinManager::GetImageInfo(m_strSkin, strBuffer);
 
-					ASSERT(pImageInfo && "CGdiRenderEngine::GetHtmlTextLineHeight pImageInfo Is NULL");
+					MUIASSERT(pImageInfo && "CGdiRenderEngine::GetHtmlTextLineHeight pImageInfo Is NULL");
 					if(pImageInfo && pImageInfo->szBitmap.cy > nHeight)
 					{
 						nHeight = pImageInfo->szBitmap.cy;
@@ -1026,7 +1033,7 @@ finish:
 				}
 
 				while(_T('}') != strText[index]) {++index;};//偏移到_T('}');
-				TRACE(_T("strText[%d] = %c"), index, strText[index]);
+				MUITRACE(_T("strText[%d] = %c"), index, strText[index]);
 			}
 			else
 			{
@@ -1056,7 +1063,7 @@ finish:
 		ARGBREF refOldTextColor = NULL;
 		ARGBREF refOldTextBkColor = NULL;
 		if(FALSE == IsValidRect(rcLine) || 0 == nLenght) return false;
-		TRACE(_T("ShowHtmlText ={f %d}{c #%x}{b #%x} %s {/f}{/c}{/b}"),
+		MUITRACE(_T("ShowHtmlText ={f %d}{c #%x}{b #%x} %s {/f}{/c}{/b}"),
 			nFontId, refTextColor, refTextBkColor, strText);
 		//初始化环境
 
@@ -1106,7 +1113,7 @@ finish:
 		return true;
 	}
 
-	int CGdiRenderEngine::GetTextHeight(HFONT hFont)
+	int CGdiRenderEngine::GetTextHeightImp(HFONT hFont)
 	{
 		int nHeight = 0;
 		TEXTMETRIC tm;
@@ -1122,7 +1129,7 @@ finish:
 		return nHeight;
 	}
 
-	SIZE CGdiRenderEngine::GetTextSize(const RECT &rcItem, LPCTSTR strText, int nLenght, 
+	SIZE CGdiRenderEngine::GetTextSizeImp(const RECT &rcItem, LPCTSTR strText, int nLenght,
 		HFONT hFont, int nRowSpace, DWORD dwTextStyle)
 	{
 		SIZE szText = {0};
@@ -1193,7 +1200,7 @@ finish:
 					else if(nTextWidth == szTmp.cx)
 					{
 					}
-					else 
+					else
 					{
 						nEncodeLenght = 0;
 					}
@@ -1228,13 +1235,13 @@ finish:
 		return szText;
 	}
 
-	int CGdiRenderEngine::TestTextIndex(const RECT &rcItem, POINT &ptMouse, 
+	int CGdiRenderEngine::TestTextIndexImp(const RECT &rcItem, POINT &ptMouse,
 		LPCTSTR strText, int nLenght, HFONT hFont, int nRowSpace, DWORD dwTextStyle)
 	{
 		HFONT hOldFont = NULL;
 		POINT ptPos = {0};
 		int nStart = 0, nCount = 0;
-		bool bHasNext = false;
+		BOOL bHasNext = false;
 		SIZE szText = {0};
 		TEXTMETRIC tm = {0};
 		int index = 0;
@@ -1415,7 +1422,7 @@ finish:
 		return index;
 	}
 
-	POINT CGdiRenderEngine::GetTextPos(const RECT &rcItem, int nTextIndex, LPCTSTR strText,
+	POINT CGdiRenderEngine::GetTextPosImp(const RECT &rcItem, int nTextIndex, LPCTSTR strText,
 			HFONT hFont, int nRowSpace, DWORD dwTextStyle)
 	{
 		HFONT hOldFont = NULL;
@@ -1551,7 +1558,7 @@ finish:
 		return ptOutput;
 	}
 
-	bool CGdiRenderEngine::OnTextOut(const RECT &rcItem, POINT &ptOutput, 
+	bool CGdiRenderEngine::TextOutImp(const RECT &rcItem, POINT &ptOutput,
 		LPCTSTR strText, int nStrLenght, ARGBREF refTextColor, HFONT hFont, 
 		int nRowSpace, DWORD dwTextStyle, ARGBREF refTextBkColor)
 	{
@@ -1603,10 +1610,10 @@ finish:
 				rcBackdrop.top = ptOutput.y;
 				rcBackdrop.right = rcBackdrop.left + szText.cx;
 				rcBackdrop.bottom = rcBackdrop.top + szText.cy;
-				OnDrawColor(rcBackdrop, refTextBkColor);
+				DrawColorImp(rcBackdrop, refTextBkColor);
 			}
 
-			TextOut(m_hMemDc, ptOutput.x, ptOutput.y, strText, nStrLenght);
+			::TextOut(m_hMemDc, ptOutput.x, ptOutput.y, strText, nStrLenght);
 
 			ptOutput.x += szText.cx;
 			goto finish;
@@ -1692,13 +1699,13 @@ finish:
 						rcBackdrop.top = ptOutput.y;
 						rcBackdrop.bottom = rcBackdrop.top + tm.tmHeight;
 						rcBackdrop.right = MIN(rcBackdrop.left + nTextWidth, rcItem.right);
-						OnDrawColor(rcBackdrop, refTextBkColor);
+						DrawColorImp(rcBackdrop, refTextBkColor);
 					}
 
 					//再绘制文字
 					if(nOutputCount)
 					{
-						TextOut(m_hMemDc, ptOutput.x, ptOutput.y, &strText[nStrStrat], nOutputCount);
+						::TextOut(m_hMemDc, ptOutput.x, ptOutput.y, &strText[nStrStrat], nOutputCount);
 					}
 
 					if(bFreeLine)
@@ -1740,7 +1747,7 @@ finish:
 					rcBackdrop.top = ptOutput.y;
 					rcBackdrop.right = rcBackdrop.left + szText.cx;
 					rcBackdrop.bottom = rcBackdrop.top + szText.cy;
-					OnDrawColor(rcBackdrop, refTextBkColor);
+					DrawColorImp(rcBackdrop, refTextBkColor);
 				}
 
 				//再输出文字
@@ -1769,7 +1776,7 @@ finish:
 						
 						if(nOutputCount)
 						{
-							TextOut(m_hMemDc, ptOutput.x, ptOutput.y, &strText[nStrStrat],
+							::TextOut(m_hMemDc, ptOutput.x, ptOutput.y, &strText[nStrStrat],
 								nOutputCount);
 							GetTextExtentPoint(m_hMemDc, &strText[nStrStrat], 
 								nOutputCount, &szText);
@@ -1813,12 +1820,12 @@ finish:
 	//	return true;
 	//}
 
-	bool CGdiRenderEngine::SetCaret(const RECT &rcItem, const POINT ptCaret, HFONT hFont)
+	bool CGdiRenderEngine::SetCaretImp(const RECT &rcItem, const POINT ptCaret, HFONT hFont)
 	{
 		//算法概念：
 		//将光标当成一个矩形，然后求出矩形与rcItem的相交区域
 		//再将相交区域作为参数，传递给CreateCaret和SetCaretPos
-		TRACE(_T("CGdiRenderEngine::SetCaret"));
+		MUITRACE(_T("CGdiRenderEngine::SetCaret"));
 		TEXTMETRIC tm = {0};
 		RECT rcCaret = {0};
 		HFONT hOldFont = NULL;
@@ -1848,7 +1855,7 @@ finish:
 		return true;
 	}
 
-	bool CGdiRenderEngine::DrawOleObject(const RECT &rcItem, IViewObject * pViewObject)
+	bool CGdiRenderEngine::DrawOleObjectImp(const RECT &rcItem, IViewObject * pViewObject)
 	{
 		HRESULT hr = -1;
 		hr = pViewObject->Draw(DVASPECT_CONTENT, -1, NULL, NULL, NULL, 

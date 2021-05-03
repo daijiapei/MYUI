@@ -13,16 +13,17 @@ namespace MYUI
 	public:
 		CContainerUI();
 		virtual ~CContainerUI();
-		virtual VOID SetShareInfo(TSHAREINFO * pShareInfo);
+		virtual VOID SetShareInfo(MUISHAREINFO * pShareInfo);
 		virtual void SetAttribute(LPCTSTR strItem, LPCTSTR strValue);
-		
+		virtual LPVOID GetInterface(LPCTSTR strName) override;
+
 	public:
 		//绘制
-		virtual bool SetItem(RECT rcItem, bool bMustUpdate);
-		virtual bool OnPaint(RECT rcItem, RECT rcPaint, RECT rcUpdate);
+		virtual bool SetItem(RECT rcItem, bool bMustUpdate) override;
+		virtual bool OnPaint(const RECT& rcUpdate) override;
 
 		virtual CControlUI * FindControlByPoint(POINT &pt);
-		virtual void OnScrollBarMove(LPCVOID pSender, int nShift);
+		virtual void OnScrollBarMove(CScrollBarUI* pSender, int nShift);
 		virtual const SIZE &GetScrollBarShift() const;
 		//滚动条
 		//取得需要显示必须的最小尺寸，再对比打印的尺寸，就知道是否要使用滚动条
@@ -39,8 +40,9 @@ namespace MYUI
 		virtual CScrollBarUI * GetVerticalScrollBar() const;
 		
 	protected:
-		virtual LRESULT WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
-		virtual void PaintText(const RECT& rcItem, const RECT& rcPaint);
+		virtual LRESULT WndProc(UINT message, WPARAM wParam, LPARAM lParam) override;
+		virtual void PaintText(const RECT& rcUpdate) override;
+		virtual void PaintContent(const RECT& rcUpdate);
 
 	protected:
 

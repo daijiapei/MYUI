@@ -117,9 +117,9 @@ namespace MYUI
 
 	bool CTextBuffer::InsterText(int nSelStart, int nLenght, LPCTSTR strText)
 	{
-		ASSERT(m_buffer);
-		ASSERT(m_size > m_lenght * sizeof(TCHAR));
-		ASSERT(strText);
+		MUIASSERT(m_buffer);
+		MUIASSERT(m_size > m_lenght * sizeof(TCHAR));
+		MUIASSERT(strText);
 
 		if(NULL == strText) return false;
 
@@ -157,21 +157,21 @@ namespace MYUI
 		m_lenght += nTextLenght;
 		m_buffer[m_lenght] = _T('\0');
 
-		TRACE(_T("CTextBuffer::m_buffer = %s"), m_buffer);
+		MUITRACE(_T("CTextBuffer::m_buffer = %s"), m_buffer);
 		return true;
 	}
 
 	bool CTextBuffer::DeleteText(int nSelStart, int nLenght)
 	{
-		ASSERT(m_buffer);
-		ASSERT(m_size > m_lenght * sizeof(TCHAR));
+		MUIASSERT(m_buffer);
+		MUIASSERT(m_size > m_lenght * sizeof(TCHAR));
 
-		ASSERT(m_lenght >= nSelStart);
+		MUIASSERT(m_lenght >= nSelStart);
 
 		if(0 == nLenght)//无选择
 		{
 			//nLenght = comeback_check_encode_lenght(&m_buffer[nSelStart - 1]);
-			TRACE(_T("nLenght = %d"), nLenght);
+			MUITRACE(_T("nLenght = %d"), nLenght);
 			nSelStart -= nLenght;
 		}
 		else if(0 > nLenght) //逆向选择
@@ -183,7 +183,7 @@ namespace MYUI
 		{
 		}
 
-		ASSERT(nSelStart >= 0);
+		MUIASSERT(nSelStart >= 0);
 		if(0 > nSelStart) return false;
 
 		memmove(&m_buffer[nSelStart], &m_buffer[nSelStart + nLenght], 
@@ -195,8 +195,8 @@ namespace MYUI
 
 	bool CTextBuffer::ClearText()
 	{
-		ASSERT(m_buffer);
-		ASSERT(m_size > m_lenght * sizeof(TCHAR));
+		MUIASSERT(m_buffer);
+		MUIASSERT(m_size > m_lenght * sizeof(TCHAR));
 		m_buffer[0] = _T('\0');
 		m_lenght = 0;
 		return true;
@@ -256,7 +256,7 @@ namespace MYUI
 	{
 		int nStart = 0;
 
-		ASSERT(nIndex >= 0 && m_lenght >= nIndex);
+		MUIASSERT(nIndex >= 0 && m_lenght >= nIndex);
 		if(0 == nIndex) return 0;
 		if(nIndex > m_lenght) return m_lenght;
 		
@@ -381,8 +381,8 @@ namespace MYUI
     {
         if (pstrValue == NULL || *pstrValue == _T('\0')) x = y = 0;
         LPTSTR pstr = NULL;
-        x = y = _tcstol(pstrValue, &pstr, 10); ASSERT(pstr);
-        y = _tcstol(pstr + 1, &pstr, 10);      ASSERT(pstr);
+        x = y = _tcstol(pstrValue, &pstr, 10); MUIASSERT(pstr);
+        y = _tcstol(pstr + 1, &pstr, 10);      MUIASSERT(pstr);
     }
 
     CMuiString CMuiPoint::ToString()
@@ -422,8 +422,8 @@ namespace MYUI
     {
         if (pstrValue == NULL || *pstrValue == _T('\0')) cx = cy = 0;
         LPTSTR pstr = NULL;
-        cx = cy = _tcstol(pstrValue, &pstr, 10); ASSERT(pstr);
-        cy = _tcstol(pstr + 1, &pstr, 10);       ASSERT(pstr);
+        cx = cy = _tcstol(pstrValue, &pstr, 10); MUIASSERT(pstr);
+        cy = _tcstol(pstr + 1, &pstr, 10);       MUIASSERT(pstr);
     }
 
     CMuiString CMuiSize::ToString()
@@ -461,10 +461,10 @@ namespace MYUI
     {
         if (pstrValue == NULL || *pstrValue == _T('\0')) left = top = right = bottom = 0;
         LPTSTR pstr = NULL;
-        left = top = right = bottom = _tcstol(pstrValue, &pstr, 10); ASSERT(pstr);
-        top = bottom = _tcstol(pstr + 1, &pstr, 10);                 ASSERT(pstr);
-        right = _tcstol(pstr + 1, &pstr, 10);                        ASSERT(pstr);
-        bottom = _tcstol(pstr + 1, &pstr, 10);                       ASSERT(pstr);
+        left = top = right = bottom = _tcstol(pstrValue, &pstr, 10); MUIASSERT(pstr);
+        top = bottom = _tcstol(pstr + 1, &pstr, 10);                 MUIASSERT(pstr);
+        right = _tcstol(pstr + 1, &pstr, 10);                        MUIASSERT(pstr);
+        bottom = _tcstol(pstr + 1, &pstr, 10);                       MUIASSERT(pstr);
     }
 
     CMuiString CMuiRect::ToString()
@@ -551,7 +551,7 @@ namespace MYUI
 ******************************************/
 	CMuiPtrArray::CMuiPtrArray(int iPreallocSize) : m_ppVoid(NULL), m_nCount(0), m_nAllocated(iPreallocSize)
 	{
-		ASSERT(iPreallocSize>=0);
+		MUIASSERT(iPreallocSize>=0);
 		if( iPreallocSize > 0 ) m_ppVoid = static_cast<LPVOID*>(malloc(iPreallocSize * sizeof(LPVOID)));
 	}
 
@@ -672,7 +672,7 @@ namespace MYUI
 
 	LPVOID CMuiPtrArray::operator[] (int iIndex) const
 	{
-		ASSERT(iIndex>=0 && iIndex < m_nCount);
+		MUIASSERT(iIndex>=0 && iIndex < m_nCount);
 		return m_ppVoid[iIndex];
 	}
 
@@ -686,7 +686,7 @@ namespace MYUI
 		, m_nCount(0)
 		, m_nAllocated(iPreallocSize)
 	{
-		ASSERT(iPreallocSize>=0);
+		MUIASSERT(iPreallocSize>=0);
 		if( iPreallocSize > 0 ) m_ppVoid = static_cast<IDITEM*>(malloc(iPreallocSize * sizeof(IDITEM)));
 	}
 
@@ -734,13 +734,13 @@ namespace MYUI
 				return m_ppVoid[i].data;
 			}
 		}
-		ASSERT(-1 == id);
+		MUIASSERT(-1 == id);
 		return NULL;
 	}
 
 	LPVOID CMuiIdArray::GetAt(int index) const
 	{
-		ASSERT(index>=0 && index < m_nCount);
+		MUIASSERT(index>=0 && index < m_nCount);
 		if( index < 0 || index >= m_nCount ) return NULL;
 		return m_ppVoid[index].data;
 	}
@@ -759,8 +759,8 @@ namespace MYUI
 		m_iElementSize(iElementSize), 
 		m_nAllocated(iPreallocSize)
 	{
-		ASSERT(iElementSize>0);
-		ASSERT(iPreallocSize>=0);
+		MUIASSERT(iElementSize>0);
+		MUIASSERT(iPreallocSize>=0);
 		if( iPreallocSize > 0 ) m_pVoid = static_cast<LPBYTE>(malloc(iPreallocSize * m_iElementSize));
 	}
 
@@ -824,7 +824,7 @@ namespace MYUI
 
 	LPVOID CMuiValArray::operator[] (int iIndex) const
 	{
-		ASSERT(iIndex>=0 && iIndex<m_nCount);
+		MUIASSERT(iIndex>=0 && iIndex<m_nCount);
 		return m_pVoid + (iIndex * m_iElementSize);
 	}
 
@@ -845,7 +845,7 @@ namespace MYUI
 
 	CMuiString::CMuiString(LPCTSTR lpsz, int nLen) : m_pstr(m_szBuffer)
 	{      
-		ASSERT(!::IsBadStringPtr(lpsz,-1) || lpsz==NULL);
+		MUIASSERT(!::IsBadStringPtr(lpsz,-1) || lpsz==NULL);
 		m_szBuffer[0] = _T('\0');
 		Assign(lpsz, nLen);
 	}
@@ -954,7 +954,7 @@ namespace MYUI
 	{      
 		if ( lpStr )
 		{
-			ASSERT(!::IsBadStringPtr(lpStr,-1));
+			MUIASSERT(!::IsBadStringPtr(lpStr,-1));
 			Assign(lpStr);
 		}
 		else
@@ -970,7 +970,7 @@ namespace MYUI
 	{
 		if ( lpStr )
 		{
-			ASSERT(!::IsBadStringPtrA(lpStr,-1));
+			MUIASSERT(!::IsBadStringPtrA(lpStr,-1));
 			int cchStr = (int) strlen(lpStr) + 1;
 			LPWSTR pwstr = (LPWSTR) _alloca(cchStr);
 			if( pwstr != NULL ) ::MultiByteToWideChar(::GetACP(), 0, lpStr, -1, pwstr, cchStr) ;
@@ -987,7 +987,7 @@ namespace MYUI
 	{
 		if ( lpStr )
 		{
-			ASSERT(!::IsBadStringPtrA(lpStr,-1));
+			MUIASSERT(!::IsBadStringPtrA(lpStr,-1));
 			int cchStr = (int) strlen(lpStr) + 1;
 			LPWSTR pwstr = (LPWSTR) _alloca(cchStr);
 			if( pwstr != NULL ) ::MultiByteToWideChar(::GetACP(), 0, lpStr, -1, pwstr, cchStr) ;
@@ -1052,7 +1052,7 @@ namespace MYUI
 	{
 		if ( lpStr )
 		{
-			ASSERT(!::IsBadStringPtr(lpStr,-1));
+			MUIASSERT(!::IsBadStringPtr(lpStr,-1));
 			CMuiString sTemp = *this;
 			sTemp.Append(lpStr);
 			return sTemp;
@@ -1071,7 +1071,7 @@ namespace MYUI
 	{      
 		if ( lpStr )
 		{
-			ASSERT(!::IsBadStringPtr(lpStr,-1));
+			MUIASSERT(!::IsBadStringPtr(lpStr,-1));
 			Append(lpStr);
 		}
 		
@@ -1094,7 +1094,7 @@ namespace MYUI
 
 	void CMuiString::SetAt(int nIndex, TCHAR ch)
 	{
-		ASSERT(nIndex>=0 && nIndex<GetLength());
+		MUIASSERT(nIndex>=0 && nIndex<GetLength());
 		m_pstr[nIndex] = ch;
 	}
 
@@ -1147,7 +1147,7 @@ namespace MYUI
 
 	int CMuiString::Find(TCHAR ch, int iPos /*= 0*/) const
 	{
-		ASSERT(iPos>=0 && iPos<=GetLength());
+		MUIASSERT(iPos>=0 && iPos<=GetLength());
 		if( iPos != 0 && (iPos < 0 || iPos >= GetLength()) ) return -1;
 		LPCTSTR p = _tcschr(m_pstr + iPos, ch);
 		if( p == NULL ) return -1;
@@ -1156,8 +1156,8 @@ namespace MYUI
 
 	int CMuiString::Find(LPCTSTR pstrSub, int iPos /*= 0*/) const
 	{
-		ASSERT(!::IsBadStringPtr(pstrSub,-1));
-		ASSERT(iPos>=0 && iPos<=GetLength());
+		MUIASSERT(!::IsBadStringPtr(pstrSub,-1));
+		MUIASSERT(iPos>=0 && iPos<=GetLength());
 		if( iPos != 0 && (iPos < 0 || iPos > GetLength()) ) return -1;
 		LPCTSTR p = _tcsstr(m_pstr + iPos, pstrSub);
 		if( p == NULL ) return -1;

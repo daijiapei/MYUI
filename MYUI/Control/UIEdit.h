@@ -29,6 +29,10 @@ namespace MYUI
 	//假设一个文字需要占2个字符，那么将会收到两个WM_CHAR，CTextCheck可以用来判断是否完整地收到了一个文字
 	class CTextCheck
 	{
+		enum
+		{
+			TextSize = 8,
+		};
 	public:
 		CTextCheck()
 		{
@@ -57,7 +61,10 @@ namespace MYUI
 
 		void Clean()
 		{
-			memset(m_char, 0, sizeof(m_char));
+			for (int i = 0; TextSize > i; i++)
+			{
+				m_char[i] = 0;
+			}
 			m_index = 0;
 		}
 
@@ -72,16 +79,21 @@ namespace MYUI
 		}
 
 	private:
-		TCHAR m_char[3];
+		TCHAR m_char[TextSize];
 		int m_index;
 	};
 
-	class MYUI_API CEditUI : public CContainerUI
+	class MYUI_API CEditUI : public CContainerUI , public CUICaret
 	{
+		enum
+		{
+			CaretTimerId = 0x01,
+			CaretTimeOut = 500,
+		};
 	public:
 		CEditUI();
 		virtual ~CEditUI();
-		static CMuiString g_strClassName;
+		const static CMuiString g_strClassName;
 		virtual CMuiString GetClassName() const;
 
 		virtual void SetAttribute(LPCTSTR strItem, LPCTSTR strValue);
@@ -96,26 +108,23 @@ namespace MYUI
 		int GetRowSpace();
 		void SetRowSpace(int nRowSpace);
 		
-		virtual bool SetItem(RECT rcItem, bool bMustUpdate);
+		virtual void SetTextFont(int FontId);
+		virtual void SetTextColor(ARGBREF argb);
 		virtual void SetStyle(DWORD dwStyle);
 		void SetSelect(int nSelect, int nLenght = 0);
 		/*int GetSelect();
 		int GetSelCount();*/
 	protected:
-		virtual LRESULT WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
+		virtual LRESULT WndProc(UINT message, WPARAM wParam, LPARAM lParam) override;
 		virtual SIZE GetContentSize();
-		virtual void OnScrollBarMove(LPCVOID pSender, int nShift);
-
-		virtual void PaintText(const RECT& rcItem, const RECT& rcPaint);
-		void PaintCaret(const RECT& rcItem, const RECT& rcPaint);
-
+		virtual void PaintContent(const RECT& rcUpdate) override;
+		virtual void OnDrawCaret(const RECT& rcUpdate) override;
 
 		LRESULT OnKeyDown(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 		LRESULT OnChat(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 		LRESULT OnLeftButtonDown(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 		LRESULT OnLeftButtonUp(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 		LRESULT OnMouseMove(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
-
 		bool SetCaret(POINT * ptMouse);
 	protected:
 		DWORD m_dwTextStyle;
@@ -126,8 +135,6 @@ namespace MYUI
 		int m_nRowSpace;//行距
 		ARGBREF m_refSelBkColor;
 		ARGBREF m_refSelTextColor;
-
-		POINT m_ptCaret;
 
 		CMuiString m_strHint;//当没有文本时，显示的默认提示
 		ARGBREF m_refHintColor;

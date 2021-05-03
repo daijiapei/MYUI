@@ -7,7 +7,7 @@ namespace MYUI
 {
 	CMuiPtrArray CSkinManager::s_SkinArray;
 	CMuiPtrArray CSkinManager::s_Resource;
-	RSRCID CSkinManager::s_ResourceIndex = 1;
+	MUIRESID CSkinManager::s_ResourceIndex = 1;
 	HINSTANCE CSkinManager::s_hInstance = NULL;
 
 	void CSkinManager::SetInstance(HINSTANCE hInstance)
@@ -18,7 +18,7 @@ namespace MYUI
 	int CSkinManager::AddSkin(LPCTSTR strSkin)
 	{
 		int nCount = 0;
-        SKINFOLDERNODE * pSkinNode = NULL;
+		MUISKINFOLDERNODE* pSkinNode = NULL;
 		TCHAR strItem[128];
 		TCHAR strValue[128];
 		LPCTSTR pstr = strSkin;
@@ -26,70 +26,68 @@ namespace MYUI
 
 		for(int i=0; s_SkinArray.GetSize() > i; i++)
 		{
-            pSkinNode = (SKINFOLDERNODE*)s_SkinArray.GetAt(i);
+            pSkinNode = (MUISKINFOLDERNODE*)s_SkinArray.GetAt(i);
 
 			if(!_tcsicmp(strSkin, pSkinNode->strSkin))
 			{
 				//已存在,增加引用计数
 				nCount = ++pSkinNode->nCount;
-				break;
+				return nCount;
 			}
 		}
 
-		if(0 == nCount)
+		//不存在
+        pSkinNode = new MUISKINFOLDERNODE;
+        memset(pSkinNode, 0, sizeof(MUISKINFOLDERNODE));
+		rbtree_set_cmpfn(pSkinNode->ImageCache, RBTreeCompare); 
+		nCount = pSkinNode->nCount = 1;
+		_tcscpy(pSkinNode->strSkin, strSkin);
+
+		while(TRUE == ExtractInfo(pstr, strItem, strValue, &nRead))
 		{
-			//不存在
-            pSkinNode = new SKINFOLDERNODE;
-            memset(pSkinNode, 0, sizeof(SKINFOLDERNODE));
-			nCount = pSkinNode->nCount = 1;
-			_tcscpy(pSkinNode->strSkin, strSkin);
-
-			while(TRUE == ExtractInfo(pstr, strItem, strValue, &nRead))
+			if(0 == _tcsicmp(strItem,_T("file")) ||
+				0 == _tcsicmp(strItem,_T("folder")))
 			{
-				if(0 == _tcsicmp(strItem,_T("file")) ||
-					0 == _tcsicmp(strItem,_T("folder")))
-				{
-					_tcscpy(pSkinNode->strSkinFolder, strValue);
-				}
-				else if(0 == _tcsicmp(strItem,_T("resid")))
-				{
-					pSkinNode->resId = _tcstol(strValue,NULL, 10);
-				}
-				else if(0 == _tcsicmp(strItem,_T("restype")))
-				{
-					_tcscpy(pSkinNode->resType, strValue);
-				}
-				else
-				{
-					ASSERT(0 == strItem);
-				}
-				pstr += nRead;
+				_tcscpy(pSkinNode->strSkinFolder, strValue);
 			}
-
-			if(_T('\0') == pSkinNode->strSkinFolder[0] &&
-				0 == pSkinNode->resId && _T('\0') == pSkinNode->resType[0])
+			else if(0 == _tcsicmp(strItem,_T("resid")))
 			{
-				_tcscpy(pSkinNode->strSkinFolder, strSkin);
+				pSkinNode->resId = _tcstol(strValue,NULL, 10);
 			}
-
-			pSkinNode->resIndex = 0;
-			if(pSkinNode->resId && pSkinNode->resType[0])
+			else if(0 == _tcsicmp(strItem,_T("restype")))
 			{
-				pSkinNode->resIndex = CSkinManager::AddResource(pSkinNode->resId, pSkinNode->resType);
+				_tcscpy(pSkinNode->resType, strValue);
 			}
-
-			s_SkinArray.Add(pSkinNode);
+			else
+			{
+				MUIASSERT(0 == strItem);
+			}
+			pstr += nRead;
 		}
+
+		if(_T('\0') == pSkinNode->strSkinFolder[0] &&
+			0 == pSkinNode->resId && _T('\0') == pSkinNode->resType[0])
+		{
+			_tcscpy(pSkinNode->strSkinFolder, strSkin);
+		}
+
+		pSkinNode->resIndex = 0;
+		if(pSkinNode->resId && pSkinNode->resType[0])
+		{
+			pSkinNode->resIndex = CSkinManager::AddResource(pSkinNode->resId, pSkinNode->resType);
+		}
+
+		s_SkinArray.Add(pSkinNode);
 		return nCount;
 	}
 
 	int CSkinManager::RemoveSkin(LPCTSTR strSkin)
 	{
 		int nCount = -1;
-        SKINFOLDERNODE * pSkinNode = NULL;
+		MUISKINFOLDERNODE* pSkinNode = NULL;
 		for(int i=0; s_SkinArray.GetSize() > i; i++)
 		{
-            pSkinNode = (SKINFOLDERNODE*)s_SkinArray.GetAt(i);
+            pSkinNode = (MUISKINFOLDERNODE*)s_SkinArray.GetAt(i);
 			if(!_tcscmp(strSkin, pSkinNode->strSkinFolder))
 			{
 				//已存在
@@ -105,7 +103,7 @@ namespace MYUI
 			}
 
             rbtree_enum(&pSkinNode->ImageCache, RBTREE_ENUM_MID, CSkinManager::ClearImage, NULL);
-
+			rbtree_destroy(&pSkinNode->ImageCache);
 			s_SkinArray.Remove(pSkinNode);
 		}
 		return nCount;
@@ -113,19 +111,19 @@ namespace MYUI
 
     int __stdcall CSkinManager::ClearImage(RBNODE * node, void * param)
     {
-        IMAGEINFO * pImage = (IMAGEINFO *)node->data;
+		MUIIMAGEINFO* pImage = (MUIIMAGEINFO *)rbtree_node_data(node);
         DeleteObject(pImage->hBitmap);
         delete pImage;
         return 0;//返回true 结束遍历
     }
 
-	RSRCID CSkinManager::AddResource(int nID, LPCTSTR lpType)
+	MUIRESID CSkinManager::AddResource(int nID, LPCTSTR lpType)
 	{
-        RESOURCEINFO * pResInfo = NULL;
-		RSRCID index = 0;
+		MUIRESOURCEINFO* pResInfo = NULL;
+		MUIRESID index = 0;
 		for(int i=0; s_Resource.GetSize() > i; i++)
 		{
-            RESOURCEINFO * pInfo = (RESOURCEINFO *)s_Resource[i];
+			MUIRESOURCEINFO* pInfo = (MUIRESOURCEINFO*)s_Resource[i];
 			if(pInfo->nID == nID && !_tcsicmp(lpType,pInfo->lpType))
 			{
 				pResInfo = pInfo;
@@ -154,7 +152,7 @@ namespace MYUI
 			::FreeResource(hResource);
 
 
-            pResInfo = new RESOURCEINFO;
+            pResInfo = new MUIRESOURCEINFO;
 			pResInfo->nID = nID;
 			pResInfo->buffet = pData;
 			pResInfo->bufsize = dwSize;
@@ -173,11 +171,11 @@ namespace MYUI
 return index;
     }
 
-    void CSkinManager::RemoveResource(RSRCID id)
+    void CSkinManager::RemoveResource(MUIRESID id)
     {
         for (int i = 0; s_Resource.GetSize() > i; i++)
         {
-            RESOURCEINFO * pInfo = (RESOURCEINFO *)s_Resource[i];
+			MUIRESOURCEINFO* pInfo = (MUIRESOURCEINFO*)s_Resource[i];
             if (pInfo->index == id)
             {
                 --pInfo->nCount;
@@ -201,15 +199,14 @@ return index;
     //往皮肤中插入一张自定义图片，一般用于添加内存中的图片
     //@strSkin 图片放到那个皮肤中
     //@pImageInfo 图片信息
-    bool CSkinManager::AddImage(LPCTSTR strSkin, IMAGEINFO * pImageInfo)
+    bool CSkinManager::AddImage(LPCTSTR strSkin, MUIIMAGEINFO* pImageInfo)
     {
-        SKINFOLDERNODE * pSkinNode = NULL;
-        RBKEY Key = { 0 };
+		MUISKINFOLDERNODE* pSkinNode = NULL;
         if (NULL == pImageInfo || _T('\0') == pImageInfo->strFile[0]) return false;
 
         for (int i = 0; s_SkinArray.GetSize() > i; i++)
         {
-            SKINFOLDERNODE * node = (SKINFOLDERNODE*)s_SkinArray.GetAt(i);
+			MUISKINFOLDERNODE* node = (MUISKINFOLDERNODE*)s_SkinArray.GetAt(i);
             if (!_tcsicmp(strSkin, node->strSkin))
             {
                 pSkinNode = node;
@@ -219,14 +216,12 @@ return index;
 
         if (NULL == pSkinNode) return false;
 
-        _tcscpy(Key.strText, pImageInfo->strFile);
-
-        RBNODE * pTreeNode = rbtree_create_node(&Key, pImageInfo);
+		RBNODE* pTreeNode = RBTreeCreateNode(pImageInfo->strFile, pImageInfo);
 
         if (0 != rbtree_insert(&pSkinNode->ImageCache, pTreeNode))
         {
-            TRACE(_T("CSkinManager::AddImage : %s 文件已经存在！"), pImageInfo->strFile);
-            ASSERT(0 && "CSkinManager::AddImage : 文件已经存在,请定义合适的文件名称！");
+            MUITRACE(_T("CSkinManager::AddImage : %s 文件已经存在！"), pImageInfo->strFile);
+            MUIASSERT(0 && "CSkinManager::AddImage : 文件已经存在,请定义合适的文件名称！");
             rbtree_free_node(pTreeNode);
             return false;
         }
@@ -236,29 +231,27 @@ return index;
 
     bool CSkinManager::RemoveImage(LPCTSTR strSkin, LPCTSTR strImageFile)
     {
-        SKINFOLDERNODE * pSkinNode = NULL;
-        RBKEY Key = { 0 };
+        MUISKINFOLDERNODE * pSkinNode = NULL;
+
         if (NULL == strImageFile || _T('\0') == strImageFile[0]) return false;
 
         for (int i = 0; s_SkinArray.GetSize() > i; i++)
         {
-            SKINFOLDERNODE * node = (SKINFOLDERNODE*)s_SkinArray.GetAt(i);
-            if (!_tcsicmp(strSkin, node->strSkin))
+			MUISKINFOLDERNODE* pNode = (MUISKINFOLDERNODE*)s_SkinArray.GetAt(i);
+            if (!_tcsicmp(strSkin, pNode->strSkin))
             {
-                pSkinNode = node;
+                pSkinNode = pNode;
                 break;
             }
         }
 
         if (NULL == pSkinNode) return false;
 
-        _tcscpy(Key.strText, strImageFile);
-
-        RBNODE * pTreeNode = rbtree_remove(&pSkinNode->ImageCache, &Key);
+        RBNODE * pTreeNode = rbtree_remove(&pSkinNode->ImageCache, strImageFile);
 
         if (pTreeNode)
         {
-            IMAGEINFO * pImage = (IMAGEINFO *)pTreeNode->data;
+            MUIIMAGEINFO * pImage = (MUIIMAGEINFO*)pTreeNode->data;
             DeleteObject(pImage->hBitmap);
             delete pImage;
             rbtree_free_node(pTreeNode);
@@ -266,17 +259,16 @@ return index;
         return !!pTreeNode;
     }
 
-    IMAGEINFO * CSkinManager::GetImageInfo(LPCTSTR strSkin, LPCTSTR strImageFile)
+    MUIIMAGEINFO * CSkinManager::GetImageInfo(LPCTSTR strSkin, LPCTSTR strImageFile)
     {
-        SKINFOLDERNODE * pSkinNode = NULL;
-        IMAGEINFO * pImage = NULL;
-        RBKEY Key = { 0 };
+		MUISKINFOLDERNODE * pSkinNode = NULL;
+		MUIIMAGEINFO* pImage = NULL;
         for (int i = 0; s_SkinArray.GetSize() > i; i++)
         {
-            SKINFOLDERNODE * node = (SKINFOLDERNODE*)s_SkinArray.GetAt(i);
-            if (!_tcscmp(strSkin, node->strSkin))
+			MUISKINFOLDERNODE* pNode = (MUISKINFOLDERNODE*)s_SkinArray.GetAt(i);
+            if (!_tcscmp(strSkin, pNode->strSkin))
             {
-                pSkinNode = node;
+                pSkinNode = pNode;
                 break;
             }
         }
@@ -284,13 +276,11 @@ return index;
         //没有这个皮肤
         if (NULL == pSkinNode) return NULL;
 
-        _tcscpy(Key.strText, strImageFile);
-
-        RBNODE* pTreeNode = rbtree_find(&pSkinNode->ImageCache, &Key);
+        RBNODE* pTreeNode = rbtree_find(&pSkinNode->ImageCache, strImageFile);
 
         if (pTreeNode)
         {
-            pImage = (IMAGEINFO*)rbtree_node_data(pTreeNode);
+            pImage = (MUIIMAGEINFO*)rbtree_node_data(pTreeNode);
             return pImage;
         }
 
@@ -299,11 +289,11 @@ return index;
 
         if (NULL == pImage)
         {
-            TRACE(_T("CSkinManager::GetImageInfo : %s 文件加载失败！"), strImageFile);
+            MUITRACE(_T("CSkinManager::GetImageInfo : %s 文件加载失败！"), strImageFile);
         }
 
         //不管加载成功与失败，仍然放到树中，为了避免缓存击穿
-        pTreeNode = rbtree_create_node(&Key, pImage);
+		pTreeNode = RBTreeCreateNode(strImageFile, pImage);
 
         if (0 != rbtree_insert(&pSkinNode->ImageCache, pTreeNode))
         {
@@ -313,9 +303,9 @@ return index;
 		return pImage;
 	}
 
-    IMAGEINFO * CSkinManager::LoadImage(LPCTSTR strSkinFolder, RSRCID resIndex, LPCTSTR strImageFile)
+	MUIIMAGEINFO* CSkinManager::LoadImage(LPCTSTR strSkinFolder, MUIRESID resIndex, LPCTSTR strImageFile)
 	{
-        IMAGEINFO * pImageInfo = NULL;
+		MUIIMAGEINFO* pImageInfo = NULL;
 		BYTE * pData = NULL;
 		DWORD dwSize = 0;
 		LPBYTE pImage = NULL;
@@ -377,7 +367,7 @@ return index;
 
 		stbi_image_free(pImage);
 
-        pImageInfo = new IMAGEINFO;
+        pImageInfo = new MUIIMAGEINFO;
 		pImageInfo->hBitmap = hBitmap;
 		pImageInfo->szBitmap.cx = x;
 		pImageInfo->szBitmap.cy = y;
@@ -397,7 +387,7 @@ return index;
 		TCHAR strFolder[128] = {0};
 		TCHAR resType[128] = {0};
 		int resId = 0;
-		RSRCID nIndex = 0;
+		MUIRESID nIndex = 0;
 
 		while(TRUE == ExtractInfo(pstr, strItem, strValue, &nRead))
 		{
@@ -416,7 +406,7 @@ return index;
 			}
 			else
 			{
-				ASSERT(0 == strItem);
+				MUIASSERT(0 == strItem);
 			}
 			pstr += nRead;
 		}
@@ -430,7 +420,7 @@ return index;
 		{
 			for(int i=0; s_SkinArray.GetSize() > i; i++)
 			{
-                SKINFOLDERNODE * pSkinNode = (SKINFOLDERNODE*)s_SkinArray.GetAt(i);
+                MUISKINFOLDERNODE * pSkinNode = (MUISKINFOLDERNODE*)s_SkinArray.GetAt(i);
 				if(!_tcscmp(strSkin, pSkinNode->strSkin))
 				{
 					nIndex = pSkinNode->resIndex;
@@ -442,7 +432,33 @@ return index;
 
 	}
 
-	bool CSkinManager::LoadFileData(LPCTSTR strSkinFolder, RSRCID resIndex, LPCTSTR strFile,BYTE ** pFileData, DWORD *pdwDataSize)
+	int __stdcall CSkinManager::RBTreeCompare(const void* pObject1, const void* pObject2)
+	{
+		return _tcscmp((LPCTSTR)pObject1, (LPCTSTR)pObject2);
+	}
+
+	RBNODE* CSkinManager::RBTreeCreateNode(LPCTSTR strKey, void* pData)
+	{
+		int nSize = _tcslen(strKey) + 1;
+
+		if (nSize == 0) return NULL;
+
+		nSize = sizeof(RBNODE) + sizeof(TCHAR) * nSize;
+
+		RBNODE* node = (RBNODE*)malloc(sizeof(RBNODE) + sizeof(TCHAR) * nSize);
+
+		if (node)
+		{
+			memset(node, 0, nSize);
+			node->key = (char*)node + sizeof(RBNODE);
+			node->data = pData;
+			_tcscpy((LPTSTR)node->key, strKey);
+		}
+
+		return node;
+	}
+
+	BOOL CSkinManager::LoadFileData(LPCTSTR strSkinFolder, MUIRESID resIndex, LPCTSTR strFile,BYTE ** pFileData, DWORD *pdwDataSize)
 	{
 		//先从资源文件中的ZIP文件查找
 		//失败再到磁盘中的ZIP文件查找
@@ -454,7 +470,7 @@ return index;
 		PBYTE pData = NULL;
 		DWORD dwSize = 0;
 		int nItem = 0;
-        RESOURCEINFO * pResInfo = NULL;
+        MUIRESOURCEINFO * pResInfo = NULL;
 
 #ifndef _UNICODE
 		ZIPENTRY ze; 
@@ -495,7 +511,7 @@ return index;
 		//先从资源文件中的ZIP文件查找
 		for(int i=0; s_Resource.GetSize() > i && resIndex; i++)
 		{
-            RESOURCEINFO * pTmp = (RESOURCEINFO*)s_Resource[i];
+            MUIRESOURCEINFO * pTmp = (MUIRESOURCEINFO*)s_Resource[i];
 			if(pTmp->index == resIndex) 
 			{
 				pResInfo = pTmp;

@@ -1,6 +1,6 @@
 
-#ifndef _MYUI_TAB_LAYOUT_H_
-#define _MYUI_TAB_LAYOUT_H_
+#ifndef __MYUI_TAB_LAYOUT_H__
+#define __MYUI_TAB_LAYOUT_H__
 
 #include "UIBaseLayout.h"
 
@@ -15,12 +15,12 @@ namespace MYUI
 	public:
 		CTabLayoutUI();
 		virtual ~CTabLayoutUI();
-		static CMuiString g_strClassName;
+		const static CMuiString g_strClassName;
 		virtual CMuiString GetClassName() const;
 		virtual void SetAttribute(LPCTSTR strItem, LPCTSTR strValue);
 
 
-		virtual bool SetItem(RECT rcItem, bool bMustUpdate) ;
+		virtual bool SetItem(RECT rcItem, bool bMustUpdate) override;
 		virtual SIZE GetContentSize();
 
 		virtual CControlUI * GetSelect();
@@ -32,7 +32,7 @@ namespace MYUI
 		virtual bool AddAt(CControlUI* pControl, int iIndex);
 		virtual bool RemoveAt(int iIndex);
 
-		virtual bool OnPaint(RECT rcItem, RECT rcPaint, RECT rcUpdate);
+		virtual bool OnPaint(const RECT& rcUpdate) override;
 	protected:
 
 	private:

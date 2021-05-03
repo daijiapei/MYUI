@@ -1,9 +1,7 @@
 <?xml version="1.0" encoding="gb2312"?>
-<UIFrame>
+<MYUI>
 	<group name="group1"></group>
-	<language file="language.xml" script="chinese">
-		
-	</language>
+	<language file="language.xml" edition="chinese"/>
 	<theme name="vscroll_theme"
 		   FrontNormalImage="file='scrollbarV.png' source='0,16,16,32'"
 		   TrackNormalImage="file='scrollbarV.png' source='32,32,48,48'"
@@ -76,13 +74,20 @@
 							<Option text="复选3" theme="check_theme"></Option>
 						</HorizontalLayout>
 
-						<Calendar width="200" height="28" name="cbxMessage" margin="0,5,0,5" textPadding="5,1,22,1"
+            <!--Calendar width="200" height="28" name="cbxMessage" margin="0,5,0,5" textPadding="5,1,22,1"
 								  HotBorderSize="1" HotBorderColor="RGB(115,199,235)" font="0" align="vcenter;left;"
 								  NormalImage="file='combo.png' source='0,0,100,22' corner='2,2,23,2'"
 								  cbxNormalImage="file='combo.png' source='0,0,100,22' corner='2,2,23,2'"
 								  cbxHotBorderSize="2" cbxHotBorderColor="RGB(115,199,235)" cbxFont="0" cbxVScroll="true" vScrollTheme="vscroll_theme"
 								  btnFont="0">
-						</Calendar>
+						</Calendar-->
+
+            <Calendar width="200" height="28" name="cbxMessage" margin="0,5,0,5" textPadding="5,1,22,1"
+								  HotBorderSize="1" HotBorderColor="RGB(115,199,235)" font="0" align="vcenter;left;"
+								  NormalImage="file='combo.png' source='0,0,100,22' corner='2,2,23,2'"
+								  cbxNormalImage="file='combo.png' source='0,0,100,22' corner='2,2,23,2'"
+								  cbxHotBorderSize="2" cbxHotBorderColor="RGB(115,199,235)" cbxFont="0" cbxVScroll="true" btnFont="0">
+            </Calendar>
 
 						<Progress margin="5,5,5,5" width="220" height="32" Value="30"
 								  bkImage="progress_back.png" normalImage="progress_fore.png"/>
@@ -111,7 +116,7 @@
 
 						</ComboBox>
 
-						<Edit height="80" name="edtMessage"  bordersize="1" bordercolor="RGB(0,0,0)" margin="20,5,20,5"
+						<Edit height="80" name="edtMessage" bordersize="1" bordercolor="RGB(0,0,0)" margin="20,5,20,5"
 							  HotBorderSize="2" HotBorderColor="RGB(115,199,235)" hint="请输入要发送的消息"
 								vscroll="true" vScrollActive="true" vScrollTheme="vscroll_theme" textPadding="5,2,5,2"
 								rowSpace="2" textpadding="5,5,5,5" multiLine="true" Linefree="true"/>
@@ -207,4 +212,4 @@
 			</HorizontalLayout>
 		</VerticalLayout>
 	</Window>
-</UIFrame>
+</MYUI>

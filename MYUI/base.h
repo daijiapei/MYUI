@@ -46,7 +46,6 @@
 #define CLAMP(x,a,b) (MIN(b,MAX(a,x)))
 
 
-#define ENABLE_TIMER_LPARAM     //启用TIMER的lparam作为参数(本来是回调)
 #define ENABLE_CONTROL_HOOK     //启用自带的Hook接口
 
 #ifdef MYUI_STATIC
@@ -121,9 +120,9 @@
 #define __MINGW_TYPEDEF_UAW(type)	\
     typedef __MINGW_NAME_UAW(type) type;
 
-#ifndef ASSERT
-#define ASSERT(expr)    _ASSERTE(expr)
-#endif
+
+#define MUIASSERT(expr)    _ASSERTE(expr)
+
 
 #ifndef ARGB
 typedef DWORD ARGBREF;
@@ -165,9 +164,11 @@ typedef DWORD ARGBREF;
 	(PointInRect2((rc1).left,(rc1).top, rc2) || PointInRect2((rc1).right,(rc1).bottom, rc2)\
 	|| PointInRect2((rc1).right,(rc1).top, rc2) || PointInRect2((rc1).left,(rc1).bottom, rc2))
 
+//置空
 #define EmptyRect(rc) \
 	((rc).left = 0, (rc).top = 0, (rc).right = 0, (rc).bottom = 0)
 
+//是否空的
 #define IsEmptyRect(rc) \
 	((0==(rc).left && 0==(rc).top && 0==(rc).right && 0==(rc).bottom) ? TRUE : FALSE)
 
@@ -193,21 +194,26 @@ typedef DWORD ARGBREF;
 	(_T('L') == (pstr)[2] || _T('l') == (pstr)[2]) && (_T('S') == (pstr)[3] || _T('s') == (pstr)[3]) && \
 	(_T('E') == (pstr)[4] || _T('e') == (pstr)[4]) && _T('\0') == (pstr)[5])) ? TRUE : FALSE)
 
+//是否正确命名
 #define CheckBoer(pstr)  ((CheckTrue(pstr) || CheckFalse(pstr)) ? TRUE : FALSE)
+
 //检查调整的参数是否正确
 //禁止采用负数调整
 #define __CheckAdjust(rcSize) \
 	((0 <= (rcSize).left && 0 <= (rcSize).top && 0 <= (rcSize).right\
 	&& 0 <= (rcSize).bottom) ? TRUE : FALSE)
 
+//外扩
 #define __ExpandRect(rcDst, rcSize)\
 	((rcDst).left -= (rcSize).left, (rcDst).top -= (rcSize).top,\
 	(rcDst).right += (rcSize).right, (rcDst).bottom += (rcSize).bottom)
 
+//内缩
 #define __IndentRect(rcDst, rcSize)\
 	((rcDst).left += (rcSize).left, (rcDst).top += (rcSize).top,\
 	(rcDst).right -= (rcSize).right, (rcDst).bottom -= (rcSize).bottom)
 
+//相同的rect
 #define IsSameRect(rc1, rc2) \
 	(((rc1).left == (rc2).left && (rc1).top == (rc2).top &&\
 	(rc1).right == (rc2).right && (rc1).bottom == (rc2).bottom) ? TRUE : FALSE)
@@ -228,10 +234,11 @@ typedef DWORD ARGBREF;
 //按键是否按下
 #define  IsKeyPressed(nVirtKey)     ((0x00008000 & ((DWORD)((SHORT)GetKeyState(nVirtKey)))) != 0)
 
+BOOL GetItemFixed(RECT& rcFixedItem, RECT& rcRawItem, RECT& rcPaintItem, BOOL bFloat);
 #ifdef __cplusplus
 extern "C" {
 #endif
-__declspec(dllexport) void __Trace__(LPCTSTR pstrFormat, ...);
+__declspec(dllexport) void __Mui_Trace__(LPCTSTR pstrFormat, ...);
 BOOL ContainRect(LPRECT lprcDst, CONST RECT *lprcSrc1, CONST RECT *lprcSrc2);
 BOOL ExpandRect(LPRECT lprcDst, CONST RECT *lprcExpand);
 BOOL IndentRect(LPRECT lprcDst, CONST RECT *lprcIndent);
@@ -240,7 +247,6 @@ BOOL GetStringLine(LPCTSTR strText, int nStrLenght, int nStart,__out int * nCoun
 void PixelToHiMetric(HWND hWnd, const SIZEL* lpSizeInPix, LPSIZEL lpSizeInHiMetric);
 int check_pre_text_encode_lenght(LPCTSTR strText, int nIndex);
 BOOL ExtractInfo(LPCTSTR strSrc, TCHAR * strItem, TCHAR * strValue, int *nReadLen);
-
 
 #define CPOT_TOP     0x01
 #define CPOT_LEFT    0X02
@@ -253,9 +259,9 @@ POINT CalcPopupPoint(const RECT * pRect, const SIZE * pSize, DWORD dwPopupType);
 #endif
 
 #ifdef _DEBUG
-#define TRACE __Trace__
+#define MUITRACE __Mui_Trace__
 #else
-#define TRACE __noop
+#define MUITRACE __noop
 #endif
 
 #endif

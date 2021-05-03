@@ -19,8 +19,6 @@
 
 #include "Core/UIWindow.h"
 #include "Core/UIBuilder.h"
-#include "Core/UserHandle.h"
-
 #include "Layout/UIVerticalLayout.h"
 #include "Layout/UIHorizontalLayout.h"
 #include "Layout/UIAbsoluteLayout.h"

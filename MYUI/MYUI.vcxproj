@@ -19,13 +19,13 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v120</PlatformToolset>
+    <PlatformToolset>v142</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v120</PlatformToolset>
+    <PlatformToolset>v142</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
@@ -52,6 +52,7 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;MYUI_EXPORTS;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>false</SDLCheck>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -95,12 +96,17 @@
     <ClCompile Include="Control\UIProgress.cpp" />
     <ClCompile Include="Control\UIScrollBar.cpp" />
     <ClCompile Include="Control\UISlider.cpp" />
+    <ClCompile Include="Control\UIWidget.cpp" />
     <ClCompile Include="Core\UIBase.cpp" />
     <ClCompile Include="Core\UIBuilder.cpp" />
+    <ClCompile Include="Core\UICaret.cpp" />
     <ClCompile Include="Core\UIContainer.cpp" />
     <ClCompile Include="Core\UIControl.cpp" />
+    <ClCompile Include="Core\UIInterface.cpp" />
+    <ClCompile Include="Core\UIThread.cpp" />
+    <ClCompile Include="Core\UITimer.cpp" />
     <ClCompile Include="Core\UIWindow.cpp" />
-    <ClCompile Include="Core\UserHandle.cpp" />
+    <ClCompile Include="Core\UIWindowBase.cpp" />
     <ClCompile Include="dllmian.cpp" />
     <ClCompile Include="ExtControl\UIActiveX.cpp" />
     <ClCompile Include="ExtControl\UICalendar.cpp" />
@@ -115,15 +121,14 @@
     <ClCompile Include="Layout\UIHorizontalLayout.cpp" />
     <ClCompile Include="Layout\UIVerticalLayout.cpp" />
     <ClCompile Include="Render\GdiEngine.cpp" />
+    <ClCompile Include="Render\LanguageEdition.cpp" />
     <ClCompile Include="Render\RenderEngine.cpp" />
     <ClCompile Include="Render\SkinManager.cpp" />
     <ClCompile Include="tinyxml\tinystr.cpp" />
     <ClCompile Include="tinyxml\tinyxml.cpp" />
     <ClCompile Include="tinyxml\tinyxmlerror.cpp" />
     <ClCompile Include="tinyxml\tinyxmlparser.cpp" />
-    <ClCompile Include="Utils\AvlTree.cpp" />
-    <ClCompile Include="Utils\Helper.cpp" />
-    <ClCompile Include="Utils\MD5.c" />
+    <ClCompile Include="Utils\binaryheap.c" />
     <ClCompile Include="Utils\QR_Encode.cpp" />
     <ClCompile Include="Utils\rbtree.c" />
     <ClCompile Include="Utils\stb_image.c" />
@@ -149,13 +154,17 @@
     <ClInclude Include="Control\UIProgress.h" />
     <ClInclude Include="Control\UIScrollBar.h" />
     <ClInclude Include="Control\UISlider.h" />
+    <ClInclude Include="Control\UIWidget.h" />
     <ClInclude Include="Core\UIBase.h" />
     <ClInclude Include="Core\UIBuilder.h" />
+    <ClInclude Include="Core\UICaret.h" />
     <ClInclude Include="Core\UIContainer.h" />
     <ClInclude Include="Core\UIControl.h" />
     <ClInclude Include="Core\UIInterface.h" />
+    <ClInclude Include="Core\UIThread.h" />
+    <ClInclude Include="Core\UITimer.h" />
     <ClInclude Include="Core\UIWindow.h" />
-    <ClInclude Include="Core\UserHandle.h" />
+    <ClInclude Include="Core\UIWindowBase.h" />
     <ClInclude Include="ExtControl\UIActiveX.h" />
     <ClInclude Include="ExtControl\UICalendar.h" />
     <ClInclude Include="ExtControl\UIDragItem.h" />
@@ -171,24 +180,17 @@
     <ClInclude Include="Layout\UIVerticalLayout.h" />
     <ClInclude Include="myui.h" />
     <ClInclude Include="Render\GdiEngine.h" />
+    <ClInclude Include="Render\LanguageEdition.h" />
     <ClInclude Include="Render\RenderEngine.h" />
     <ClInclude Include="Render\SkinManager.h" />
     <ClInclude Include="tinyxml\tinystr.h" />
     <ClInclude Include="tinyxml\tinyxml.h" />
-    <ClInclude Include="Utils\AvlTree.h" />
-    <ClInclude Include="Utils\Helper.h" />
-    <ClInclude Include="Utils\MD5.h" />
+    <ClInclude Include="Utils\binaryheap.h" />
     <ClInclude Include="Utils\QR_Encode.h" />
     <ClInclude Include="Utils\rbtree.h" />
     <ClInclude Include="Utils\stb_image.h" />
     <ClInclude Include="Utils\Utils.h" />
     <ClInclude Include="Utils\XUnzip.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Attribute.xml">
-      <DeploymentContent>true</DeploymentContent>
-      <SubType>Designer</SubType>
-    </None>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

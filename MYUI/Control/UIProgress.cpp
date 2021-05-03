@@ -14,7 +14,7 @@ namespace MYUI
 	{
 	}
 
-	CMuiString CProgressUI::g_strClassName(_T("ProgressUI"));
+	const CMuiString CProgressUI::g_strClassName(_T("ProgressUI"));
 
 	CMuiString CProgressUI::GetClassName() const
 	{
@@ -91,29 +91,33 @@ namespace MYUI
 
 	void CProgressUI::SetValue(int nValue)
 	{
-		this->CallWndProc(m_pShareInfo ? m_pShareInfo->hWnd : NULL, WMU_SETVALUE, nValue, 0);
+		this->CallWndProc(WMU_SETVALUE, nValue, 0);
 	}
 
-	void CProgressUI::PaintStatusImage( const RECT& rcItem, const RECT& rcPaint)
+	void CProgressUI::PaintStatusImage(const RECT& rcUpdate)
 	{
-		RECT rcDraw = rcItem;
+		RECT rcDraw = m_rcClient;
+		RECT rcOldClient = m_rcClient;
 		int nValue = m_nValue;
 		int nShift = 0;
 		if(MPGS_VERTICAL & m_dwStyle)//垂直
 		{
-			nShift = m_nValue * (rcItem.bottom - rcItem.top) / m_nMaxValue ;
+			nShift = m_nValue * (rcDraw.bottom - rcDraw.top) / m_nMaxValue ;
 			rcDraw.top = rcDraw.bottom - nShift;
 		}
 		else//水平
 		{
-			nShift = m_nValue * (rcItem.right - rcItem.left) / m_nMaxValue ;
+			nShift = m_nValue * (rcDraw.right - rcDraw.left) / m_nMaxValue ;
 			rcDraw.right = rcDraw.left + nShift;
 		}
 
-		__super::PaintStatusImage(rcDraw, rcPaint);
+		//欺骗下层，让下层帮我们完成绘制
+		m_rcClient = rcDraw;
+		__super::PaintStatusImage(rcUpdate);
+		m_rcClient = rcOldClient;
 	}
 
-	LRESULT CProgressUI::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+	LRESULT CProgressUI::WndProc(UINT message, WPARAM wParam, LPARAM lParam)
 	{
 		int nOldValue = m_nValue;
 		switch (message)
@@ -122,10 +126,10 @@ namespace MYUI
 			{
 				m_nValue = MIN(m_nMaxValue, MAX(m_nMinValue, wParam));
 				this->Invalidate();
-				SendNotify(!hWnd, SelectChange, m_nValue, nOldValue);
+				SendNotify(EnumNotify::SelectChange, m_nValue, nOldValue);
 				return 0;
 			}break;
 		}
-		return __super::WndProc(hWnd, message, wParam, lParam);
+		return __super::WndProc(message, wParam, lParam);
 	}
 }

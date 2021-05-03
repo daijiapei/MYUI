@@ -13,7 +13,7 @@ namespace MYUI
 	public:
 		CComboBoxUI();
 		virtual ~CComboBoxUI();
-		static CMuiString g_strClassName;
+		const static CMuiString g_strClassName;
 
 		virtual CMuiString GetClassName() const;
 
@@ -24,7 +24,7 @@ namespace MYUI
 		virtual void RemoveAll();
 		virtual CControlUI * Find(int nIndex);
 		virtual int Find(CControlUI * pControl);
-		virtual int GetCount() const;
+		virtual int GetCount();
 	public:
 
 		void SetItemBoxHeight(int nHeight);
@@ -48,8 +48,8 @@ namespace MYUI
 		//»æÖÆ
 		
 	protected:
-		virtual LRESULT WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
-
+		virtual LRESULT WndProc(UINT message, WPARAM wParam, LPARAM lParam);
+		RECT CalcButtonPostion();
         LRESULT Popup(LPARAM lParam);
 
 	protected:

@@ -13,18 +13,18 @@ namespace MYUI
 	public:
 		CRichEditUI();
 		virtual ~CRichEditUI();
-		static CMuiString g_strClassName;
+		const static CMuiString g_strClassName;
 
 		virtual CMuiString GetClassName() const;
 
-		virtual LRESULT WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
+		virtual LRESULT WndProc(UINT message, WPARAM wParam, LPARAM lParam);
 
 		virtual SIZE GetContentSize();
 
 	public:
 		virtual void SetAttribute(LPCTSTR strItem, LPCTSTR strValue);
-		virtual bool SetItem(RECT rcItem, bool bMustUpdate);
-		virtual bool OnPaint(RECT rcItem, RECT rcPaint, RECT rcUpdate);
+		virtual bool SetItem(RECT rcItem, bool bMustUpdate) override;
+		virtual bool OnPaint(const RECT& rcUpdate) override;
 
 	protected:
 		BOOL Init();

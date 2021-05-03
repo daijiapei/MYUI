@@ -12,14 +12,14 @@ namespace MYUI
 	{
 	}
 
-	CMuiString COptionUI::g_strClassName(_T("OptionUI"));
+	const CMuiString COptionUI::g_strClassName(_T("OptionUI"));
 
 	CMuiString COptionUI::GetClassName() const
 	{
 		return COptionUI::g_strClassName;
 	}
 	
-	LRESULT COptionUI::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+	LRESULT COptionUI::WndProc(UINT message, WPARAM wParam, LPARAM lParam)
 	{
 		POINT pt;
 		bool bRet = false;
@@ -27,20 +27,18 @@ namespace MYUI
 		{
 		case WM_LBUTTONDOWN:
 			{
-				if(false == m_bEnabled) return false;
-
 				if(STATE_CHECKED & GetState())
 				{
 					if(true == m_strGroupName.IsEmpty())
 					{
 						//没有加入组,
 						//有加入组的话,重复点击不取消选中
-						CallWndProc(hWnd, WMU_SETCHECK, FALSE, 0);
+						CallWndProc(WMU_SETCHECK, FALSE, 0);
 					}
 				}
 				else
 				{
-					CallWndProc(hWnd, WMU_SETCHECK, TRUE, 0);
+					CallWndProc(WMU_SETCHECK, TRUE, 0);
 				}
 
 				Invalidate();
@@ -55,12 +53,12 @@ namespace MYUI
 				if(STATE_CHECKED & GetState())
 				{
 					RemoveState(STATE_CHECKED);
-					SendNotify(!hWnd, CheckItem, wParam, TRUE);//原来的状态
+					SendNotify(EnumNotify::CheckItem, wParam, TRUE);//原来的状态
 				}
 				else
 				{
 					AddState(STATE_CHECKED);
-					SendNotify(!hWnd, CheckItem, wParam, FALSE);//原来的状态
+					SendNotify(EnumNotify::CheckItem, wParam, FALSE);//原来的状态
 				}
 				this->Invalidate();
 				return 0;
@@ -69,7 +67,7 @@ namespace MYUI
 			break;
 		}
 		
-		return __super::WndProc(hWnd, message, wParam, lParam);
+		return __super::WndProc(message, wParam, lParam);
 	}
 
 	void COptionUI::SetAttribute(LPCTSTR strItem, LPCTSTR strValue)
@@ -97,11 +95,11 @@ namespace MYUI
 		return ;
 	}
 
-	void COptionUI::PaintStatusImage( const RECT& rcItem, const RECT& rcPaint)
+	void COptionUI::PaintStatusImage(const RECT& rcUpdate)
 	{
 		LPCTSTR strImage = m_strForeNormalImage;
 		//先绘制Lable作为背景
-		__super::PaintStatusImage(rcItem, rcPaint);
+		__super::PaintStatusImage(rcUpdate);
 
 		//再绘制前景图片
 
@@ -123,7 +121,7 @@ namespace MYUI
 
 		if(_T('\0') != strImage[0])
 		{
-			m_pShareInfo->pRenderEngine->OnDrawImage(rcItem, strImage);
+			m_pShareInfo->pRenderEngine->OnDrawImage(m_rcClient, strImage);
 			return;
 		}
 	}

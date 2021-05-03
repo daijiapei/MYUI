@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="gb2312"?>
-<UIFrame>
+<MYUI>
 	<group name="group1"></group>
-
 
 	<theme name ="button_theme" NormalImage="button_nor.bmp" HotImage="button_over.bmp" pushedImage="button_down.bmp"/>
 	<theme name="node_theme" textcolor="RGB(0,0,0)" height="22" font="0" showCheck="true" expandoffset="-1"
@@ -33,7 +32,7 @@
 	<font id="4" name="微软雅黑" size="38" bold="true" italic="true" underline="false"/>
 	<font id="5" name="楷体" size="16" bold="false" italic="false" underline="false"/>
 	<font id="6" name="宋体" size="17" bold="true" italic="false" underline="false"/>
-	<Window size="1500,700" font="0">
+  <!--Window size="1500,700" font="0"-->
 		<!--Window size="380,220" mininfo="380,220" maxinfo="380,220 "-->
 		<Menu bkImage="file='menu_bk.png' source='5,5,45,25' corner='30,2,2,2'" name="root_menu" inset="1,1,1,1">
 			<MenuElement name="m1" text="hello 1" width="180" NormalLogo="WebSit.png"/>
@@ -76,5 +75,5 @@
 			<MenuElement name="mB" text="hello b" width="180"/>
 			<MenuElement name="mC" text="hello c" width="180"/>
 		</Menu>
-	</Window>
-</UIFrame>
+	<!--/Window-->
+</MYUI>

@@ -55,7 +55,7 @@ namespace MYUI
 		if(m_hDll) ::FreeLibrary(m_hDll);
 	}
 
-	CMuiString CRichEditUI::g_strClassName(_T("RichEditUI"));
+	const CMuiString CRichEditUI::g_strClassName(_T("RichEditUI"));
 
 	CMuiString CRichEditUI::GetClassName() const
 	{
@@ -73,13 +73,13 @@ namespace MYUI
 
 	HRESULT CRichEditUI::InitDefaultCharFormat(CHARFORMAT2W* pcf, HFONT hFont) 
 	{
-		TRACE(_T("CRichEditUI::InitDefaultCharFormat"));
+		MUITRACE(_T("CRichEditUI::InitDefaultCharFormat"));
 		LOGFONT lf;
 		memset(pcf, 0, sizeof(CHARFORMAT2W));
 		
 		if(NULL == hFont)
 		{
-			hFont = (HFONT)m_pShareInfo->FontArray->Select(m_nFontId);
+			hFont = (HFONT)m_pShareInfo->FontArray.Select(m_nFontId);
 		}
 
 		if(NULL == hFont)
@@ -216,7 +216,7 @@ err:
 
 	HRESULT CRichEditUI::QueryInterface(REFIID riid, void **ppvObject)
 	{
-		TRACE(_T("CRichEditUI::QueryInterface"));
+		MUITRACE(_T("CRichEditUI::QueryInterface"));
 		HRESULT hr = E_NOINTERFACE;
 		*ppvObject = NULL;
 
@@ -232,14 +232,14 @@ err:
 
 	ULONG CRichEditUI::AddRef(void)
 	{
-		TRACE(_T("CRichEditUI::AddRef"));
+		MUITRACE(_T("CRichEditUI::AddRef"));
 		InterlockedIncrement(&m_dwRef);
 		return m_dwRef;
 	}
 
 	ULONG CRichEditUI::Release(void)
 	{
-		TRACE(_T("CRichEditUI::Release"));
+		MUITRACE(_T("CRichEditUI::Release"));
 
 		ULONG ulRefCount = InterlockedDecrement(&m_dwRef);
 		//if(ulRefCount == 0) delete this;
@@ -248,13 +248,13 @@ err:
 
 	BOOL CRichEditUI::GetWordWrap(void)
 	{
-		TRACE(_T("CRichEditUI::GetWordWrap"));
+		MUITRACE(_T("CRichEditUI::GetWordWrap"));
 		return m_fWordWrap;
 	}
 
 	BOOL CRichEditUI::GetActiveState(void)
 	{
-		TRACE(_T("CRichEditUI::GetActiveState"));
+		MUITRACE(_T("CRichEditUI::GetActiveState"));
 		return m_fInplaceActive;
 	}
 
@@ -262,13 +262,13 @@ err:
 
 	HIMC CRichEditUI::TxImmGetContext(void)
 	{
-		TRACE(_T("CRichEditUI::TxImmGetContext"));
+		MUITRACE(_T("CRichEditUI::TxImmGetContext"));
 		return NULL;
 	}
 
 	void CRichEditUI::TxImmReleaseContext(HIMC himc)
 	{
-		TRACE(_T("CRichEditUI::TxImmReleaseContext"));
+		MUITRACE(_T("CRichEditUI::TxImmReleaseContext"));
 		//::ImmReleaseContext( hwnd, himc );
 	}
 
@@ -276,19 +276,19 @@ err:
 
 	HDC CRichEditUI::TxGetDC()
 	{
-		TRACE(_T("CRichEditUI::TxGetDC"));
+		MUITRACE(_T("CRichEditUI::TxGetDC"));
 		return m_pShareInfo->hPaintDC;
 	}
 
 	int CRichEditUI::TxReleaseDC(HDC hdc)
 	{
-		TRACE(_T("CRichEditUI::TxReleaseDC"));
+		MUITRACE(_T("CRichEditUI::TxReleaseDC"));
 		return 1;
 	}
 
 	BOOL CRichEditUI::TxShowScrollBar(INT fnBar, BOOL fShow)
 	{
-		TRACE(_T("CRichEditUI::TxShowScrollBar"));
+		MUITRACE(_T("CRichEditUI::TxShowScrollBar"));
 		if( fnBar == SB_VERT && m_pVerticalScrollBar ) 
 		{
 			m_pVerticalScrollBar->SetVisible(fShow == TRUE);
@@ -307,7 +307,7 @@ err:
 
 	BOOL CRichEditUI::TxEnableScrollBar (INT fuSBFlags, INT fuArrowflags)
 	{
-		TRACE(_T("CRichEditUI::TxEnableScrollBar"));
+		MUITRACE(_T("CRichEditUI::TxEnableScrollBar"));
 		if( fuSBFlags == SB_VERT || fuSBFlags == SB_BOTH) 
 		{
 			if(m_pVerticalScrollBar)
@@ -331,7 +331,7 @@ err:
 
 	BOOL CRichEditUI::TxSetScrollRange(INT fnBar, LONG nMinPos, INT nMaxPos, BOOL fRedraw)
 	{
-		TRACE(_T("CRichEditUI::TxSetScrollRange"));
+		MUITRACE(_T("CRichEditUI::TxSetScrollRange"));
 		//设置滚动范围，这里的代码我也不知道对不对，因为我没用过这个控件
 		if( fnBar == SB_VERT && m_pVerticalScrollBar ) 
 		{
@@ -363,7 +363,7 @@ err:
 
 	BOOL CRichEditUI::TxSetScrollPos (INT fnBar, INT nPos, BOOL fRedraw)
 	{
-		TRACE(_T("CRichEditUI::TxSetScrollPos"));
+		MUITRACE(_T("CRichEditUI::TxSetScrollPos"));
 
 		if( fnBar == SB_VERT && m_pVerticalScrollBar ) 
 		{
@@ -380,25 +380,25 @@ err:
 
 	void CRichEditUI::TxInvalidateRect(LPCRECT prc, BOOL fMode)
 	{
-		TRACE(_T("CRichEditUI::TxCreateCaret"));
+		MUITRACE(_T("CRichEditUI::TxCreateCaret"));
 		this->Invalidate();
 	}
 
 	void CRichEditUI::TxViewChange(BOOL fUpdate) 
 	{
-		TRACE(_T("CRichEditUI::TxViewChange"));
+		MUITRACE(_T("CRichEditUI::TxViewChange"));
 		this->Invalidate();
 	}
 
 	BOOL CRichEditUI::TxCreateCaret(HBITMAP hbmp, INT xWidth, INT yHeight)
 	{
-		TRACE(_T("CRichEditUI::TxCreateCaret"));
+		MUITRACE(_T("CRichEditUI::TxCreateCaret"));
 		return ::CreateCaret(m_pShareInfo->hWnd, hbmp, xWidth, yHeight);
 	}
 
 	BOOL CRichEditUI::TxShowCaret(BOOL fShow)
 	{
-		TRACE(_T("CRichEditUI::TxShowCaret"));
+		MUITRACE(_T("CRichEditUI::TxShowCaret"));
 		if(fShow)
 			return ::ShowCaret(m_pShareInfo->hWnd);
 		else
@@ -407,33 +407,33 @@ err:
 
 	BOOL CRichEditUI::TxSetCaretPos(INT x, INT y)
 	{
-		TRACE(_T("CRichEditUI::TxSetCaretPos"));
+		MUITRACE(_T("CRichEditUI::TxSetCaretPos"));
 		return ::SetCaretPos(x, y);
 	}
 
 	BOOL CRichEditUI::TxSetTimer(UINT idTimer, UINT uTimeout)
 	{
-		TRACE(_T("CRichEditUI::TxSetTimer"));
+		MUITRACE(_T("CRichEditUI::TxSetTimer"));
 		m_fTimer = TRUE;
 		return this->SetTimer(idTimer, uTimeout);
 	}
 
 	void CRichEditUI::TxKillTimer(UINT idTimer)
 	{
-		TRACE(_T("CRichEditUI::TxKillTimer"));
+		MUITRACE(_T("CRichEditUI::TxKillTimer"));
 		this->KillTimer(idTimer);
 		m_fTimer = FALSE;
 	}
 
 	void CRichEditUI::TxScrollWindowEx (INT dx, INT dy, LPCRECT lprcScroll,	LPCRECT lprcClip,	HRGN hrgnUpdate, LPRECT lprcUpdate,	UINT fuScroll)	
 	{
-		TRACE(_T("CRichEditUI::TxScrollWindowEx"));
+		MUITRACE(_T("CRichEditUI::TxScrollWindowEx"));
 		return;
 	}
 
 	void CRichEditUI::TxSetCapture(BOOL fCapture)
 	{
-		TRACE(_T("CRichEditUI::TxSetFocus"));
+		MUITRACE(_T("CRichEditUI::TxSetFocus"));
 		if (fCapture)
 		{
 			this->SetCapture();
@@ -447,91 +447,91 @@ err:
 
 	void CRichEditUI::TxSetFocus()
 	{
-		TRACE(_T("CRichEditUI::TxSetFocus"));
+		MUITRACE(_T("CRichEditUI::TxSetFocus"));
 		this->SetFocus();
 	}
 
 	void CRichEditUI::TxSetCursor(HCURSOR hcur,	BOOL fText)
 	{
-		TRACE(_T("CRichEditUI::TxSetCursor"));
+		MUITRACE(_T("CRichEditUI::TxSetCursor"));
 		::SetCursor(hcur);
 	}
 
 	BOOL CRichEditUI::TxScreenToClient(LPPOINT lppt)
 	{
-		TRACE(_T("CRichEditUI::TxGetClientRect"));
+		MUITRACE(_T("CRichEditUI::TxGetClientRect"));
 		return ::ScreenToClient(m_pShareInfo->hWnd, lppt);	
 	}
 
 	BOOL CRichEditUI::TxClientToScreen(LPPOINT lppt)
 	{
-		TRACE(_T("CRichEditUI::TxGetClientRect"));
+		MUITRACE(_T("CRichEditUI::TxGetClientRect"));
 		return ::ClientToScreen(m_pShareInfo->hWnd, lppt);
 	}
 
 	HRESULT CRichEditUI::TxActivate(LONG *plOldState)
 	{
-		TRACE(_T("CRichEditUI::TxActivate"));
+		MUITRACE(_T("CRichEditUI::TxActivate"));
 		return S_OK;
 	}
 
 	HRESULT CRichEditUI::TxDeactivate(LONG lNewState)
 	{
-		TRACE(_T("CRichEditUI::TxDeactivate"));
+		MUITRACE(_T("CRichEditUI::TxDeactivate"));
 		return S_OK;
 	}
 
 	HRESULT CRichEditUI::TxGetClientRect(LPRECT prc)
 	{
-		TRACE(_T("CRichEditUI::TxGetClientRect"));
+		MUITRACE(_T("CRichEditUI::TxGetClientRect"));
 		*prc = m_rcTxClient;
 		return NOERROR;
 	}
 
 	HRESULT CRichEditUI::TxGetViewInset(LPRECT prc) 
 	{
-		TRACE(_T("CRichEditUI::TxGetViewInset"));
+		MUITRACE(_T("CRichEditUI::TxGetViewInset"));
 		prc->left = prc->right = prc->top = prc->bottom = 0;
 		return NOERROR;	
 	}
 
 	HRESULT CRichEditUI::TxGetCharFormat(const CHARFORMATW **ppCF)
 	{
-		TRACE(_T("CRichEditUI::TxGetCharFormat"));
+		MUITRACE(_T("CRichEditUI::TxGetCharFormat"));
 		*ppCF = &m_CharFormat;
 		return NOERROR;
 	}
 
 	HRESULT CRichEditUI::TxGetParaFormat(const PARAFORMAT **ppPF)
 	{
-		TRACE(_T("CRichEditUI::TxGetParaFormat"));
+		MUITRACE(_T("CRichEditUI::TxGetParaFormat"));
 		*ppPF = &m_ParaFormat;
 		return NOERROR;
 	}
 
 	COLORREF CRichEditUI::TxGetSysColor(int nIndex) 
 	{
-		TRACE(_T("CRichEditUI::TxGetSysColor"));
+		MUITRACE(_T("CRichEditUI::TxGetSysColor"));
 		return ::GetSysColor(nIndex);
 	}
 
 	HRESULT CRichEditUI::TxGetBackStyle(TXTBACKSTYLE *pstyle)
 	{
-		TRACE(_T("CRichEditUI::TxGetBackStyle"));
+		MUITRACE(_T("CRichEditUI::TxGetBackStyle"));
 		*pstyle = !m_fTransparent ? TXTBACK_OPAQUE : TXTBACK_TRANSPARENT;
 		return NOERROR;
 	}
 
 	HRESULT CRichEditUI::TxGetMaxLength(DWORD *pLength)
 	{
-		TRACE(_T("CRichEditUI::TxGetMaxLength"));
+		MUITRACE(_T("CRichEditUI::TxGetMaxLength"));
 		*pLength = m_cchTextMost;
 		return NOERROR;
 	}
 
 	HRESULT CRichEditUI::TxGetScrollBars(DWORD *pdwScrollBar)
 	{
-		TRACE(_T("CRichEditUI::TxGetScrollBars"));
+		MUITRACE(_T("CRichEditUI::TxGetScrollBars"));
 		*pdwScrollBar =  m_dwStyle & (WS_VSCROLL | WS_HSCROLL | ES_AUTOVSCROLL | 
 			ES_AUTOHSCROLL | ES_DISABLENOSCROLL);
 
@@ -540,7 +540,7 @@ err:
 
 	HRESULT CRichEditUI::TxGetPasswordChar(TCHAR *pch)
 	{
-		TRACE(_T("CRichEditUI::TxGetPasswordChar"));
+		MUITRACE(_T("CRichEditUI::TxGetPasswordChar"));
 	#ifdef _UNICODE
 		*pch = m_chPasswordChar;
 	#else
@@ -551,26 +551,26 @@ err:
 
 	HRESULT CRichEditUI::TxGetAcceleratorPos(LONG *pcp)
 	{
-		TRACE(_T("CRichEditUI::TxGetAcceleratorPos"));
+		MUITRACE(_T("CRichEditUI::TxGetAcceleratorPos"));
 		*pcp = m_laccelpos;
 		return S_OK;
 	} 										   
 
 	HRESULT CRichEditUI::OnTxCharFormatChange(const CHARFORMATW *pcf)
 	{
-		TRACE(_T("CRichEditUI::OnTxCharFormatChange"));
+		MUITRACE(_T("CRichEditUI::OnTxCharFormatChange"));
 		return S_OK;
 	}
 
 	HRESULT CRichEditUI::OnTxParaFormatChange(const PARAFORMAT *ppf)
 	{
-		TRACE(_T("CRichEditUI::OnTxParaFormatChange"));
+		MUITRACE(_T("CRichEditUI::OnTxParaFormatChange"));
 		return S_OK;
 	}
 
 	HRESULT CRichEditUI::TxGetPropertyBits(DWORD dwMask, DWORD *pdwBits) 
 	{
-		TRACE(_T("CRichEditUI::TxGetPropertyBits"));
+		MUITRACE(_T("CRichEditUI::TxGetPropertyBits"));
 		DWORD dwProperties = 0;
 
 		if (m_fRich)
@@ -624,7 +624,7 @@ err:
 
 	HRESULT CRichEditUI::TxNotify(DWORD iNotify, void *pv)
 	{
-		TRACE(_T("CRichEditUI::SetWordWrap"));
+		MUITRACE(_T("CRichEditUI::SetWordWrap"));
 		RECT rc;
 		REQRESIZE *preqsz = (REQRESIZE *)pv;
 
@@ -673,34 +673,34 @@ err:
 
 	HRESULT CRichEditUI::TxGetExtent(LPSIZEL lpExtent)
 	{
-		TRACE(_T("CRichEditUI::TxGetExtent"));
+		MUITRACE(_T("CRichEditUI::TxGetExtent"));
 		*lpExtent = m_sizelExtent;
 		return S_OK;
 	}
 
 	HRESULT	CRichEditUI::TxGetSelectionBarWidth (LONG *plSelBarWidth)
 	{
-		TRACE(_T("CRichEditUI::TxGetSelectionBarWidth"));
+		MUITRACE(_T("CRichEditUI::TxGetSelectionBarWidth"));
 		*plSelBarWidth = m_lSelBarWidth;
 		return S_OK;
 	}
 
 	void CRichEditUI::SetWordWrap(BOOL fWordWrap)
 	{
-		TRACE(_T("CRichEditUI::SetWordWrap"));
+		MUITRACE(_T("CRichEditUI::SetWordWrap"));
 		m_fWordWrap = fWordWrap;
 		m_pServices->OnTxPropertyBitsChange(TXTBIT_WORDWRAP, m_fWordWrap ? TXTBIT_WORDWRAP : 0);
 	}
 
 	BOOL CRichEditUI::GetReadOnly()
 	{
-		TRACE(_T("CRichEditUI::GetReadOnly"));
+		MUITRACE(_T("CRichEditUI::GetReadOnly"));
 		return (m_dwStyle & ES_READONLY) != 0;
 	}
 
 	void CRichEditUI::SetReadOnly(BOOL fReadOnly)
 	{
-		TRACE(_T("CRichEditUI::SetReadOnly"));
+		MUITRACE(_T("CRichEditUI::SetReadOnly"));
 		if (fReadOnly)
 		{
 			m_dwStyle |= ES_READONLY;
@@ -716,7 +716,7 @@ err:
 
 	void CRichEditUI::SetFont(HFONT hFont) 
 	{
-		TRACE(_T("CRichEditUI::SetFont"));
+		MUITRACE(_T("CRichEditUI::SetFont"));
 		if( hFont == NULL ) return;
 		LOGFONT lf;
 		::GetObject(hFont, sizeof(LOGFONT), &lf);
@@ -743,7 +743,7 @@ err:
 
 	void CRichEditUI::SetColor(DWORD dwColor)
 	{
-		TRACE(_T("CRichEditUI::SetColor"));
+		MUITRACE(_T("CRichEditUI::SetColor"));
 		m_CharFormat.crTextColor = ARGB(0, GetBValue(dwColor), GetGValue(dwColor), GetRValue(dwColor));
 		m_pServices->OnTxPropertyBitsChange(TXTBIT_CHARFORMATCHANGE, 
 			TXTBIT_CHARFORMATCHANGE);
@@ -751,20 +751,20 @@ err:
 
 	SIZEL* CRichEditUI::GetExtent() 
 	{
-		TRACE(_T("CRichEditUI::GetExtent"));
+		MUITRACE(_T("CRichEditUI::GetExtent"));
 		return &m_sizelExtent;
 	}
 
 	void CRichEditUI::SetExtent(SIZEL *psizelExtent) 
 	{
-		TRACE(_T("CRichEditUI::SetExtent"));
+		MUITRACE(_T("CRichEditUI::SetExtent"));
 		m_sizelExtent = *psizelExtent; 
 		m_pServices->OnTxPropertyBitsChange(TXTBIT_EXTENTCHANGE, TXTBIT_EXTENTCHANGE);
 	}
 
 	void CRichEditUI::LimitText(LONG nChars)
 	{
-		TRACE(_T("CRichEditUI::LimitText"));
+		MUITRACE(_T("CRichEditUI::LimitText"));
 		m_cchTextMost = nChars;
 		if( m_cchTextMost <= 0 ) m_cchTextMost = g_cInitTextMax;
 		m_pServices->OnTxPropertyBitsChange(TXTBIT_MAXLENGTHCHANGE, TXTBIT_MAXLENGTHCHANGE);
@@ -772,19 +772,19 @@ err:
 
 	BOOL CRichEditUI::IsCaptured()
 	{
-		TRACE(_T("CRichEditUI::IsCaptured"));
+		MUITRACE(_T("CRichEditUI::IsCaptured"));
 		return m_fCaptured;
 	}
 
 	BOOL CRichEditUI::GetAllowBeep()
 	{
-		TRACE(_T("CRichEditUI::GetAllowBeep"));
+		MUITRACE(_T("CRichEditUI::GetAllowBeep"));
 		return m_fAllowBeep;
 	}
 
 	void CRichEditUI::SetAllowBeep(BOOL fAllowBeep)
 	{
-		TRACE(_T("CRichEditUI::SetAllowBeep"));
+		MUITRACE(_T("CRichEditUI::SetAllowBeep"));
 		m_fAllowBeep = fAllowBeep;
 
 		m_pServices->OnTxPropertyBitsChange(TXTBIT_ALLOWBEEP, 
@@ -793,13 +793,13 @@ err:
 
 	WORD CRichEditUI::GetDefaultAlign()
 	{
-		TRACE(_T("CRichEditUI::GetDefaultAlign"));
+		MUITRACE(_T("CRichEditUI::GetDefaultAlign"));
 		return m_ParaFormat.wAlignment;
 	}
 
 	void CRichEditUI::SetDefaultAlign(WORD wNewAlign)
 	{
-		TRACE(_T("CRichEditUI::SetDefaultAlign"));
+		MUITRACE(_T("CRichEditUI::SetDefaultAlign"));
 		m_ParaFormat.wAlignment = wNewAlign;
 
 		// Notify control of property change
@@ -808,13 +808,13 @@ err:
 
 	BOOL CRichEditUI::GetRichTextFlag()
 	{
-		TRACE(_T("CRichEditUI::GetRichTextFlag"));
+		MUITRACE(_T("CRichEditUI::GetRichTextFlag"));
 		return m_fRich;
 	}
 
 	void CRichEditUI::SetRichTextFlag(BOOL fNew)
 	{
-		TRACE(_T("CRichEditUI::SetRichTextFlag"));
+		MUITRACE(_T("CRichEditUI::SetRichTextFlag"));
 		m_fRich = fNew;
 
 		m_pServices->OnTxPropertyBitsChange(TXTBIT_RICHTEXT, 
@@ -823,13 +823,13 @@ err:
 
 	LONG CRichEditUI::GetDefaultLeftIndent()
 	{
-		TRACE(_T("CRichEditUI::GetDefaultLeftIndent"));
+		MUITRACE(_T("CRichEditUI::GetDefaultLeftIndent"));
 		return m_ParaFormat.dxOffset;
 	}
 
 	void CRichEditUI::SetDefaultLeftIndent(LONG lNewIndent)
 	{
-		TRACE(_T("CRichEditUI::SetDefaultLeftIndent"));
+		MUITRACE(_T("CRichEditUI::SetDefaultLeftIndent"));
 		m_ParaFormat.dxOffset = lNewIndent;
 
 		m_pServices->OnTxPropertyBitsChange(TXTBIT_PARAFORMATCHANGE, 0);
@@ -837,7 +837,7 @@ err:
 
 	BOOL CRichEditUI::SetSaveSelection(BOOL fSaveSelection)
 	{
-		TRACE(_T("CRichEditUI::SetSaveSelection"));
+		MUITRACE(_T("CRichEditUI::SetSaveSelection"));
 		BOOL fResult = m_fSaveSelection;
 
 		m_fSaveSelection = fSaveSelection;
@@ -851,7 +851,7 @@ err:
 
 	HRESULT	CRichEditUI::OnTxInPlaceDeactivate()
 	{
-		TRACE(_T("CRichEditUI::OnTxInPlaceDeactivate"));
+		MUITRACE(_T("CRichEditUI::OnTxInPlaceDeactivate"));
 		HRESULT hr = m_pServices->OnTxInPlaceDeactivate();
 
 		if (SUCCEEDED(hr))
@@ -864,7 +864,7 @@ err:
 
 	HRESULT	CRichEditUI::OnTxInPlaceActivate(LPCRECT prcClient)
 	{
-		TRACE(_T("CRichEditUI::OnTxInPlaceActivate"));
+		MUITRACE(_T("CRichEditUI::OnTxInPlaceActivate"));
 		m_fInplaceActive = TRUE;
 
 		HRESULT hr = m_pServices->OnTxInPlaceActivate(prcClient);
@@ -879,7 +879,7 @@ err:
 
 	BOOL CRichEditUI::DoSetCursor(RECT *prc, POINT *pt)
 	{
-		TRACE(_T("CRichEditUI::GetControlRect"));
+		MUITRACE(_T("CRichEditUI::GetControlRect"));
 		RECT rc = prc ? *prc : m_rcTxClient;
 
 		// Is this in our rectangle?
@@ -897,7 +897,7 @@ err:
 
 	void CRichEditUI::SetTransparent(BOOL fTransparent)
 	{
-		TRACE(_T("CRichEditUI::SetTransparent"));
+		MUITRACE(_T("CRichEditUI::SetTransparent"));
 		m_fTransparent = fTransparent;
 
 		// notify text services of property change
@@ -906,7 +906,7 @@ err:
 
 	LONG CRichEditUI::SetAccelPos(LONG laccelpos)
 	{
-		TRACE(_T("CRichEditUI::SetAccelPos"));
+		MUITRACE(_T("CRichEditUI::SetAccelPos"));
 		LONG laccelposOld = m_laccelpos;
 
 		m_laccelpos = laccelpos;
@@ -919,7 +919,7 @@ err:
 
 	WCHAR CRichEditUI::SetPasswordChar(WCHAR chPasswordChar)
 	{
-		TRACE(_T("CRichEditUI::SetAccelPos"));
+		MUITRACE(_T("CRichEditUI::SetAccelPos"));
 		WCHAR chOldPasswordChar = m_chPasswordChar;
 
 		m_chPasswordChar = chPasswordChar;
@@ -933,7 +933,7 @@ err:
 
 	void CRichEditUI::SetDisabled(BOOL fOn)
 	{
-		TRACE(_T("CRichEditUI::SetDisabled"));
+		MUITRACE(_T("CRichEditUI::SetDisabled"));
 		m_CharFormat.dwMask	 |= CFM_COLOR | CFM_DISABLED;
 		m_CharFormat.dwEffects |= CFE_AUTOCOLOR | CFE_DISABLED;
 
@@ -948,7 +948,7 @@ err:
 
 	LONG CRichEditUI::SetSelBarWidth(LONG lSelBarWidth)
 	{
-		TRACE(_T("CRichEditUI::SetSelBarWidth"));
+		MUITRACE(_T("CRichEditUI::SetSelBarWidth"));
 		LONG lOldSelBarWidth = m_lSelBarWidth;
 
 		m_lSelBarWidth = lSelBarWidth;
@@ -969,19 +969,19 @@ err:
 
 	BOOL CRichEditUI::GetTimerState()
 	{
-		TRACE(_T("CRichEditUI::GetTimerState"));
+		MUITRACE(_T("CRichEditUI::GetTimerState"));
 		return m_fTimer;
 	}
 
 	void CRichEditUI::SetCharFormat(CHARFORMAT2W &cf)
 	{
-		TRACE(_T("CRichEditUI::SetCharFormat"));
+		MUITRACE(_T("CRichEditUI::SetCharFormat"));
 		m_CharFormat = cf;
 	}
 
 	void CRichEditUI::SetParaFormat(PARAFORMAT2 &pf)
 	{
-		TRACE(_T("CTxtWinHost::SetParaFormat"));
+		MUITRACE(_T("CTxtWinHost::SetParaFormat"));
 		m_ParaFormat = pf;
 	}
 
@@ -1003,16 +1003,15 @@ err:
 		return __super::OnDetach(hOldWnd);
 	}
 
-	bool CRichEditUI::OnPaint(RECT rcItem, RECT rcPaint, RECT rcUpdate)
+	bool CRichEditUI::OnPaint(const RECT& rcUpdate)
 	{
-		if(false == __super::OnPaint(rcItem, rcPaint, rcUpdate)) return false;
+		if(false == __super::OnPaint(rcUpdate)) return false;
 
 		if(NULL == m_pServices) return true;
 
 		RECT rcClient = m_rcClient;
-		OffsetRect(&rcClient, rcItem.left, rcItem.top);
-
-		HCLIP hOldClip = m_pShareInfo->pRenderEngine->EnterClip(rcClient, m_szBorderRound);
+		RECT rcDraw = { 0 };
+		if (false == GetItemFixedRect(rcDraw)) return true;
 
 		HDC hdc = m_pShareInfo->pRenderEngine->GetMemDC();
 		m_pServices->TxDraw(
@@ -1024,13 +1023,12 @@ err:
             NULL, 				   	// Target device HDC
             (RECTL*)&rcClient,		// Bounding client rectangle
             NULL, 		            // Clipping rectangle for metafiles
-            (RECT*)&rcPaint,		// Update rectangle
+            (RECT*)&rcDraw,		// Update rectangle
             NULL, 	   				// Call back function
             NULL,					// Call back parameter
             0);				        // What view of the object
 
 		m_pShareInfo->pRenderEngine->ReleaseMemDC(hdc);
-		m_pShareInfo->pRenderEngine->LeaveClip(hOldClip);
 		return true;
 	}
 
@@ -1072,7 +1070,7 @@ err:
 		return true;
 	}
 
-	LRESULT CRichEditUI::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+	LRESULT CRichEditUI::WndProc(UINT message, WPARAM wParam, LPARAM lParam)
 	{
 		POINT point;
 		bool bRet = false;
@@ -1118,7 +1116,7 @@ err:
 				m_pServices->OnTxInPlaceActivate(NULL);
 				m_pServices->TxSendMessage(message, 0, 0, 0);
 			}break;
-		case WM_MOUSEENTER:
+		case WMU_MOUSEENTER:
 		case WM_MOUSELEAVE:
 			{
 				point.x = GET_X_LPARAM(lParam);
@@ -1134,6 +1132,6 @@ err:
 		default:
 			break;
 		}
-		return __super::WndProc(hWnd, message, wParam, lParam);
+		return __super::WndProc(message, wParam, lParam);
 	}
 }

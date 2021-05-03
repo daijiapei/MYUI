@@ -17,7 +17,7 @@ namespace MYUI
 
 	CBaseLayoutUI::~CBaseLayoutUI()
 	{
-		TRACE(_T("CBaseLayoutUI::~CBaseLayoutUI"));
+		MUITRACE(_T("CBaseLayoutUI::~CBaseLayoutUI"));
 		for(int i=0; m_Items.GetSize() > i; i++)
 		{
 			CControlUI * pControl = (CControlUI*)m_Items[i];
@@ -25,7 +25,7 @@ namespace MYUI
 		}
 	}
 
-	void CBaseLayoutUI::SetShareInfo(TSHAREINFO * pShareInfo)
+	void CBaseLayoutUI::SetShareInfo(MUISHAREINFO * pShareInfo)
 	{
         __super::SetShareInfo(pShareInfo);
 		for(int i=0 ; m_Items.GetSize() > i; i++)
@@ -35,7 +35,7 @@ namespace MYUI
 		}
 	}
 
-	CMuiString CBaseLayoutUI::g_strClassName(_T("BaseLayoutUI"));
+	const CMuiString CBaseLayoutUI::g_strClassName(_T("BaseLayoutUI"));
 
 	CMuiString CBaseLayoutUI::GetClassName() const
 	{
@@ -100,26 +100,25 @@ namespace MYUI
 		return m_Items.Find(pControl);
 	}
 
-	int CBaseLayoutUI::GetCount() const
+	int CBaseLayoutUI::GetCount()
 	{
 		return m_Items.GetSize();
 	}
 
-	CControlUI * CBaseLayoutUI::FindControlByPoint(POINT &pt)
+	CControlUI * CBaseLayoutUI::FindControlByPoint(POINT &Point)
 	{
 		CControlUI * temp;
-		POINT ptThis = pt;//保存起来
+		POINT ptThis = Point;//保存起来
 		RECT rcChildItem;
 
 		int nCount = m_Items.GetSize();
-		CControlUI * target = __super::FindControlByPoint(pt);
+		CControlUI * target = __super::FindControlByPoint(Point);
 
 		//this != target 表示target可能为滚动条或者NULL，所以返回
-		//true == m_bControl表示布局正在模拟控件，返回自身指针
+		//true == m_bControl表示布局正在模拟控件，不需要查阅坐标是否在子控件，所以返回
 		if(this != target || true == m_bControl) return target;
 
 		//检查一下坐标是否还存在于子控件中，如果是，则返回子控件
-		
 		//注意，因为绘制时，是按顺序绘制的，如果控件位置发生重叠
 		//先绘制的控件会被后绘制的控件所覆盖
 		//所以我们计算point指向的控件时，要进行反方向计算
@@ -132,15 +131,15 @@ namespace MYUI
 				continue;
 			}
 			rcChildItem = pControl->GetItem();
-			pt.x -= rcChildItem.left - m_szScrollOffset.cx;
-			pt.y -= rcChildItem.top - m_szScrollOffset.cy;
-			temp = pControl->FindControlByPoint(pt);
+			Point.x -= rcChildItem.left - m_szScrollOffset.cx;
+			Point.y -= rcChildItem.top - m_szScrollOffset.cy;
+			temp = pControl->FindControlByPoint(Point);
 			if(temp)
 			{
 				target = temp;
 				break;
 			}
-			pt = ptThis;//不能够获取成功，要还原参数，避免用户误会
+			Point = ptThis;//不能够获取成功，要还原参数
 		}
 		return target;
 	}
@@ -169,71 +168,62 @@ namespace MYUI
 		m_rcInset = rect;
 	}
 
-	const RECT &CBaseLayoutUI::GetInset() const
+	const RECT &CBaseLayoutUI::GetInset()
 	{
 		return m_rcInset;
 	}
 
-	bool CBaseLayoutUI::OnPaint(RECT rcItem, RECT rcPaint, RECT rcUpdate)
+	void CBaseLayoutUI::PaintContent(const RECT& rcUpdate)
 	{
-		//这个rcItem跟m_rcItem的值有点不同，
-		//m_rcItem是相对于父控件的位置
-		//rcItem是相对整个窗口的位置，是一个绝对位置
 		SIZE szRound = {0};
-		RECT rcChildPaint, rcChildClient;
-		RECT rcThisClient, rcThisClientPaint;
+		RECT rcChildPaint, rcChildItem, rcChildUpdate;
 		CControlUI * pControl;
 		int nChildCount = m_Items.GetSize();
-        HCLIP hClientOldClip = NULL, hChildOldClip = NULL, hItemOldClip = NULL;
+        HCLIP hChildOldClip = NULL;
 
-        if (NULL == m_pShareInfo) return false;
-
-		hItemOldClip = m_pShareInfo->pRenderEngine->EnterClip(rcItem, m_szBorderRound);
-		if(false == __super::OnPaint(rcItem ,rcPaint, rcUpdate))
-		{
-			goto finish;
-		}
-
-		rcThisClient = m_rcClient;
 		//客户区域才是提供给子控件有效绘图区域
-		OffsetRect(&rcThisClient, rcItem.left, rcItem.top);
+		//OffsetRect(&rcThisClient, rcItem.left, rcItem.top);
 		//提取客户区的有效显示区域
-		if(FALSE == IntersectRect(&rcThisClientPaint, &rcThisClient , &rcPaint))
-		{
-			goto finish;
-		}
-
-		if(FALSE == IsSameRect(m_rcClient, m_rcRawItem))
-		{
-			//存在滚动条，提供给子控件的区域需要再减去滚动条
-			hClientOldClip = m_pShareInfo->pRenderEngine->EnterClip(rcThisClient,szRound);
-		}
 
 		for(int i=0; nChildCount > i; i++)
 		{
+			hChildOldClip = NULL;
 			pControl = (CControlUI*)m_Items[i];
-			rcChildClient = pControl->GetItem();
-			szRound = pControl->GetBorderRound();
-			OffsetRect(&rcChildClient, rcThisClient.left - m_szScrollOffset.cx ,
-				rcThisClient.top - m_szScrollOffset.cy);
-			//进行交叉运算，计算出子控件的有效绘图区域
-			if(TRUE == IntersectRect(&rcChildPaint, &rcChildClient, &rcThisClientPaint))
+			rcChildItem = pControl->GetItem();
+
+			if (false == pControl->IsVisible())
 			{
-				//拥有相交区域才能绘制
-				hChildOldClip = NULL;
-				if(szRound.cx || szRound.cy)
-				{
-					hChildOldClip = m_pShareInfo->pRenderEngine->EnterClip(rcChildClient,szRound);
-				}
-				
-				pControl->OnPaint(rcChildClient ,rcChildPaint, rcUpdate);
+				continue;
+			}
+			
+			//求子控件的显示区域
+			if(FALSE == ::IntersectRect(&rcChildPaint, &rcChildItem, &m_rcClient))
+			{
+				continue;
+			}
+
+			//求子控件的更新区域
+			if (FALSE == ::IntersectRect(&rcChildUpdate, &rcChildPaint, &rcUpdate))
+			{
+				continue;
+			}
+
+			szRound = pControl->GetBorderRound();
+			if (szRound.cx || szRound.cy)
+			{
+				hChildOldClip = m_pShareInfo->pRenderEngine->EnterClip(rcChildItem, szRound);
+			}
+
+			::OffsetRect(&rcChildUpdate, -rcChildItem.left, -rcChildItem.top);
+			m_pShareInfo->pRenderEngine->OffsetDrawPoint(rcChildItem.left, rcChildItem.top);
+			pControl->OnPaint(rcChildUpdate);
+			m_pShareInfo->pRenderEngine->OffsetDrawPoint(-rcChildItem.left, -rcChildItem.top);
+
+			if (hChildOldClip)
+			{
 				m_pShareInfo->pRenderEngine->LeaveClip(hChildOldClip);
 			}
 		}
-		m_pShareInfo->pRenderEngine->LeaveClip(hClientOldClip);
 
-finish:
-		m_pShareInfo->pRenderEngine->LeaveClip(hItemOldClip);
-		return true;
 	}
 }

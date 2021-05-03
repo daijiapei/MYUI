@@ -37,7 +37,7 @@ CFrameWindow::~CFrameWindow()
 {
 };
 
-void CFrameWindow::OnNotify(TNOTIFYUI &notify)
+void CFrameWindow::OnNotify(MUINOTIFY &notify)
 {
 	//想知道wParam, lParam对应了什么参数吗？说实话，由于项目还处于初期，
 	//我也说不准wParam, lParam到底对应了什么参数，自己在断点中拦截到对应
@@ -45,7 +45,7 @@ void CFrameWindow::OnNotify(TNOTIFYUI &notify)
 	CControlUI * pControl = (CControlUI*) notify.pSender;
 	switch(notify.dwType)
 	{
-	case EnumNotifyMsg::ClickItem:
+	case EnumNotify::ClickItem:
 	{
         if (CButtonUI::g_strClassName == pControl->GetClassName())
 	    {
@@ -56,17 +56,17 @@ void CFrameWindow::OnNotify(TNOTIFYUI &notify)
             //}
 	    }
 	}break;
-	case EnumNotifyMsg::ActiveItem:
+	case EnumNotify::ActiveItem:
 		{
-        pControl = (CControlUI*)notify.lParam;
+			pControl = (CControlUI*)notify.lParam;
 			//MessageBox(m_hWnd, pConntrol->GetClassName(), pConntrol->GetText(), NULL);
 		}break;
-	case EnumNotifyMsg::TimerCall:
+	case EnumNotify::TimerCall:
 		{
-        pControl->KillTimer(10);
-        MessageBox(m_hWnd, pControl->GetClassName(), pControl->GetName(), NULL);
+			//pControl->KillTimer(10);
+			//MessageBox(m_hWnd, pControl->GetClassName(), pControl->GetName(), NULL);
 		}break;
-	case EnumNotifyMsg::CheckItem:
+	case EnumNotify::CheckItem:
 		{
 			CControlUI * pShow = NULL;
 			if(FALSE == notify.wParam)
@@ -78,19 +78,19 @@ void CFrameWindow::OnNotify(TNOTIFYUI &notify)
 
             if (pControl->GetName() == _T("optLv"))
 			{
-				pShow = m_pViewInfo->pRootControl->FindControlByName(_T("ListView"));
+				pShow = FindControl(_T("ListView"));
 			}
             else if (pControl->GetName() == _T("optAbs"))
 			{
-				pShow = m_pViewInfo->pRootControl->FindControlByName(_T("Absolute"));
+				pShow = FindControl(_T("Absolute"));
 			}
             else if (pControl->GetName() == _T("optFilm"))
 			{
-				pShow = m_pViewInfo->pRootControl->FindControlByName(_T("Film"));
+				pShow = FindControl(_T("Film"));
 			}
             else if (pControl->GetName() == _T("optWeb"))
 			{
-				pShow = m_pViewInfo->pRootControl->FindControlByName(_T("WebBrowser"));
+				pShow = FindControl(_T("WebBrowser"));
 			}
 
 			if(pShow)
@@ -105,30 +105,30 @@ void CFrameWindow::OnNotify(TNOTIFYUI &notify)
 	//return __super::OnNotify(notify);
 };
 
-LRESULT CFrameWindow::OnEvent(TEVENT &event)
+LRESULT CFrameWindow::OnEvent(MUIEVENT &event)
 {
 	CDragItemUI * pDragItem = NULL;
 	switch (event.dwType)
 	{
-	case EnumEventType::WindowInit:
+	case EnumEvent::WindowInit:
 		{
 			OnCreate(event.wParam, event.lParam);
 		}break;
-	case EnumEventType::WindowReady:
+	case EnumEvent::WindowReady:
 		{
 			OnReady(event.wParam, event.lParam);
 		}break;
-	case EnumEventType::DragOver:
+	case EnumEvent::DragOver:
 		{
 			pDragItem = (CDragItemUI *)event.wParam;
 			pDragItem->Destroy();
 			delete pDragItem;
 
 		}break;
-	case EnumEventType::OnTimer:
+	case EnumEvent::OnTimer:
 		{
 			::KillTimer(m_hWnd, event.wParam);
-			CBaseLayoutUI * pLayout = (CBaseLayoutUI*)m_pViewInfo->pRootControl;
+			CBaseLayoutUI * pLayout = (CBaseLayoutUI*)GetRootControl();
 			static CControlUI * pControl = NULL;
 			switch(event.wParam)
 			{
@@ -149,7 +149,7 @@ LRESULT CFrameWindow::OnEvent(TEVENT &event)
 			
 			//this->Close();
 		}break;
-	case EnumEventType::WindowDestroy:
+	case EnumEvent::WindowDestroy:
 		{
 			SetSkin(NULL);
 			PostQuitMessage(0);
@@ -162,7 +162,7 @@ LRESULT CFrameWindow::OnEvent(TEVENT &event)
 	//return __super::OnEvent(event);
 }
 
-bool CFrameWindow::OnBefore(PVOID pControl, HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam, LRESULT &lResule)
+bool CFrameWindow::OnBefore(CControlUI* pControl, HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam, LRESULT &lResule)
 {
 	POINT point;
 	RECT rcPos;
@@ -184,7 +184,7 @@ bool CFrameWindow::OnBefore(PVOID pControl, HWND hWnd, UINT message, WPARAM wPar
 	return false;
 }
 
-bool CFrameWindow::OnAfter(PVOID pControl, HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam, LRESULT &lResule)
+bool CFrameWindow::OnAfter(CControlUI*, HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam, LRESULT &lResule)
 {
 	return false;
 }
@@ -278,11 +278,11 @@ LRESULT CFrameWindow::OnCreate(WPARAM wParam, LPARAM lParam)
 LRESULT CFrameWindow::OnReady(WPARAM wParam, LPARAM lParam)
 {
     //return 0;
-	CListViewUI * pListView  = (CListViewUI*)m_pViewInfo->pRootControl->FindControlByName(_T("ListView"));
+	CListViewUI * pListView  = (CListViewUI*)FindControl(_T("ListView"));
 
 	TCHAR strText[256];
-	LVROWINFO rowInfo = {0};
-	HDROWINFO hdInfo = {0};
+	MUILVROWINFO rowInfo = {0};
+	MUIHDROWINFO hdInfo = {0};
 	rowInfo.nHeight = 30;
 	int nCol = pListView->GetColumnCount();
 	hdInfo.strText = strText;
@@ -297,7 +297,7 @@ LRESULT CFrameWindow::OnReady(WPARAM wParam, LPARAM lParam)
 		}
 	}
 
-	CControlUI * pText = m_pViewInfo->pRootControl->FindControlByName(_T("htmltext"));
+	CControlUI * pText = FindControl(_T("htmltext"));
 	if(pText)
 	{
 		//这个Hooker拦截WM_LBUTTONDOWN消息，对htmltext控件按住不放，可以产生一个DragItem控件
@@ -305,7 +305,7 @@ LRESULT CFrameWindow::OnReady(WPARAM wParam, LPARAM lParam)
 		pText->SetHooker(dynamic_cast<IControlHooker *>(this));
 	}
 
-	CEditUI * pEdit = static_cast<CEditUI *>(m_pViewInfo->pRootControl->FindControlByName(_T("edtMessage")));
+	CEditUI * pEdit = static_cast<CEditUI *>(FindControl(_T("edtMessage")));
 	
 	HDC hdc = GetDC(m_hWnd);
 	SIZE szText;
@@ -316,7 +316,7 @@ LRESULT CFrameWindow::OnReady(WPARAM wParam, LPARAM lParam)
 	ReleaseDC(m_hWnd, hdc);
 	
 
-	CTabLayoutUI * pTab = static_cast<CTabLayoutUI *>(m_pViewInfo->pRootControl->FindControlByName(_T("Table")));
+	CTabLayoutUI * pTab = static_cast<CTabLayoutUI *>(FindControl(_T("Table")));
 	pTab->SelectItem(0);
 	return 0;
 }

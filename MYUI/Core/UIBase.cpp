@@ -8,6 +8,7 @@ namespace MYUI
 	*****************************************************************************************/
 	CItemViewInfo::CItemViewInfo()
 		:m_nFontId(-1)
+		,m_hFont(NULL)
 		,m_refTextColor(ARGB(255,0,0,0))
 		,m_refBkColor(NULL)
 		,m_refBorderColor(NULL)
@@ -19,7 +20,7 @@ namespace MYUI
 
 	CItemViewInfo::~CItemViewInfo()
 	{
-		TRACE(_T("CItemViewInfo::~CItemViewInfo"));
+		MUITRACE(_T("CItemViewInfo::~CItemViewInfo"));
 	}
 
 	void CItemViewInfo::SetStyle(DWORD dwStyle)
@@ -60,7 +61,7 @@ namespace MYUI
 	void CItemViewInfo::SetText(LPCTSTR pstrText)
 	{
 		m_strText = pstrText;
-		OnViewChange((VOID *)m_strText.GetData());
+		//OnViewChange((VOID *)m_strText.GetData());
 	}
 
 	void CItemViewInfo::SetTextColor(ARGBREF argb)
@@ -148,7 +149,7 @@ namespace MYUI
 
 	CItemPosition::~CItemPosition()
 	{
-		TRACE(_T("CItemPosition::~CItemPosition"));
+		MUITRACE(_T("CItemPosition::~CItemPosition"));
 	};
 
 	const RECT &CItemPosition::GetRawRect() const

@@ -11,7 +11,7 @@ namespace MYUI
 	public:
 		CTextUI();
 		virtual ~CTextUI();
-		static CMuiString g_strClassName;
+		const static CMuiString g_strClassName;
 		virtual CMuiString GetClassName() const;
 		virtual void SetAttribute(LPCTSTR strItem, LPCTSTR strValue);
 
@@ -20,8 +20,8 @@ namespace MYUI
 		bool IsShowHtml() const;
 
 	protected:
-		virtual LRESULT WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
-		virtual void PaintText(const RECT& rcItem, const RECT& rcPaint);
+		virtual LRESULT WndProc(UINT message, WPARAM wParam, LPARAM lParam) override;
+		virtual void PaintText(const RECT& rcUpdate) override;
 	protected:
 		bool m_bShowHtml;
 

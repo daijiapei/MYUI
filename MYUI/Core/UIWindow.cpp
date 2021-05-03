@@ -1,29 +1,28 @@
-
+ï»¿
 #include "UIWindow.h"
-#include "UserHandle.h"
+#include "UIThread.h"
 #include "../Render/GdiEngine.h"
 #include "../Control/UIOption.h"
 #include "../Layout/UIVerticalLayout.h"
 #include "../ExtControl/UIToolTip.h"
 
+#define ISMOUSEDOWN(m) \
+((WM_LBUTTONDOWN == m \
+|| WM_MBUTTONDOWN == m \
+|| WM_RBUTTONDOWN == m) ? 1:0)
+
 namespace MYUI
 {
 	CWindowUI::CWindowUI() 
-		: m_hWnd(NULL)
-		, m_hInstance(NULL)
-		, m_nFontId(-1)
+		: m_nFontId(-1)
 		, m_dwHoverTime(800)
 		, m_bShowInScreen(FALSE)
+		, m_pHost(NULL)
 	{
-		m_pShareInfo = new TSHAREINFO;
-		m_pViewInfo = new VIEWINFO;
-		memset(m_pShareInfo, 0, sizeof(TSHAREINFO));
-		memset(m_pViewInfo, 0, sizeof(VIEWINFO));
-
-		m_pShareInfo->bHostType = TRUE;
-		m_pShareInfo->FontArray = new CMuiIdArray(10);
-		m_pShareInfo->strSkinFolder = new TCHAR[MAX_PATH];
-		memset(m_pShareInfo->strSkinFolder, 0, sizeof(TCHAR) * MAX_PATH);
+		m_pShareInfo = new MUISHAREINFO;
+		m_pViewInfo = new MUIVIEWINFO;
+		memset(m_pShareInfo, 0, sizeof(MUISHAREINFO));
+		memset(m_pViewInfo, 0, sizeof(MUIVIEWINFO));
 
 		m_pViewInfo->SizeMax.cx = m_pViewInfo->SizeMax.cy = 99999;
 		m_pViewInfo->ptLeftMouse.x = m_pViewInfo->ptLeftMouse.y = 0;
@@ -31,33 +30,21 @@ namespace MYUI
 
 	CWindowUI::~CWindowUI()
 	{
-		delete m_pViewInfo;
 
-		if(TRUE == m_pShareInfo->bHostType)
+		for (int i = 0; m_pShareInfo->FontArray.GetSize() > i; i++)
 		{
-			//ËŞÖ÷×ÊÔ´Ä£Ê½£¬¸ºÔğÉêÇëºÍÊÍ·Å×ÊÔ´
-			if(m_pShareInfo->FontArray)
-			{
-				for(int i = 0; m_pShareInfo->FontArray->GetSize() > i; i++)
-				{
-					DeleteObject((HFONT)m_pShareInfo->FontArray->GetAt(i));
-				}
-				delete m_pShareInfo->FontArray;
-			}
-			
-			if(m_pShareInfo->strSkinFolder)
-			{
-				delete m_pShareInfo->strSkinFolder;
-			}
+			DeleteObject((HFONT)m_pShareInfo->FontArray.GetAt(i));
 		}
-		
-		delete m_pShareInfo;
 
         for (int i = 0; m_MenuArray.GetSize() > i; i++)
         {
             IMenuPopup * pMenu = reinterpret_cast<IMenuPopup*>(m_MenuArray.GetAt(i));
             delete pMenu;
         }
+
+		delete m_pShareInfo;
+		delete m_pViewInfo;
+
 	}
 
     LPVOID CWindowUI::GetInterface(LPCTSTR strName)
@@ -81,11 +68,6 @@ namespace MYUI
 
         return NULL;
     }
-
-	CWindowUI::operator HWND() const
-	{
-		return m_hWnd;
-	}
 
 	void CWindowUI::SetMinSize(SIZE size)
 	{
@@ -127,207 +109,51 @@ namespace MYUI
 		return m_dwHoverTime;
 	}
 
-	LRESULT CALLBACK CWindowUI::FrameWndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
-	{
-		CWindowUI * pWindow = NULL;
-		TEVENT event = {0};
-		switch (message)
-		{
-		case WM_NCCREATE://µÚ¶şÌõÏûÏ¢
-			{
-				LPCREATESTRUCT lpcs = reinterpret_cast<LPCREATESTRUCT>(lParam);
-				pWindow = static_cast<CWindowUI*>(lpcs->lpCreateParams);
-				pWindow->m_hWnd = hwnd;
-				pWindow->m_pShareInfo->hWnd = hwnd;
-				::SetWindowLongPtr(hwnd, 0, reinterpret_cast<LPARAM>(pWindow));
-				
-				//ÇëÇóÒ»¸öäÖÈ¾ÒıÇæ
-				event.dwType = EnumEventType::RequestRenderEngine;
-				pWindow->m_pShareInfo->pRenderEngine = (CRenderEngine*)pWindow->OnEvent(event);
-				if(NULL == pWindow->m_pShareInfo->pRenderEngine)
-				{
-					//·µ»Ø¿Õ£¬ÄÇÃ´Ê¹ÓÃÄ¬ÈÏÒıÇæ
-					pWindow->m_pShareInfo->pRenderEngine = new CGdiRenderEngine(pWindow->m_hWnd);
-				}
+    BOOL CWindowUI::UpdateLayeredWindow(COLORREF refKey, DWORD dwFlags /*= ULW_ALPHA*/)
+    {
+        POINT Point = { 0 };
+        RECT Rect = { 0 };
+        BLENDFUNCTION Blend = { 0 };
+        SIZE Size = { 0 };
+        DWORD dwStyleEx = NULL;
+        HDC hdcDest = NULL;
+        HDC hdcSrc = NULL;
+        BOOL bRet = FALSE;
 
-                if (pWindow->m_pShareInfo->strSkinFolder)
-                {
-                    pWindow->SetSkin(pWindow->m_pShareInfo->strSkinFolder);
-                }
+        dwStyleEx = GetWindowLong(m_hWnd, GWL_EXSTYLE);
+        dwStyleEx |= WS_EX_LAYERED;
+        SetWindowLong(m_hWnd, GWL_EXSTYLE, dwStyleEx);
 
-				return TRUE;
-			}break;
-		case WM_NCDESTROY://ÄÜ¹»ÊÕµ½µÄ£¬×îºóÒ»ÌõÏûÏ¢£¬µ¹ÊıµÚ¶şÌõ
-			{
-				pWindow = reinterpret_cast<CWindowUI*>(::GetWindowLongPtr(hwnd, 0));
-				if(NULL != pWindow) 
-				{
-					::SetWindowLongPtr(pWindow->m_hWnd, 0, 0L);
-					//´°¿Ú½áÊøÍ¨Öª
-					event.dwType = EnumEventType::WindowDestroy;
-					pWindow->OnEvent(event);
+        Blend.BlendOp = 0;
+        Blend.BlendFlags = 0;
+        Blend.AlphaFormat = 1;
+        Blend.SourceConstantAlpha = 255;
 
-					if(pWindow->m_pShareInfo->pRenderEngine)
-					{
-						delete pWindow->m_pShareInfo->pRenderEngine;
-						pWindow->m_pShareInfo->pRenderEngine = NULL;
-					}
+        ::GetClientRect(m_hWnd, &Rect);
+        Size.cx = Rect.right - Rect.left;
+        Size.cy = Rect.bottom - Rect.top;
 
-					if(pWindow->m_pViewInfo->pRootControl)
-					{
-						delete pWindow->m_pViewInfo->pRootControl;
-						pWindow->m_pViewInfo->pRootControl = NULL;
-					}
+        m_pShareInfo->pRenderEngine->BeginPaint(Rect);
+        m_pViewInfo->pRootControl->OnPaint(Rect);
 
-					event.dwType = EnumEventType::OnFinal;//Ò»°ãÔÚÀïÃæÖ´ĞĞdelete this
-					pWindow->OnEvent(event);
-				}
-			}break;
-		case WM_GETMINMAXINFO:
-			{
-				//µÚÒ»ÌõÏûÏ¢£¬ÎÒÃÇ²»¹Ü
-				//×¢Òâ£¬ºóĞøµÄÏûÏ¢ÖĞ£¬Èç¹û¸Ä±ä´°¿Ú´óĞ¡£¬»¹ÊÇ»áÊÕµ½ÕâÌõÏûÏ¢µÄ
-				//½»¸ødefault´¦Àí
-				pWindow = NULL;
-			}
-		case WM_QUIT:
-			{
-				//×îºóÒ»ÌõÏûÏ¢£¬ÍùÍùÊÇÊÕ²»µ½µÄ£¬½»¸ødefault´¦Àí
-			}
-		default:
-			{
-				pWindow = reinterpret_cast<CWindowUI*>(::GetWindowLongPtr(hwnd, 0));
-				if(pWindow)
-				{
-					return pWindow->WndProc(message, wParam, lParam);
-				}
-			}break;
-		}
-		return DefWindowProc (hwnd, message, wParam, lParam);
-	}
+        hdcDest = GetDC(m_hWnd);
+        hdcSrc = m_pShareInfo->pRenderEngine->GetMemDC();
 
-	HWND CWindowUI::Create(HINSTANCE hInstance, HWND hWndParent, DWORD dwStyle, 
-		LPCTSTR strClassName ,LPCTSTR strWindowText, RECT * pRect)
-	{
-		m_hInstance = hInstance;
-		m_strClassName = strClassName;
-		m_strWindowText = strWindowText;
-		RECT rect = {0,0,0,0};
-		if(pRect) rect = *pRect;
+        bRet = ::UpdateLayeredWindow(m_hWnd, hdcDest, &Point, &Size,
+            hdcSrc, &Point, refKey, &Blend, dwFlags);
 
-		if(false == RegisterClass()) return NULL;
+        EmptyRect(Rect);
+        m_pShareInfo->pRenderEngine->EndPaint(Rect);
+        ::ReleaseDC(m_hWnd, hdcDest);
 
-		m_hWnd = ::CreateWindow(strClassName,strWindowText,
-		//WS_CLIPSIBLINGS | WS_CLIPCHILDREN ÆäËû´°¿Ú²»ÄÜ¼¤»î
-		//WS_POPUP | WS_CLIPSIBLINGS | WS_CLIPCHILDREN,
-		/*WS_OVERLAPPED | WS_CAPTION | WS_THICKFRAME  |  WS_MINIMIZEBOX ,*/
-		//WS_OVERLAPPEDWINDOW,
-		dwStyle | (hWndParent ? NULL : WS_CLIPCHILDREN),
-		rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top,
-		hWndParent,NULL, m_hInstance,this);
-		ASSERT(m_hWnd!=NULL);
-		return m_hWnd;
-	}
-
-	BOOL CWindowUI::Destroy()
-	{
-		ASSERT(::IsWindow(m_hWnd));
-		return ::DestroyWindow(m_hWnd);
-	}
-
-	BOOL CWindowUI::Close(LONG nRet)
-	{
-		ASSERT(::IsWindow(m_hWnd));
-		if( !::IsWindow(m_hWnd) ) return FALSE;
-		::PostMessage(m_hWnd, WM_CLOSE, nRet, 0L);
-		return TRUE;
-	}
-
-	void CWindowUI::ShowWindow(bool bShow /*= true*/, bool bTakeFocus /*= false*/)
-	{
-		ASSERT(::IsWindow(m_hWnd));
-		if( !::IsWindow(m_hWnd) ) return;
-		::ShowWindow(m_hWnd, bShow ? (bTakeFocus ? SW_SHOWNORMAL : SW_SHOWNOACTIVATE) : SW_HIDE);
-	}
-
-    LRESULT CWindowUI::ShowModal(bool bShow /*= true*/, bool bEnableParent /*= true*/, UINT uBreakMessage /*= -1*/)
-	{
-		ASSERT(::IsWindow(m_hWnd));
-        LRESULT lResult = 0;
-		HWND hOwnerWnd = GetWindowOwner(m_hWnd);
-        MSG Msg = { 0 };
-        IUserHandle * pHandle = CUserHandleTable::GetThreadHandle(NULL);
-
-        ::ShowWindow(m_hWnd, bShow ? TRUE : FALSE);
-        if (bEnableParent && hOwnerWnd)
-        {
-            ::EnableWindow(hOwnerWnd, FALSE);
-        }
-
-        while (::IsWindow(m_hWnd) && ::GetMessage(&Msg, NULL, 0, 0))
-        {
-            //::SleepEx(0 , TRUE);
-            if (NULL == Msg.hwnd)
-            {
-                if (pHandle)
-                {
-                    if (Msg.message >= WM_USER && WM_USER + 0x7FFF >= Msg.message)
-                    {
-                        pHandle->Callback(Msg.message - WM_USER, Msg.wParam, Msg.lParam);
-                        continue;
-                    }
-                }
-            }
-#ifdef ENABLE_TIMER_LPARAM
-            else
-            {
-
-                //WM_TIMERÖĞlParamÊÇ»Øµ÷º¯Êı£¬Èç¹û²»Îª¿Õ½«»áÔÚDispatchMessage ÖĞµ÷ÓÃ¸Ãº¯Êı£¬
-                //¶øÓÃ»§µÄWndProc½«ÊÕ²»µ½WM_TIMERÍ¨Öª¡£µ«ÊÇÓĞĞ©ÓÃ»§¸üÏ£ÍûlParam×÷ÎªÒ»¸ö²ÎÊı
-                //¶ø²»ÊÇº¯Êı£¬ËùÒÔÎÒÃÇÌáÇ°½«WM_TIMERÏûÏ¢·¢ËÍµ½ÓÃ»§´°¿Ú²¢·µ»Ø£¬ÕâÑù¾ÍÄÜÊµÏÖ
-                //lparam ×÷Îª¶¨Ê±Æ÷²ÎÊıµÄÄ¿µÄ
-                if (WM_TIMER == Msg.message)
-                {
-                    ::SendMessage(Msg.hwnd, Msg.message, Msg.wParam, Msg.lParam);
-                    continue;
-                }
-            }
-#endif
-
-            if (WM_CLOSE == Msg.message)
-            {
-                lResult = Msg.wParam;
-			}
-
-            ::TranslateMessage(&Msg);
-            ::DispatchMessage(&Msg);
-
-            if (uBreakMessage == Msg.message && m_hWnd == Msg.hwnd)
-            {
-                break;
-            }
-		}
-
-        if (bEnableParent && hOwnerWnd)
-        {
-            ::EnableWindow(hOwnerWnd, TRUE);
-            ::SetFocus(hOwnerWnd);
-        }
-
-        if (WM_QUIT == Msg.message)
-        {
-            lResult = Msg.wParam;
-        }
-
-        return lResult;
-	}
+        return bRet;
+    }
 
     LRESULT CWindowUI::Popup(RECT rcPos)
     {
-        ASSERT(::IsWindow(m_hWnd));
+        MUIASSERT(::IsWindow(m_hWnd));
         LRESULT lResult = 0;
         MSG Msg = { 0 };
-        IUserHandle * pHandle = CUserHandleTable::GetThreadHandle(NULL);
         CControlUI * pControl = NULL;
         ::SetWindowPos(m_hWnd, HWND_TOPMOST, rcPos.left, rcPos.top, rcPos.right - rcPos.left,
             rcPos.bottom - rcPos.top, SWP_SHOWWINDOW);
@@ -341,25 +167,25 @@ namespace MYUI
                 {
                     switch (Msg.message)
                     {
-                    case WM_POPUPDIALOG:
+                    case WMU_POPUPDIALOG:
                     {
                         if (m_hWnd != Msg.hwnd) goto BREAKLOOP;
                     }break;
-                    case WM_POPUPMENU:
+                    case WMU_POPUPMENU:
                     {
 
                         if (this->GetInterface(_T("IMenuPopup")) == (LPVOID)Msg.wParam)
                         {
-                            //Í¬Ò»¸ö²Ëµ¥, ²»ĞèÒªÖØ¸´µ¯³ö
+                            //åŒä¸€ä¸ªèœå•, ä¸éœ€è¦é‡å¤å¼¹å‡º
                             PeekMessage(&Msg, 0, Msg.message, Msg.message, PM_REMOVE);
                             continue;
                         }
 
                         if (m_hWnd != Msg.hwnd) goto BREAKLOOP;
                     }break;
-                    case WM_BREAKLOOP:
+                    case WMU_BREAKLOOP:
                     {
-                        if (FALSE == Msg.wParam) goto BREAKLOOP;//²»ĞèÒª×öÈÎºÎÅĞ¶Ï£¬µ¥´¿µØÍË³ö
+                        if (FALSE == Msg.wParam) goto BREAKLOOP;//ä¸éœ€è¦åšä»»ä½•åˆ¤æ–­ï¼Œå•çº¯åœ°é€€å‡º
 
                         pControl = reinterpret_cast<CControlUI *>(Msg.lParam);
                         
@@ -375,28 +201,6 @@ namespace MYUI
                 
                 PeekMessage(&Msg, 0, Msg.message, Msg.message, PM_REMOVE);
 
-                if (NULL == Msg.hwnd)
-                {
-                    if (pHandle)
-                    {
-                        if (Msg.message >= WM_USER && WM_USER + 0x7FFF >= Msg.message)
-                        {
-                            pHandle->Callback(Msg.message - WM_USER, Msg.wParam, Msg.lParam);
-                            continue;
-                        }
-                    }
-                }
-#ifdef ENABLE_TIMER_LPARAM
-                else
-                {
-                    if (WM_TIMER == Msg.message)
-                    {
-                        ::SendMessage(Msg.hwnd, Msg.message, Msg.wParam, Msg.lParam);
-                        continue;
-                    }
-                }
-#endif
-
                 ::TranslateMessage(&Msg);
                 ::DispatchMessage(&Msg);
             }
@@ -407,107 +211,13 @@ namespace MYUI
         }
 
     BREAKLOOP:
-        if (::IsWindow(m_hWnd) && ::IsWindowVisible(m_hWnd)) ::ShowWindow(m_hWnd, FALSE);
+		if (::IsWindow(m_hWnd) && ::IsWindowVisible(m_hWnd))
+		{
+			::ShowWindow(m_hWnd, FALSE);
+		}
 
         return Msg.message;
     }
-
-	bool CWindowUI::RegisterClass()
-	{
-		WNDCLASS wndclass = {0};
-		//wndclass.style = CS_VREDRAW | CS_HREDRAW | CS_DBLCLKS;
-		wndclass.style = CS_DBLCLKS;
-		wndclass.lpfnWndProc = CWindowUI::FrameWndProc;
-		wndclass.cbClsExtra = sizeof(void *) ;
-		wndclass.cbWndExtra = sizeof(void *);
-		wndclass.hInstance = m_hInstance;
-		wndclass.hIcon = NULL;
-		wndclass.hCursor = LoadCursor (NULL, IDC_ARROW);
-		wndclass.hbrBackground = CreateSolidBrush(NULL_BRUSH);
-		wndclass.lpszMenuName = NULL;
-		wndclass.lpszClassName = m_strClassName;
-
-		ATOM ret = ::RegisterClass(&wndclass);
-		ASSERT(ret!=NULL || ::GetLastError()==ERROR_CLASS_ALREADY_EXISTS);
-		return ret != NULL || ::GetLastError() == ERROR_CLASS_ALREADY_EXISTS;
-	}
-
-	HWND CWindowUI::GetHandle()
-	{
-		return m_hWnd;
-	}
-
-	void CWindowUI::CenterWindow()
-	{
-		ASSERT(::IsWindow(m_hWnd));
-		ASSERT((GetWindowStyle(m_hWnd)&WS_CHILD)==0);
-		RECT rcDlg = { 0 };
-		::GetWindowRect(m_hWnd, &rcDlg);
-		RECT rcArea = { 0 };
-		RECT rcCenter = { 0 };
-		HWND hWnd= this->m_hWnd;
-		HWND hWndParent = ::GetParent(m_hWnd);
-		HWND hWndCenter = ::GetWindowOwner(m_hWnd);
-		if (hWndCenter!=NULL)
-			hWnd=hWndCenter;
-
-		// ´¦Àí¶àÏÔÊ¾Æ÷Ä£Ê½ÏÂÆÁÄ»¾ÓÖĞ
-		MONITORINFO oMonitor = {};
-		oMonitor.cbSize = sizeof(oMonitor);
-		::GetMonitorInfo(::MonitorFromWindow(hWnd, MONITOR_DEFAULTTONEAREST), &oMonitor);
-		rcArea = oMonitor.rcWork;
-
-		if( hWndCenter == NULL )
-			rcCenter = rcArea;
-		else
-			::GetWindowRect(hWndCenter, &rcCenter);
-
-		int DlgWidth = rcDlg.right - rcDlg.left;
-		int DlgHeight = rcDlg.bottom - rcDlg.top;
-
-		// Find dialog's upper left based on rcCenter
-		int xLeft = (rcCenter.left + rcCenter.right) / 2 - DlgWidth / 2;
-		int yTop = (rcCenter.top + rcCenter.bottom) / 2 - DlgHeight / 2;
-
-		// The dialog is outside the screen, move it inside
-		if( xLeft < rcArea.left ) xLeft = rcArea.left;
-		else if( xLeft + DlgWidth > rcArea.right ) xLeft = rcArea.right - DlgWidth;
-		if( yTop < rcArea.top ) yTop = rcArea.top;
-		else if( yTop + DlgHeight > rcArea.bottom ) yTop = rcArea.bottom - DlgHeight;
-		::SetWindowPos(m_hWnd, NULL, xLeft, yTop, -1, -1, SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
-	}
-
-	void CWindowUI::SetIcon(UINT nRes)
-	{
-		HICON hIcon = (HICON)::LoadImage(m_hInstance, MAKEINTRESOURCE(nRes), IMAGE_ICON, ::GetSystemMetrics(SM_CXICON), ::GetSystemMetrics(SM_CYICON), LR_DEFAULTCOLOR);
-		ASSERT(hIcon);
-		::SendMessage(m_hWnd, WM_SETICON, (WPARAM) TRUE, (LPARAM) hIcon);
-		hIcon = (HICON)::LoadImage(m_hInstance, MAKEINTRESOURCE(nRes), IMAGE_ICON, ::GetSystemMetrics(SM_CXSMICON), ::GetSystemMetrics(SM_CYSMICON), LR_DEFAULTCOLOR);
-		ASSERT(hIcon);
-		::SendMessage(m_hWnd, WM_SETICON, (WPARAM) FALSE, (LPARAM) hIcon);
-	}
-
-	LRESULT CWindowUI::SendMessage(UINT uMsg, WPARAM wParam /*= 0*/, LPARAM lParam /*= 0*/)
-	{
-		ASSERT(::IsWindow(m_hWnd));
-		return ::SendMessage(m_hWnd, uMsg, wParam, lParam);
-	} 
-
-	LRESULT CWindowUI::PostMessage(UINT uMsg, WPARAM wParam /*= 0*/, LPARAM lParam /*= 0*/)
-	{
-		ASSERT(::IsWindow(m_hWnd));
-		return ::PostMessage(m_hWnd, uMsg, wParam, lParam);
-	}
-
-	CMuiString CWindowUI::GetClassName()
-	{
-		return m_strClassName;
-	}
-
-	CMuiString CWindowUI::GetWindowText() 
-	{
-		return m_strWindowText;
-	}
 
 	void CWindowUI::AttachFrameView(CControlUI * pControl)
 	{
@@ -539,86 +249,10 @@ namespace MYUI
 		return m_pViewInfo->pRootControl;
 	}
 
-    bool CWindowUI::CloneResource(TSHAREINFO * pShareInfo)
-    {
-        if (m_pShareInfo->bHostType)
-        {
-            //ËŞÖ÷×ÊÔ´Ä£Ê½£¬¸ºÔğÉêÇëºÍÊÍ·Å×ÊÔ´
-            if (m_pShareInfo->FontArray)
-            {
-                for (int i = 0; m_pShareInfo->FontArray->GetSize() > i; i++)
-                {
-                    DeleteObject((HFONT)m_pShareInfo->FontArray->GetAt(i));
-                }
-                delete m_pShareInfo->FontArray;
-            }
 
-            if (m_pShareInfo->strSkinFolder)
-            {
-                delete m_pShareInfo->strSkinFolder;
-            }
-
-            m_pShareInfo->bHostType = FALSE;
-            m_pShareInfo->FontArray = NULL;
-            m_pShareInfo->strSkinFolder = NULL;
-        }
-
-        if (pShareInfo)
-        {
-            m_pShareInfo->FontArray = pShareInfo->FontArray;
-            m_pShareInfo->strSkinFolder = pShareInfo->strSkinFolder;
-            this->SetSkin(m_pShareInfo->strSkinFolder);
-            return true;
-        }
-        return false;
-    }
-
-    bool CWindowUI::SetSyncResource(CWindowUI *pHostWindow)
-    {
-        TSHAREINFO * pShareInfo = NULL;
-
-        if (m_pShareInfo->bHostType)
-        {
-            //ËŞÖ÷×ÊÔ´Ä£Ê½£¬¸ºÔğÉêÇëºÍÊÍ·Å×ÊÔ´
-            if (m_pShareInfo->FontArray)
-            {
-                for (int i = 0; m_pShareInfo->FontArray->GetSize() > i; i++)
-                {
-                    DeleteObject((HFONT)m_pShareInfo->FontArray->GetAt(i));
-                }
-                delete m_pShareInfo->FontArray;
-            }
-
-            if (m_pShareInfo->strSkinFolder)
-            {
-                delete m_pShareInfo->strSkinFolder;
-            }
-
-            m_pShareInfo->bHostType = FALSE;
-            m_pShareInfo->FontArray = NULL;
-            m_pShareInfo->strSkinFolder = NULL;
-        }
-
-        pShareInfo = pHostWindow->m_pShareInfo;
-
-#ifdef _DEBUG
-        if (!pShareInfo || !pShareInfo->strSkinFolder || !pShareInfo->FontArray)
-        {
-            ASSERT(0 && "Ã»ÓĞÔÚºÏÊÊµÄÊµ¼Êµ÷ÓÃCWindowUI::SetSyncResource£¬ËùÒÔ²»ÄÜ»ñÈ¡ÓĞĞ§µÄ×ÊÔ´²ÎÊı");
-        }
-#endif
-        if (pShareInfo)
-        {
-            m_pShareInfo->FontArray = pShareInfo->FontArray;
-            m_pShareInfo->strSkinFolder = pShareInfo->strSkinFolder;
-            this->SetSkin(m_pShareInfo->strSkinFolder);
-            return true;
-        }
-        return false;
-    }
 	//file/folder='' resid='' restype=''
 	//filename/foldername
-	//strSkin == NULL Ïàµ±ÓÚĞ¶ÔØ
+	//strSkin == NULL ç›¸å½“äºå¸è½½
 	bool CWindowUI::SetSkin(LPCTSTR strSkin)
 	{
         bool bRet = false;
@@ -626,9 +260,20 @@ namespace MYUI
         {
             bRet = m_pShareInfo->pRenderEngine->SetSkinFolder(strSkin);
 
-            if (strSkin)
+            if (bRet)
             {
-                _tcscpy(m_pShareInfo->strSkinFolder, strSkin);
+				m_pShareInfo->strSkinFolder = strSkin ? strSkin : _T("");
+
+				for (int i = 0; m_Parasite.GetSize() > i; i++)
+				{
+					CWindowUI* pParasite = (CWindowUI*)m_Parasite[i];
+					pParasite->SetSkin(strSkin);
+				}
+
+				if (m_hWnd && ::IsWindow(m_hWnd))
+				{
+					InvalidateRect(m_hWnd, NULL, FALSE);
+				}
             }
         }
         return bRet;
@@ -636,24 +281,45 @@ namespace MYUI
 
 	LPCTSTR CWindowUI::GetSkin() const
 	{
-		return m_pShareInfo->strSkinFolder;
+		if (m_pShareInfo->pRenderEngine)
+		{
+			m_pShareInfo->pRenderEngine->GetSkinFolder();
+		}
+		return NULL;
 	}
 
 	bool CWindowUI::AddFont(int Fontid, HFONT hFont)
 	{
-		ASSERT(m_pShareInfo && m_pShareInfo->FontArray);
+		MUIASSERT(m_pShareInfo);
 
-		if(NULL == m_pShareInfo->FontArray) return false;
+		if (-1 == Fontid || NULL == hFont) return false;
 
-		return m_pShareInfo->FontArray->Add(Fontid, hFont);
+		if (false == m_pShareInfo->FontArray.Add(Fontid, hFont))
+		{
+			return false;
+		}
+
+		//åœ¨ builder çš„æ—¶å€™ï¼Œä¸‹é¢ä¸¤ä¸ªéƒ½ä¸ä¼šæ‰§è¡Œçš„ï¼Œä¸ä¼šæµªè´¹æ•ˆç‡
+		for (int i = 0; m_Parasite.GetSize() > i; i++)
+		{
+			CWindowUI* pParasite = (CWindowUI*)m_Parasite[i];
+			pParasite->AddFont(Fontid, hFont);
+		}
+
+		if (m_pViewInfo && m_pViewInfo->pRootControl)
+		{
+			m_pViewInfo->pRootControl->CallWndProc(WM_FONTCHANGE, 0, 0);
+		}
+
+		return true;
 	}
 
 	HFONT CWindowUI::GetFont(int Fontid)
 	{
-		ASSERT(m_pShareInfo && m_pShareInfo->FontArray);
-		if(!m_pShareInfo || !m_pShareInfo->FontArray) return NULL;
+		MUIASSERT(m_pShareInfo);
+		if(!m_pShareInfo) return NULL;
 
-		return (HFONT)m_pShareInfo->FontArray->Select(Fontid);
+		return (HFONT)m_pShareInfo->FontArray.Select(Fontid);
 	}
 
 	bool CWindowUI::AddGroup(LPCTSTR strGroup)
@@ -663,7 +329,7 @@ namespace MYUI
 
 	void CWindowUI::SetCaption(CControlUI * pControl)
 	{
-		ASSERT(m_pViewInfo);
+		MUIASSERT(m_pViewInfo);
 		m_pViewInfo->pCaptionControl = pControl;
 	}
 
@@ -674,46 +340,104 @@ namespace MYUI
 
 	CControlUI * CWindowUI::GetFocusControl()
 	{
-		ASSERT(m_pViewInfo);
+		MUIASSERT(m_pViewInfo);
 		return m_pViewInfo->pFocusControl;
+	}
+
+	CControlUI* CWindowUI::FindControl(LPCTSTR strName)
+	{
+		if (NULL == m_pViewInfo || NULL == m_pViewInfo->pRootControl)
+		{
+			return NULL;
+		}
+
+		return m_pViewInfo->pRootControl->FindControlByName(strName);
+	}
+
+	CControlUI* CWindowUI::FindControl(POINT& Point)
+	{
+		if (NULL == m_pViewInfo || NULL == m_pViewInfo->pRootControl)
+		{
+			return NULL;
+		}
+
+		return m_pViewInfo->pRootControl->FindControlByPoint(Point);
+	}
+
+	CControlUI* CWindowUI::GetRootControl()
+	{
+		if (NULL == m_pViewInfo)
+		{
+			return NULL;
+		}
+
+		return m_pViewInfo->pRootControl;
+	}
+
+	bool CWindowUI::SetHost(CWindowUI* pHost)
+	{
+
+		if (m_pHost)
+		{
+			m_pHost->RemoveParasite(this);
+			m_pHost = NULL;
+		}
+
+		if (pHost)
+		{
+			m_pHost = pHost;
+			return pHost->AddParasite(this);
+		}
+		
+		return true;
+	}
+
+	bool CWindowUI::AddParasite(CWindowUI* pParasite)
+	{
+		return m_Parasite.Add(pParasite);
+	}
+
+	bool CWindowUI::RemoveParasite(CWindowUI* pParasite)
+	{
+		return m_Parasite.Remove(pParasite);
 	}
 
     BOOL CWindowUI::PostBreakMessage(BOOL bCheck, CControlUI * pParent)
     {
-        ASSERT(m_hWnd);
+        MUIASSERT(m_hWnd);
         HWND hWnd = ::GetWindowOwner(m_hWnd);
 
         hWnd = hWnd ? hWnd : m_hWnd;
 
-        return ::PostMessage(hWnd, WM_BREAKLOOP, bCheck, (LPARAM)pParent);
+        return ::PostMessage(hWnd, WMU_BREAKLOOP, bCheck, (LPARAM)pParent);
     }
 
-	//ÓÃÀ´¹ıÂËpControlµÄSendNotify£¬·½±ã¶ÔÏûÏ¢½øĞĞ¼à¿Ø´¦Àí
-    void CWindowUI::SendNotify(TNOTIFYUI &notify)
+	//ç”¨æ¥è¿‡æ»¤pControlçš„SendNotifyï¼Œæ–¹ä¾¿å¯¹æ¶ˆæ¯è¿›è¡Œç›‘æ§å¤„ç†
+    void CWindowUI::SendNotify(MUINOTIFY &Notify)
 	{
 		TCHAR strText[MAX_PATH / 8];
-		CControlUI * pControl = (CControlUI *)notify.pSender;
+		CControlUI * pControl = (CControlUI *)Notify.pSender;
 		CControlUI * pTmpControl = NULL;
 
-		TRACE(_T("CWindowUI::SendNotify CControlUI=%s , type=%d"), 
-			(LPCTSTR)pControl->GetName(), notify.dwType);
+		MUITRACE(_T("CWindowUI::SendNotify CControlUI=%s , type=%d"), 
+			(LPCTSTR)pControl->GetName(), Notify.dwType);
 
-		switch (notify.dwType)
+		switch (Notify.dwType)
 		{
-		case EnumNotifyMsg::NonMessage:
+		case EnumNotify::NonMessage:
 			{
-				ASSERT(0 && "CWindowUI::HandleMessage = EnumNotifyMsg::NonMessage");
+				MUIASSERT(0 && "CWindowUI::HandleMessage = EnumNotifyMsg::NonMessage");
 			}break;
-		case EnumNotifyMsg::SelectItem:
+		case EnumNotify::SelectItem:
 			{
-				if(pControl->GetName() == _T("restorebtn"))//»¹Ô­°´Å¥
+				if(pControl->GetName() == _T("restorebtn"))//è¿˜åŸæŒ‰é’®
 				{
 					//SendMessage(WM_SYSCOMMAND, SC_RESTORE, 0); 
 					::ShowWindow(m_hWnd, SW_RESTORE);
 					break;
 				}
 			}break;
-		case EnumNotifyMsg::ClickItem:
+		case EnumNotify::ClickItem:
 			{
 				if(pControl->GetName() == _T("closebtn"))
 				{
@@ -738,21 +462,21 @@ namespace MYUI
 					// not thing
 				}
 			}break;
-		case EnumNotifyMsg::CheckItem:
+		case EnumNotify::CheckItem:
 			{
-				if(TRUE == notify.wParam)//±»Ñ¡ÖĞ
+				if(TRUE == Notify.wParam)//è¢«é€‰ä¸­
 				{
-					pControl->CallWndProc(m_hWnd, WMU_GETGROUP, sizeof(strText),(LPARAM)strText);
+					pControl->CallWndProc(WMU_GETGROUP, sizeof(strText),(LPARAM)strText);
 
-					if(_T('\0') != strText[0])//´æÔÚ·Ö×é
+					if(_T('\0') != strText[0])//å­˜åœ¨åˆ†ç»„
 					{
 						pTmpControl = (CControlUI *)m_GroupArray.Find(strText);
 						if(pTmpControl && pTmpControl != pControl)
 						{
-							//ÅĞ¶Ï´°¿ÚÊÇÎªÁË±ÜÃâ¿Ø¼şÒÆ¶¯µ½±ğµÄ´°¿ÚÁË»¹²úÉúÏûÏ¢
+							//åˆ¤æ–­çª—å£æ˜¯ä¸ºäº†é¿å…æ§ä»¶ç§»åŠ¨åˆ°åˆ«çš„çª—å£äº†è¿˜äº§ç”Ÿæ¶ˆæ¯
 							if(pTmpControl->GetWindow() == m_hWnd)
 							{
-								pTmpControl->CallWndProc(m_hWnd, WMU_SETCHECK, FALSE, NULL);
+								pTmpControl->CallWndProc(WMU_SETCHECK, FALSE, NULL);
 							}
 						}
 						m_GroupArray.Set(strText, pControl);
@@ -763,143 +487,158 @@ namespace MYUI
 			break;
 		}
 
-		//×îºó·¢³önotifyÈÃÓÃ»§½ÓÊÕ
-		this->OnNotify(notify);
+		//æœ€åå‘å‡ºnotifyè®©ç”¨æˆ·æ¥æ”¶
+		this->OnNotify(Notify);
 		return;
 	}
 
-	//MouseProcµÄºËĞÄÊÇ¹ÜÀí¿Ø¼şÏûÏ¢Á÷£¡
+	//MouseProcçš„æ ¸å¿ƒæ˜¯ç®¡ç†æ§ä»¶æ¶ˆæ¯æµï¼
 	LRESULT CWindowUI::MouseProc(UINT message, WPARAM wParam, LPARAM lParam)
 	{
-		POINT point;
+		POINT Point;
 
 		RECT rcItem = {0};
 		CControlUI * pTmpControl = NULL;
 		CControlUI * pControl = NULL;
 
 		if(nullptr == m_pViewInfo->pRootControl) return 0;
-		point.x = GET_X_LPARAM(lParam);
-		point.y = GET_Y_LPARAM(lParam);
+		Point.x = GET_X_LPARAM(lParam);
+		Point.y = GET_Y_LPARAM(lParam);
 
+		//ç¬¬ä¸€æ‰¾å‡ºè¿™ä¸ªé¼ æ ‡æ¶ˆæ¯åº”è¯¥ä¼ ç»™å“ªä¸ªæ§ä»¶
 		if(m_pViewInfo->pPushedControl)
 		{
-			//Èç¹ûpPushedControl²»ÊÇÏÔÊ¾×´Ì¬£¬ÄÇÃ´pointµÄÎ»ÖÃÊÇÏà¶ÔÓÚ´°¿ÚµÄÎ»ÖÃ
-			//Ò»°ã²»»á³öÏÖ²»ÏÔÊ¾µÄÇé¿ö
+			//æœ‰pPushedControlè¡¨ç¤ºé¼ æ ‡å¤„äºæ•æ‰çŠ¶æ€ï¼Œè¦å°†æ¶ˆæ¯ä¼ ç»™pPushedControlçš„æ§ä»¶
+			//å¦‚æœpPushedControlä¸æ˜¯æ˜¾ç¤ºçŠ¶æ€ï¼Œé‚£ä¹ˆpointçš„ä½ç½®æ˜¯ç›¸å¯¹äºçª—å£çš„ä½ç½®
+			//ä¸€èˆ¬ä¸ä¼šå‡ºç°ä¸æ˜¾ç¤ºçš„æƒ…å†µ
 			if(m_pViewInfo->pPushedControl->GetItemFixedRect(rcItem))
 			{
-				//Èç¹ûpPushedControlÊÇÏÔÊ¾×´Ì¬£¬ÄÇÃ´pointÊÇÏà¶ÔÓÚ¿Ø¼şµÄÎ»ÖÃ
-				point.x -= rcItem.left;
-				point.y -= rcItem.top;
+				//å¦‚æœpPushedControlæ˜¯æ˜¾ç¤ºçŠ¶æ€ï¼Œé‚£ä¹ˆpointæ˜¯ç›¸å¯¹äºæ§ä»¶çš„ä½ç½®
+				Point.x -= rcItem.left;
+				Point.y -= rcItem.top;
 			}
 			pControl = m_pViewInfo->pPushedControl;
 		}
 		else
 		{
-			pControl = m_pViewInfo->pRootControl->FindControlByPoint(point);
+			pControl = m_pViewInfo->pRootControl->FindControlByPoint(Point);
 		}
 
-		if(WM_MOUSELEAVE == message && NULL != m_pViewInfo->pHotControl)
+		//ç¬¬äºŒğŸ™…â€ï¼Œå°†æ¶ˆæ¯è¿›è¡Œè½¬æ¢ï¼Œ
+		//ä¸»è¦è½¬æ¢å‡ºWM_MOUSELEAVE/WM_MOUSEENTER/WM_SETFOCUS/WM_KILLFOCUSå››ä¸ªæ¶ˆæ¯
+		switch (message)
 		{
-			//Ô­Ê¼µÄWM_MOUSELEAVE£¬ÊÇÊó±êÀë¿ª´°¿Ú·¢³öµÄ£¬ËùÒÔ´¦Àíºó·µ»Ø¼´¿É
-			//ÓĞÈËÎÊÕâ¸öÒª²»ÒªÍ¨ÖªÒ»ÏÂpPushedControl£¬ÆäÊµÊÇ²»ÓÃµÄ£¬ÒòÎª
-			//Èç¹ûpHotControlµÈÓÚpPushedControl£¬ÄÇÃ´pPushedControlÍ¬ÑùÊÕµ½ÁËÍ¨Öª
-			//Èç¹ûpHotControl²»µÈÓÚpPushedControl,ÄÇÃ´pPushedControlÔÚÖ®Ç°ÇĞ»»
-			//ÈÈµãµÄÊ±ºòÒÑ¾­ÊÕµ½ÁËWM_MOUSELEAVEÍ¨Öª£¬ÒòÎªpHotControl²»µÈÓÚpPushedControl
-			//µÄÊ±ºò£¬Ö®Ç°Ò»¶¨·¢Éú¹ıÈÈµãÇĞ»»ÊÂ¼ş
-
-			pTmpControl = m_pViewInfo->pHotControl;
-			m_pViewInfo->pHotControl = NULL;
-
-			return pTmpControl->CallWndProc(m_hWnd, WM_MOUSELEAVE, 0, 0);
-		}
-		else if(WM_MOUSEMOVE == message && pControl && pControl == m_pViewInfo->pPushedControl)
+		case WM_MOUSELEAVE:
 		{
-			if(NULL == pControl->FindControlByPoint(point))
+			//åŸå§‹çš„WM_MOUSELEAVEï¼Œæ˜¯é¼ æ ‡ç¦»å¼€çª—å£å‘å‡ºçš„ï¼Œæ‰€ä»¥å¤„ç†åè¿”å›å³å¯
+			//æœ‰äººé—®è¿™ä¸ªè¦ä¸è¦é€šçŸ¥ä¸€ä¸‹pPushedControlï¼Œå…¶å®æ˜¯ä¸ç”¨çš„ï¼Œå› ä¸º
+			//å¦‚æœpHotControlç­‰äºpPushedControlï¼Œé‚£ä¹ˆpPushedControlåŒæ ·æ”¶åˆ°äº†é€šçŸ¥
+			//å¦‚æœpHotControlä¸ç­‰äºpPushedControl,é‚£ä¹ˆpPushedControlåœ¨ä¹‹å‰åˆ‡æ¢
+			//çƒ­ç‚¹çš„æ—¶å€™å·²ç»æ”¶åˆ°äº†WM_MOUSELEAVEé€šçŸ¥ï¼Œå› ä¸ºpHotControlä¸ç­‰äºpPushedControl
+			//çš„æ—¶å€™ï¼Œä¹‹å‰ä¸€å®šå‘ç”Ÿè¿‡çƒ­ç‚¹åˆ‡æ¢äº‹ä»¶
+			if (m_pViewInfo->pHotControl)
 			{
-				if(STATE_HOT & pControl->GetState())
+				pTmpControl = m_pViewInfo->pHotControl;
+				m_pViewInfo->pHotControl = NULL;
+
+				return pTmpControl->CallWndProc(WM_MOUSELEAVE, 0, 0);
+			}
+		}break;//WM_MOUSELEAVE
+		case WM_MOUSEMOVE:
+		{
+			if (pControl && pControl == m_pViewInfo->pPushedControl)
+			{
+				//æ­¤å¤„æœ‰ä¸ªä¸€ä¸ªbugï¼Œå°±æ˜¯ä½¿ç”¨å½“pPushedControlè¶…å‡ºçª—å£æ˜¾ç¤ºèŒƒå›´æ—¶ï¼Œä¸”é¼ æ ‡å·²ç»ç§»é™¤çª—å£
+				//FindControlByPointå‡½æ•°ä»æœ‰å¯èƒ½è¿”å›éç©º
+				if (NULL == pControl->FindControlByPoint(Point))
 				{
-					m_pViewInfo->pHotControl = NULL;
-					pControl->CallWndProc(m_hWnd, WM_MOUSELEAVE, 0, 0);
+					if (STATE_HOT & pControl->GetState())
+					{
+						m_pViewInfo->pHotControl = NULL;
+						pControl->CallWndProc(WM_MOUSELEAVE, 0, 0);
+					}
+				}
+				else
+				{
+					//çœ‹è¿™æ®µä»£ç çš„æ—¶å€™è¦æ³¨æ„ï¼Œå½“å­˜åœ¨pPushedControlæ—¶ï¼Œ
+					//pHotControlè¦ä¹ˆç­‰äºpPushedControlï¼Œ è¦ä¹ˆä¸ºç©º
+					if (NULL == (STATE_HOT & pControl->GetState()))
+					{
+						m_pViewInfo->pHotControl = pControl;
+						pControl->CallWndProc(WMU_MOUSEENTER, wParam, MAKELONG(Point.x, Point.y));
+					}
 				}
 			}
-			else
+			else if (pControl != m_pViewInfo->pHotControl)
 			{
-				if(NULL == (STATE_HOT & pControl->GetState()))
+				//å½“é¼ æ ‡ç§»åŠ¨æ—¶ï¼Œæœ‰å¯èƒ½ç¦»å¼€ä¸€ä¸ªæ§ä»¶ï¼Œè¿›å…¥å¦ä¸€ä¸ªæ§ä»¶ï¼Œåœ¨æ­¤è¿›è¡Œå¤„ç†
+				//æ­¤å¤„ä»…è¿›è¡ŒWM_MOUSELEAVE ä¸ WM_MOUSEENTERçš„è½¬æ¢ï¼Œæ„ä¹‰åœ¨äºåˆ‡æ¢çƒ­ç‚¹
+
+				//åˆ‡æ¢çƒ­ç‚¹
+				pTmpControl = m_pViewInfo->pHotControl;
+				m_pViewInfo->pHotControl = pControl;
+				//é€»è¾‘ï¼šå…ˆç¦»å¼€ä¸€ä¸ªæˆ¿é—´ï¼Œæ‰èƒ½è¿›å…¥å¦å¤–ä¸€ä¸ªæˆ¿é—´
+				//å…ˆå‘å‡ºç¦»å¼€é€šçŸ¥ï¼Œ
+				if (NULL != pTmpControl)
 				{
-					m_pViewInfo->pHotControl = pControl;
-					pControl->CallWndProc(m_hWnd, WM_MOUSEENTER, wParam, MAKELONG(point.x, point.y));
+					pTmpControl->CallWndProc(WM_MOUSELEAVE, 0, 0);
+				}
+
+				//å†å‘å‡ºè¿›å…¥é€šçŸ¥
+				if (NULL != pControl)
+				{
+					pControl->CallWndProc(WMU_MOUSEENTER, wParam, MAKELONG(Point.x, Point.y));
 				}
 			}
-		}
-		else if(WM_MOUSEMOVE == message && pControl != m_pViewInfo->pHotControl)
+		}break;//WM_MOUSEMOVE
+		default:
 		{
-			//µ±Êó±êÒÆ¶¯Ê±£¬ÓĞ¿ÉÄÜÀë¿ªÒ»¸ö¿Ø¼ş£¬½øÈëÁíÒ»¸ö¿Ø¼ş£¬ÔÚ´Ë½øĞĞ´¦Àí
-			//´Ë´¦½ö½øĞĞWM_MOUSELEAVE Óë WM_MOUSEENTERµÄ×ª»»£¬ÒâÒåÔÚÓÚÇĞ»»ÈÈµã
-			
-			//ÇĞ»»ÈÈµã
-			pTmpControl = m_pViewInfo->pHotControl;
-			m_pViewInfo->pHotControl = pControl;
-			//Âß¼­£ºÏÈÀë¿ªÒ»¸ö·¿¼ä£¬²ÅÄÜ½øÈëÁíÍâÒ»¸ö·¿¼ä
-			//ÏÈ·¢³öÀë¿ªÍ¨Öª£¬
-			if(NULL != pTmpControl)
+			if (ISMOUSEDOWN(message) && pControl && pControl != m_pViewInfo->pFocusControl)
 			{
-				pTmpControl->CallWndProc(m_hWnd, WM_MOUSELEAVE, 0, 0);
-			}
-
-			//ÔÙ·¢³ö½øÈëÍ¨Öª
-			if(NULL != pControl)
-			{
-				pControl->CallWndProc(m_hWnd, WM_MOUSEENTER, wParam, MAKELONG(point.x, point.y));
-			}
-		}
-		else if(WM_LBUTTONDOWN == message && pControl && pControl != m_pViewInfo->pFocusControl)
-		{
-			if(true == pControl->IsControl())
-			{
-				//pControlÊÇÒ»¸ö¿Ø¼ş£¬ÈÃËû»ñµÃ½¹µã
-				pControl->SetFocus();
-			}
-			else
-			{
-				//pControlÊÇÒ»¸ö²¼¾Ö£¬²¼¾ÖÊÇ²»»á»ñµÃ½¹µãµÄ£¬ËùÒÔÎÒÃÇÈÃ±¾À´µÄ¿Ø¼şÊ§È¥½¹µã
-				if(m_pViewInfo->pFocusControl)
+				//é¼ æ ‡æŒ‰ä¸‹ï¼Œç»™ç›®æ ‡æ§ä»¶è®¾ç½®ç„¦ç‚¹
+				if (true == pControl->IsControl())
 				{
-					pTmpControl = m_pViewInfo->pFocusControl;
-					m_pViewInfo->pFocusControl = NULL;
-					pTmpControl->CallWndProc(m_hWnd, WM_KILLFOCUS, NULL, NULL);
+					::SendMessage(m_hWnd, WM_SETFOCUS, NULL, (LPARAM)pControl);
+				}
+				else
+				{
+					//pControlæ˜¯ä¸€ä¸ªå¸ƒå±€ï¼Œå¸ƒå±€æ˜¯ä¸ä¼šè·å¾—ç„¦ç‚¹çš„ï¼Œ
+					//if (m_pViewInfo->pFocusControl)
+					//{
+					//	pTmpControl = m_pViewInfo->pFocusControl;
+					//	m_pViewInfo->pFocusControl = NULL;
+					//	pTmpControl->CallWndProc(WM_KILLFOCUS, NULL, NULL);
+					//}
 				}
 			}
+		}break;//default
 		}
 
-		if(pControl)//µ±Êó±ê´¦ÓÚPushed×´Ì¬£¬²¢ÒÆ³ö´°¿Ú£¬pControl»áÎª¿Õ
+		//ç¬¬ä¸‰æ­¥å°†åŸæ¥çš„æ¶ˆæ¯å‘é€åˆ°å¯¹åº”çš„æ§ä»¶ä¸Š
+		if(pControl)
 		{
-			pControl->CallWndProc(m_hWnd, message, wParam, MAKELONG(point.x, point.y));
+			pControl->CallWndProc(message, wParam, MAKELONG(Point.x, Point.y));
 		}
 
-		//ÅĞ¶ÏÊÇ·ñÂäÔÚ±êÌâÀ¸
-		if (pControl && pControl == m_pViewInfo->pCaptionControl)//±êÌâÀ¸
+		//åˆ¤æ–­æ˜¯å¦è½åœ¨æ ‡é¢˜æ 
+		if (pControl && pControl == m_pViewInfo->pCaptionControl)//æ ‡é¢˜æ 
 		{
 			if(WM_LBUTTONDOWN == message)
 			{
-				if(NULL == (STATE_PUSHED & pControl->GetState()))//Ã»ÓĞSetCaptrue
+				if(NULL == (STATE_PUSHED & pControl->GetState()))//æ²¡æœ‰SetCaptrue
 				{
 					pControl->SetCapture();
 				}
 			}
 			else if (WM_LBUTTONUP == message)
 			{
-				if(NULL != (STATE_PUSHED & pControl->GetState()))//SetCaptrue»¹Ã»Çå³ı
-				{
-					pControl->ReleaseCapture();
-				}
+                if (m_pViewInfo->pPushedControl)
+                {
+                    m_pViewInfo->pPushedControl->ReleaseCapture();
+                }
 			}
 			else if(WM_LBUTTONDBLCLK == message)
 			{
-				//Ë«»÷±êÌâÀ¸
-				//ÕâÀï·¢³öWM_LBUTTONUPÍ¨ÖªÊÇÎªÁËÃÖ²¹Ò»¸öBUG£¬±ÈÈç´°¿Ú×î´ó»¯ºó£¬Êó±êÏà¶ÔÓÚ´°¿ÚµÄÎ»ÖÃ¾Í·¢ÉúÁË¸Ä±ä£¬
-				//Õâ¸öÊ±ºò»áÊÕµ½WM_MOUSEMOVE£¬²¢ÇÒ±êÌâÀ¸ÊÇ°´ÏÂµÄ£¬ÄÇÃ´Õâ¸öÊ±ºò´°¿Ú½«»á¸úËæ×ÅÊó±êµÄÎ»ÖÃ½øĞĞÒÆ¶¯
-				//ËùÒÔÕâÀï·¢³öÒ»¸öWM_LBUTTONUPÏûÏ¢£¬ÊÍ·ÅpPushedControl£¬ÕâÑù¾Í²»»á·¢Éú´°¿ÚÒÆ¶¯ÊÂ¼ş
-				//m_pViewInfo->pPushedControl->CallWndProc(m_hWnd, WM_LBUTTONUP, wParam, MAKELONG(point.x, point.y));
 				if(m_pViewInfo->pPushedControl)
 				{
 					m_pViewInfo->pPushedControl->ReleaseCapture();
@@ -915,7 +654,7 @@ namespace MYUI
 					::ShowWindow(m_hWnd, SW_MAXIMIZE);
 					//SendMessage(WM_SYSCOMMAND, SC_MAXIMIZE, 0); 
 				}
-				TRACE(_T("CWindowUI::MouseProc WM_NCLBUTTONDBLCLK"));
+				MUITRACE(_T("CWindowUI::MouseProc WM_NCLBUTTONDBLCLK"));
 			}
 		}
 
@@ -946,13 +685,13 @@ namespace MYUI
 					m_pViewInfo->tSurplus == (TCHAR)wParam)
 				{
 					m_pViewInfo->tSurplus = _T('\0');
-					TRACE(_T("WM_CHAR = %x"), wParam);
+					MUITRACE(_T("WM_CHAR = %x"), wParam);
 					return 0;
 				}
 
-				m_pViewInfo->pFocusControl->CallWndProc(m_hWnd, message, wParam,lParam);
+				m_pViewInfo->pFocusControl->CallWndProc(message, wParam,lParam);
 
-				//Èç¹ûÏµÍ³¼ü°´ÏÂ£¬ÏûÏ¢¾Í²»±ØÁ÷ÈëDefWindowProc
+				//å¦‚æœç³»ç»Ÿé”®æŒ‰ä¸‹ï¼Œæ¶ˆæ¯å°±ä¸å¿…æµå…¥DefWindowProc
 				if(WM_KEYDOWN == message)
 				{
 					if(TRUE == GetKeyboardState(keyState))
@@ -961,7 +700,7 @@ namespace MYUI
 							|| keyState[VK_LWIN] & 128 || keyState[VK_RWIN] & 128)
 						{
 							m_pViewInfo->tSurplus = (TCHAR)wParam - (_T('A') - 1);
-							TRACE(_T("GetKeyboardState = %x"), wParam);
+							MUITRACE(_T("GetKeyboardState = %x"), wParam);
 							return 0;
 						}
 					}
@@ -971,12 +710,12 @@ namespace MYUI
 		case WM_IME_KEYUP:
 		case WM_IME_CHAR:
 			{
-				//ÔÚÖĞÎÄÊäÈë·¨ÖĞ£¬Õâ¸öÏûÏ¢Ö»ÄÜ½ÓÊÕÊäÈë·¨·¢ËÍ¹ıÀ´µÄÏûÏ¢£¬
-				//Êı×Ö£¬Ó¢ÎÄ×Ö·ûÊÇ½ÓÊÕ²»µ½µÄ£¬¶øWM_CHARÊÇWM_IME_CHARµÄ³¬¼¯£¬
-				//ÄÜ¹»½ÓÊÕÊı×Ö£¬Ó¢ÎÄµÈ×Ö·û£¬ËùÒÔ´¦ÀíWM_CHAR¾Í¹»ÁË
-				//»¹ÓĞÊäÈë·¨µÄÏûÏ¢£¬ÊÇ½«WM_KEYDOWNµÈÏûÏ¢´«µİ¸øDefWndProc´¦Àíºó£¬
-				//×ª»»¶øÀ´µÄ£¬ËùÒÔWM_KEYDOWNµÈÏûÏ¢²»ÄÜÖ±½Ó·µ»Ø£¬±ØĞë½»¸ø
-				//DefWndProc´¦Àí£¬·ñÔò¼üÅÌÊäÈëºó£¬ºóĞø½ÓÊÕ²»µ½ÊäÈë·¨×Ö·ûÏûÏ¢
+				//åœ¨ä¸­æ–‡è¾“å…¥æ³•ä¸­ï¼Œè¿™ä¸ªæ¶ˆæ¯åªèƒ½æ¥æ”¶è¾“å…¥æ³•å‘é€è¿‡æ¥çš„æ¶ˆæ¯ï¼Œ
+				//æ•°å­—ï¼Œè‹±æ–‡å­—ç¬¦æ˜¯æ¥æ”¶ä¸åˆ°çš„ï¼Œè€ŒWM_CHARæ˜¯WM_IME_CHARçš„è¶…é›†ï¼Œ
+				//èƒ½å¤Ÿæ¥æ”¶æ•°å­—ï¼Œè‹±æ–‡ç­‰å­—ç¬¦ï¼Œæ‰€ä»¥å¤„ç†WM_CHARå°±å¤Ÿäº†
+				//è¿˜æœ‰è¾“å…¥æ³•çš„æ¶ˆæ¯ï¼Œæ˜¯å°†WM_KEYDOWNç­‰æ¶ˆæ¯ä¼ é€’ç»™DefWndProcå¤„ç†åï¼Œ
+				//è½¬æ¢è€Œæ¥çš„ï¼Œæ‰€ä»¥WM_KEYDOWNç­‰æ¶ˆæ¯ä¸èƒ½ç›´æ¥è¿”å›ï¼Œå¿…é¡»äº¤ç»™
+				//DefWndProcå¤„ç†ï¼Œå¦åˆ™é”®ç›˜è¾“å…¥åï¼Œåç»­æ¥æ”¶ä¸åˆ°è¾“å…¥æ³•å­—ç¬¦æ¶ˆæ¯
 			}break;
 		default:
 			break;
@@ -984,7 +723,7 @@ namespace MYUI
 
 		//if(MCS_DISABLEIME & m_pShareInfo->pFocusControl->GetStyle())
 		//{
-		//	//½ûÓÃÊäÈë·¨,Ö»ÒªWM_KEYDOWN²»Á÷ÈëDefWindowProc£¬¾Í²»»á²úÉúÊäÈë·¨ĞÅÏ¢
+		//	//ç¦ç”¨è¾“å…¥æ³•,åªè¦WM_KEYDOWNä¸æµå…¥DefWindowProcï¼Œå°±ä¸ä¼šäº§ç”Ÿè¾“å…¥æ³•ä¿¡æ¯
 		//	return 0;
 		//}
 end:
@@ -994,22 +733,62 @@ end:
 
 	LRESULT CALLBACK CWindowUI::WndProc(UINT message, WPARAM wParam, LPARAM lParam)
 	{
-		RECT * pRect= NULL, rect = { 0 };
+		RECT * pRect= NULL, Rect = { 0 };
 		MONITORINFO oMonitor = {};
 		PAINTSTRUCT ps;
 		POINT Point;
 		CControlUI * pControl = NULL;
-		TEVENT event = { 0 };
+		MUIEVENT Event = { 0 };
 
 		DWORD dwStype = NULL;
 		int nWidth =0 , nHeight = 0;
-		//ÏÈÔÚÕâÀï´ÓÍ³Ò»´¦ÀíÒ»ÏÂ
-		CONTROLTIMER * pControlTimer = NULL;
+		//å…ˆåœ¨è¿™é‡Œä»ç»Ÿä¸€å¤„ç†ä¸€ä¸‹
 
 		//TRACE(_T("CWindowUI::WndProc message = 0x%08x"), message);
 		switch (message)
 		{
-		case WM_GETMINMAXINFO://´°¿Ú´óĞ¡¸Ä±äÇ°
+		case WM_NCCREATE://ç¬¬äºŒæ¡æ¶ˆæ¯
+		{
+			m_pShareInfo->hWnd = m_hWnd;
+
+			//è¯·æ±‚ä¸€ä¸ªæ¸²æŸ“å¼•æ“
+			Event.dwType = EnumEvent::RequestRenderEngine;
+			m_pShareInfo->pRenderEngine = (CRenderEngine*)OnEvent(Event);
+			if (NULL == m_pShareInfo->pRenderEngine)
+			{
+				//è¿”å›ç©ºï¼Œé‚£ä¹ˆä½¿ç”¨å®¿ä¸»å¼•æ“æˆ–è€…é»˜è®¤å¼•æ“
+				if (m_pHost)
+				{
+					m_pShareInfo->pRenderEngine = CRenderEngine::Create(m_pHost->m_pShareInfo->pRenderEngine->GetName(), m_hWnd);
+				}
+				else
+				{
+					m_pShareInfo->pRenderEngine = new CGdiRenderEngine(m_hWnd);
+				}
+				
+			}
+
+			return TRUE;
+		}break;
+		case WM_NCDESTROY://èƒ½å¤Ÿæ”¶åˆ°çš„ï¼Œæœ€åä¸€æ¡æ¶ˆæ¯ï¼Œå€’æ•°ç¬¬äºŒæ¡
+		{
+			Event.dwType = EnumEvent::OnFinal;//ä¸€èˆ¬åœ¨é‡Œé¢æ‰§è¡Œdelete this
+			OnEvent(Event);
+
+			SetSkin(NULL);
+			if (m_pShareInfo->pRenderEngine)
+			{
+				delete m_pShareInfo->pRenderEngine;
+				m_pShareInfo->pRenderEngine = NULL;
+			}
+
+			if (m_pViewInfo->pRootControl)
+			{
+				delete m_pViewInfo->pRootControl;
+				m_pViewInfo->pRootControl = NULL;
+			}
+		}break;
+		case WM_GETMINMAXINFO://çª—å£å¤§å°æ”¹å˜å‰
 			{
 				if (m_pViewInfo->SizeMin.cx > 0) 
 					((MINMAXINFO*)lParam)->ptMinTrackSize.x = m_pViewInfo->SizeMin.cx;
@@ -1024,24 +803,10 @@ end:
 			}break;
 		case WM_TIMER:
 			{
-				pControlTimer = (CONTROLTIMER*)m_atrControlTimer.find((__int64)wParam);
-
-				if(NULL == pControlTimer)
-				{
-					event.dwType = EnumEventType::OnTimer;
-					event.wParam = wParam;
-					event.lParam = lParam;
-					return this->OnEvent(event);
-				}
-				else
-				{
-					pControl = (CControlUI*)pControlTimer->pControl;
-					return pControl->CallWndProc(m_hWnd, message, 
-						pControlTimer->nIDEvnet, lParam);
-				}
+				return this->OnEvent(Event);
 			}break;
-		//²¶×½ÏÂÃæÈıÌõÏûÏ¢Òş²Ø±êÌâÀ¸
-		case WM_NCCALCSIZE://ÆÁ±Î±êÌâÀ¸
+		//æ•æ‰ä¸‹é¢ä¸‰æ¡æ¶ˆæ¯éšè—æ ‡é¢˜æ 
+		case WM_NCCALCSIZE://å±è”½æ ‡é¢˜æ 
 			{
 				if ( TRUE == wParam )
 				{
@@ -1055,14 +820,14 @@ end:
 
 				if (TRUE == ::IsZoomed(m_hWnd))
 				{	
-					// ×î´ó»¯Ê±£¬¼ÆËãµ±Ç°ÏÔÊ¾Æ÷×îÊÊºÏ¿í¸ß¶È
-					TRACE(_T("CWindowUI WM_NCCALCSIZE"));
+					// æœ€å¤§åŒ–æ—¶ï¼Œè®¡ç®—å½“å‰æ˜¾ç¤ºå™¨æœ€é€‚åˆå®½é«˜åº¦
+					MUITRACE(_T("CWindowUI WM_NCCALCSIZE"));
 					
 					oMonitor.cbSize = sizeof(oMonitor);
 					::GetMonitorInfo(::MonitorFromWindow(m_hWnd, MONITOR_DEFAULTTONEAREST), &oMonitor);
 
 					*pRect = oMonitor.rcWork;
-					TRACE(_T("WM_NCCALCSIZE left=%d, top=%d, right=%d, bottom=%d"),
+					MUITRACE(_T("WM_NCCALCSIZE left=%d, top=%d, right=%d, bottom=%d"),
 						pRect->left, pRect->top, pRect->right, pRect->bottom);
 					OffsetRect(pRect, -pRect->left, -pRect->top);
 					return WVR_REDRAW;
@@ -1070,29 +835,26 @@ end:
 
 				if (FALSE == ::IsIconic(m_hWnd))
 				{
-					//´°¿Ú²»ÊÇ×îĞ¡»¯
+					//çª—å£ä¸æ˜¯æœ€å°åŒ–
 					//return (0 == wParam) ? TRUE : FALSE;
 					return !wParam;
 				}
 			}break;
-		case WM_NCACTIVATE://ÆÁ±Î±êÌâÀ¸
+		case WM_NCACTIVATE://å±è”½æ ‡é¢˜æ 
 			{
-				//µ±WM_NCACTIVATEÏûÏ¢µÄwParam²ÎÊıÎªtrue Ê±±íÊ¾´°Ìå±»¼¤»î£¬
-				//Îªfalse Ê±±íÊ¾´°Ìå¸ÄÎªÎ´±»¼¤»îµÄ×´Ì¬£¬Õâ¸öÊ±ºò¡£ÏûÏ¢µÄ·µ»ØÖµ¡£
-				//Îªtrue ±íÊ¾ÔÊĞí¼¤»îÆäËüµÄ´°Ìå£¬Îªfalse ±íÊ¾²»ÔÊĞí¼¤»îÆäËûµÄ´°Ìå
+				//å½“WM_NCACTIVATEæ¶ˆæ¯çš„wParamå‚æ•°ä¸ºtrue æ—¶è¡¨ç¤ºçª—ä½“è¢«æ¿€æ´»ï¼Œ
+				//ä¸ºfalse æ—¶è¡¨ç¤ºçª—ä½“æ”¹ä¸ºæœªè¢«æ¿€æ´»çš„çŠ¶æ€ï¼Œè¿™ä¸ªæ—¶å€™ã€‚æ¶ˆæ¯çš„è¿”å›å€¼ã€‚
+				//ä¸ºtrue è¡¨ç¤ºå…è®¸æ¿€æ´»å…¶å®ƒçš„çª—ä½“ï¼Œä¸ºfalse è¡¨ç¤ºä¸å…è®¸æ¿€æ´»å…¶ä»–çš„çª—ä½“
 				//TRACE((wParam == 0) ? _T("WM_NCACTIVATE = TRUE") : _T("WM_NCACTIVATE = FALSE"));
 				return (wParam == 0) ? TRUE : FALSE;
 			}break;
-		case WM_NCPAINT://ÆÁ±Î·Ç¿Í»§Çø»æÖÆ
+		case WM_NCPAINT://å±è”½éå®¢æˆ·åŒºç»˜åˆ¶
 			{
-				//ÏÂÃæµÄËµÃ÷ÓĞ´ıÉÌÈ¶
-				//Èç¹ûÊÇÒòÎªWM_SIZE¶ø¸üĞÂ£¬WM_PAINTµÄ»æÖÆËÙ¶ÈÎŞ·¨¸úÉÏWM_SIZEµÄ±ä»¯ËÙ¶È
-				//ÔÚ´°¿ÚÍÏ¶¯±ä´óÊ±£¬½«»á³öÏÖºÚÉ«ÇøÓò£¬½â¾ö·½·¨ÈçÏÂÊÇ£ºreturn 0L;
-				//ÆÁ±Î´°¿ÚµÄ¿Í»§Çø£¨±êÌâÀ¸ºÍ±ß¿ò£©£¬ÈÃÕû¸ö´°¿Ú±ä³É¿Í»§Çø
+				//å±è”½çª—å£çš„å®¢æˆ·åŒºï¼ˆæ ‡é¢˜æ å’Œè¾¹æ¡†ï¼‰ï¼Œè®©æ•´ä¸ªçª—å£å˜æˆå®¢æˆ·åŒº
 				//dwStype = (DWORD) GetWindowLong(m_hWnd, GWL_STYLE);
 
-				//´°¿Ú²»»á±»ÍÏ¶¯´óĞ¡£¬ÈÃÏûÏ¢Á÷ÈëDefWndProc£¬ÕâÑù²»»á²úÉúÔ²½Ç
-				//´°¿ÚÔÊĞí¸Ä±ä´óĞ¡Ê±£¬¾Í·µ»Ø¸øÏµÍ³£¬µ«ÊÇÕâÑù»á²úÉúÔ²½Ç¡£
+				//çª—å£ä¸ä¼šè¢«æ‹–åŠ¨å¤§å°ï¼Œè®©æ¶ˆæ¯æµå…¥DefWndProcï¼Œè¿™æ ·ä¸ä¼šäº§ç”Ÿåœ†è§’
+				//çª—å£å…è®¸æ”¹å˜å¤§å°æ—¶ï¼Œå°±è¿”å›ç»™ç³»ç»Ÿï¼Œä½†æ˜¯è¿™æ ·ä¼šäº§ç”Ÿåœ†è§’ã€‚
 				//if(WS_SIZEBOX == (dwStype & WS_SIZEBOX) ||
 				//	(m_SizeMin.cx != m_SizeMax.cx || m_SizeMin.cy != m_SizeMax.cy))
 				//{
@@ -1101,46 +863,46 @@ end:
 			}break;
 		case WM_NCHITTEST: 
 			{
-				//Êó±êÔÚ·Ç¿Í»§ÇøÒÆ¶¯
-				//Ã»ÓĞ±ß¿òÁË£¬ÎÒÃÇ²»ÄÜÍÏ¶¯´°¿Ú£¬¶îÍâ´¦ÀíÒ»ÏÂ
+				//é¼ æ ‡åœ¨éå®¢æˆ·åŒºç§»åŠ¨
+				//æ²¡æœ‰è¾¹æ¡†äº†ï¼Œæˆ‘ä»¬ä¸èƒ½æ‹–åŠ¨çª—å£ï¼Œé¢å¤–å¤„ç†ä¸€ä¸‹
                 Point.x = GET_X_LPARAM(lParam);
                 Point.y = GET_Y_LPARAM(lParam);
                 ::ScreenToClient(m_hWnd, &Point);
 				//RECT rcClient;
-				::GetClientRect(m_hWnd, &rect);
+				::GetClientRect(m_hWnd, &Rect);
 
-				//²»ÊÇ×î´ó»¯
+				//ä¸æ˜¯æœ€å¤§åŒ–
 				dwStype = (DWORD) GetWindowLong(m_hWnd, GWL_STYLE);
 				if (WS_SIZEBOX == (dwStype & WS_SIZEBOX) && !::IsZoomed(m_hWnd))
 				{
 					RECT rcSizeBox = { 4,4,4,4 };
-                    if (Point.y < rect.top + rcSizeBox.top)
+                    if (Point.y < Rect.top + rcSizeBox.top)
 					{
-                        if (Point.x < rect.left + rcSizeBox.left) return HTTOPLEFT;
-                        if (Point.x > rect.right - rcSizeBox.right) return HTTOPRIGHT;
+                        if (Point.x < Rect.left + rcSizeBox.left) return HTTOPLEFT;
+                        if (Point.x > Rect.right - rcSizeBox.right) return HTTOPRIGHT;
 						return HTTOP;
 					}
-                    else if (Point.y > rect.bottom - rcSizeBox.bottom)
+                    else if (Point.y > Rect.bottom - rcSizeBox.bottom)
 					{
-                        if (Point.x < rect.left + rcSizeBox.left) return HTBOTTOMLEFT;
-                        if (Point.x > rect.right - rcSizeBox.right) return HTBOTTOMRIGHT;
+                        if (Point.x < Rect.left + rcSizeBox.left) return HTBOTTOMLEFT;
+                        if (Point.x > Rect.right - rcSizeBox.right) return HTBOTTOMRIGHT;
 						return HTBOTTOM;
 					}
 
-                    if (Point.x < rect.left + rcSizeBox.left) return HTLEFT;
-                    if (Point.x > rect.right - rcSizeBox.right) return HTRIGHT;
+                    if (Point.x < Rect.left + rcSizeBox.left) return HTLEFT;
+                    if (Point.x > Rect.right - rcSizeBox.right) return HTRIGHT;
 				}
 
 				return HTCLIENT;
 			}break;
 		case WM_NCLBUTTONDBLCLK:
 			{
-				//ÆäÊµ²¢²»»áÊÕµ½ÕâÌõÏûÏ¢£¬WM_NCHITTEST²¢²»·µ»ØHTCAPTION(±êÌâÀ¸),ËùÒÔ´ó²¿·ÖµÄWM_NCBUTTONÏûÏ¢²¢²»»á·¢Éú
-				//Õâ¸öÊ±ºòÎÒÃÇ¾ÍĞèÒª½«Ò»Ğ©¿Í»§ÇøÏûÏ¢£¬×ª»»³É·Ç¿Í»§ÇøÏûÏ¢£¬±ÈÈçMW_LBUTTONDBLCLK×ª³ÉWM_NCLBUTTONDBLCLK
-				//»òĞíÄã¾õµÃºÜÂé·³£¬µ«ÆäÊµ£¬Èç¹ûWM_NCHITTEST·µ»ØHTCAPTIONµÄ»°£¬ÕâÑù¸üÂé·³£¬ÒòÎª²»·µ»ØHTCAPTION£¬ÎÒÃÇ
-				//Ö»ĞèÒª½«ÉÙ²¿·ÖµÄWM_BUTTON×ª³ÉWM_NCBUTTON£¬Èç¹û·µ»ØHTCAPTION£¬ÄÇÃ´¼¸ºõËùÓĞµÄWM_NCBUTTONÏûÏ¢¶¼Òª×ª»»
-				//³ÉWM_BUTTON
-				TRACE(_T("WM_NCLBUTTONDBLCLK"));
+				//å…¶å®å¹¶ä¸ä¼šæ”¶åˆ°è¿™æ¡æ¶ˆæ¯ï¼ŒWM_NCHITTESTå¹¶ä¸è¿”å›HTCAPTION(æ ‡é¢˜æ ),æ‰€ä»¥å¤§éƒ¨åˆ†çš„WM_NCBUTTONæ¶ˆæ¯å¹¶ä¸ä¼šå‘ç”Ÿ
+				//è¿™ä¸ªæ—¶å€™æˆ‘ä»¬å°±éœ€è¦å°†ä¸€äº›å®¢æˆ·åŒºæ¶ˆæ¯ï¼Œè½¬æ¢æˆéå®¢æˆ·åŒºæ¶ˆæ¯ï¼Œæ¯”å¦‚MW_LBUTTONDBLCLKè½¬æˆWM_NCLBUTTONDBLCLK
+				//æˆ–è®¸ä½ è§‰å¾—å¾ˆéº»çƒ¦ï¼Œä½†å…¶å®ï¼Œå¦‚æœWM_NCHITTESTè¿”å›HTCAPTIONçš„è¯ï¼Œè¿™æ ·æ›´éº»çƒ¦ï¼Œå› ä¸ºä¸è¿”å›HTCAPTIONï¼Œæˆ‘ä»¬
+				//åªéœ€è¦å°†å°‘éƒ¨åˆ†çš„WM_BUTTONè½¬æˆWM_NCBUTTONï¼Œå¦‚æœè¿”å›HTCAPTIONï¼Œé‚£ä¹ˆå‡ ä¹æ‰€æœ‰çš„WM_NCBUTTONæ¶ˆæ¯éƒ½è¦è½¬æ¢
+				//æˆWM_BUTTON
+				MUITRACE(_T("WM_NCLBUTTONDBLCLK"));
 				if(::IsZoomed(m_hWnd))
 				{
 					::ShowWindow(m_hWnd, SW_RESTORE);
@@ -1152,34 +914,34 @@ end:
 				}
 				return 0;
 			}break;
-		//Õı³£ÏûÏ¢£¬CreateWindowÍê³ÉºóÊÕµ½
+		//æ­£å¸¸æ¶ˆæ¯ï¼ŒCreateWindowå®Œæˆåæ”¶åˆ°
 		case WM_CANCELMODE:
 			{
-				//SetCaptrueµÄÊ±ºò»á·¢³öÕâ¸öÏûÏ¢£¬wParamºÍlParam¶¼²»Ê¹ÓÃ
-				if(1 == wParam)//wParamºÍlParam¶¼²»Ê¹ÓÃ,ÄÇÎÒÃÇ¾Í×Ô¼º¶¨ÒåÒ»ÏÂ£¬¾İÎª¼ºÓÃ
+				//SetCaptrueçš„æ—¶å€™ä¼šå‘å‡ºè¿™ä¸ªæ¶ˆæ¯ï¼ŒwParamå’ŒlParaméƒ½ä¸ä½¿ç”¨
+				if(1 == wParam)//wParamå’ŒlParaméƒ½ä¸ä½¿ç”¨,é‚£æˆ‘ä»¬å°±è‡ªå·±å®šä¹‰ä¸€ä¸‹ï¼Œæ®ä¸ºå·±ç”¨
 				{
 					m_pViewInfo->pPushedControl = reinterpret_cast<CControlUI*>(lParam);
 				}
 			}break;
-		case WM_CREATE://´°¿Ú´´½¨³É¹¦
+		case WM_CREATE://çª—å£åˆ›å»ºæˆåŠŸ
 			{
 				m_pShareInfo->pToolTip = new CToolTipUI();
 				m_pShareInfo->pToolTip->Create(m_hInstance);
 
 				m_pShareInfo->hPaintDC = ::GetDC(m_hWnd);
 
-				//Í¨Öª³õÊ¼»¯
-				event.dwType = EnumEventType::WindowInit;
-				event.lParam = lParam;
-				this->OnEvent(event);
+				//é€šçŸ¥åˆå§‹åŒ–
+				Event.dwType = EnumEvent::WindowInit;
+				Event.lParam = lParam;
+				this->OnEvent(Event);
 
-				event.dwType = EnumEventType::WindowReady;
-				event.wParam = wParam;
-				event.lParam = lParam;
+				Event.dwType = EnumEvent::WindowReady;
+				Event.wParam = wParam;
+				Event.lParam = lParam;
 
-				return this->OnEvent(event);
+				return this->OnEvent(Event);
 			}break;
-		case WM_CLOSE://´°¿Ú×¼±¸¹Ø±Õ
+		case WM_CLOSE://çª—å£å‡†å¤‡å…³é—­
 			{
 				if(m_pViewInfo->pRootControl)
 				{
@@ -1189,26 +951,24 @@ end:
 				m_pViewInfo->pHotControl = NULL;
 				m_pViewInfo->pPushedControl = NULL;
 			}break;
-		case WM_DESTROY://ÆäËû´°¿ÚÒÑ¾­¹Ø±Õ
+		case WM_DESTROY://å…¶ä»–çª—å£å·²ç»å…³é—­
 			{
+				//çª—å£ç»“æŸé€šçŸ¥
+				Event.dwType = EnumEvent::WindowDestroy;
+				OnEvent(Event);
+
 				if(m_pShareInfo->hPaintDC)
 				{
 					::ReleaseDC(m_hWnd, m_pShareInfo->hPaintDC);
 				}
 
-				if(m_pShareInfo->pToolTip)
-				{
-					m_pShareInfo->pToolTip->Destroy();
-					delete m_pShareInfo->pToolTip;
-					m_pShareInfo->pToolTip = NULL;
-				}
 			}break;
 		case WM_SHOWWINDOW:
 			{
 				if(m_pViewInfo->pCaptionControl)
 				{
-					//°Ñ»¹Ô­°´Å¥ÕÒ³öÀ´£¬²¢ÉèÖÃËüµÄ×´Ì¬£¬ÒòÎª»¹Ô­°´Å¥ÊÇËæ×Å´°¿ÚÊÇ·ñ×î´ó»¯
-					//¶ø·¢Éú¸Ä±äµÄ
+					//æŠŠè¿˜åŸæŒ‰é’®æ‰¾å‡ºæ¥ï¼Œå¹¶è®¾ç½®å®ƒçš„çŠ¶æ€ï¼Œå› ä¸ºè¿˜åŸæŒ‰é’®æ˜¯éšç€çª—å£æ˜¯å¦æœ€å¤§åŒ–
+					//è€Œå‘ç”Ÿæ”¹å˜çš„
 					pControl = m_pViewInfo->pCaptionControl->FindControlByName(_T("restorebtn"));
 
 					if(pControl)
@@ -1225,35 +985,35 @@ end:
 					}
 				}
 
-				event.dwType = EnumEventType::WindowShow;
-				event.wParam = wParam;
-				event.lParam = lParam;
-				return this->OnEvent(event);
+				Event.dwType = EnumEvent::WindowShow;
+				Event.wParam = wParam;
+				Event.lParam = lParam;
+				return this->OnEvent(Event);
 			}break;
 		case WM_GETFONT:
 			{
-				return (LRESULT)m_pShareInfo->FontArray->Select(m_nFontId);
+				return (LRESULT)m_pShareInfo->FontArray.Select(m_nFontId);
 			}break;
 		case WM_SIZE:
 			{
 				//m_bRepaint = TRUE;
-				rect.left = 0;
-				rect.top = 0;
-				rect.right = LOWORD(lParam);
-				rect.bottom = HIWORD(lParam);
+				Rect.left = 0;
+				Rect.top = 0;
+				Rect.right = LOWORD(lParam);
+				Rect.bottom = HIWORD(lParam);
 
 				if(NULL == m_pViewInfo->pRootControl) break;
 
-				//×¢Òâ£¬Ê¼×æ¿Ø¼şµÄÍâ±ß¾àÃ»ÓĞÉúĞ§
-				m_pViewInfo->pRootControl->SetItem(rect, true);
+				//æ³¨æ„ï¼Œå§‹ç¥–æ§ä»¶çš„å¤–è¾¹è·æ²¡æœ‰ç”Ÿæ•ˆ
+				m_pViewInfo->pRootControl->SetItem(Rect, true);
 
-				//ÉèÖÃ´°¿Ú
+				//è®¾ç½®çª—å£
 				SIZE szRound = m_pViewInfo->pRootControl->GetBorderRound();
 				if((szRound.cx || szRound.cy) && !::IsIconic(m_hWnd))
 				{
-					rect.right += 1;
-					rect.bottom += 1;
-					HRGN hRgn = ::CreateRoundRectRgn(rect.left, rect.top, rect.right, rect.bottom,
+					Rect.right += 1;
+					Rect.bottom += 1;
+					HRGN hRgn = ::CreateRoundRectRgn(Rect.left, Rect.top, Rect.right, Rect.bottom,
 						szRound.cx, szRound.cy);
 					::SetWindowRgn(m_hWnd, hRgn, TRUE);
 					::DeleteObject(hRgn);
@@ -1261,17 +1021,17 @@ end:
 
 				::InvalidateRect(m_hWnd, NULL, FALSE);
 			}break;
-		case WM_DISPLAYCHANGE://ÆÁÄ»·Ö±æÂÊ¸Ä±ä
+		case WM_DISPLAYCHANGE://å±å¹•åˆ†è¾¨ç‡æ”¹å˜
 			{
 				nWidth = LOWORD(lParam);
 				nHeight = HIWORD(lParam);
 			}break;
-			//Êó±êÏûÏ¢
+			//é¼ æ ‡æ¶ˆæ¯
 		case WM_MOUSEACTIVATE:
 			{
 				if(m_pViewInfo && m_pViewInfo->pFocusControl)
 				{
-					m_pViewInfo->pFocusControl->CallWndProc(m_hWnd, message, wParam, lParam);
+					m_pViewInfo->pFocusControl->CallWndProc(message, wParam, lParam);
 				}
 			}break;
 		case WM_MOUSEMOVE:
@@ -1281,22 +1041,25 @@ end:
 				{
 					if(m_pViewInfo->pCaptionControl == m_pViewInfo->pPushedControl)
 					{
-						//±êÌâÀ¸´¦ÓÚ°´ÏÂ×´Ì¬£¬ÍÏ¶¯´°¿Ú
+						//æ ‡é¢˜æ å¤„äºæŒ‰ä¸‹çŠ¶æ€ï¼Œæ‹–åŠ¨çª—å£
 						//TRACE(_T("WM_MOUSEMOVE Drop Caption"));
                         GetCursorPos(&Point);
-						::GetWindowRect(m_hWnd, &rect);
+						::GetWindowRect(m_hWnd, &Rect);
                         ScreenToClient(m_hWnd, &Point);
-						//TRACE(_T("WM_MOUSEMOVE rect  left=%d, top =%d"), rect.left ,rect.top);
-						//TRACE(_T("WM_MOUSEMOVE point point.x=%d, point.y=%d"), point.x ,point.y);
-						//TRACE(_T("WM_MOUSEMOVE Mouse pm.x=%d, pm.y=%d"), ptMouse.x ,ptMouse.y);
-						//TRACE(_T("WM_MOUSEMOVE diff  x  =%d,  y   =%d"), rect.left + point.x - ptMouse.x ,rect.top + point.y - ptMouse.y);
-                        ::SetWindowPos(m_hWnd, 0, rect.left + Point.x - m_pViewInfo->ptLeftMouse.x,
-                            rect.top + Point.y - m_pViewInfo->ptLeftMouse.y,
+						//TRACE(_T("WM_MOUSEMOVE rect  left=%d, top =%d"), Rect.left , Rect.top);
+						//TRACE(_T("WM_MOUSEMOVE point point.x=%d, point.y=%d"), Point.x , Point.y);
+						//TRACE(_T("WM_MOUSEMOVE Mouse pm.x=%d, pm.y=%d"), m_pViewInfo->ptLeftMouse.x , m_pViewInfo->ptLeftMouse.y);
+						//TRACE(_T("WM_MOUSEMOVE diff  x  =%d,  y   =%d"), Rect.left + Point.x - m_pViewInfo->ptLeftMouse.x ,
+							//Rect.top + Point.y - m_pViewInfo->ptLeftMouse.y);
+
+                        ::SetWindowPos(m_hWnd, 0, Rect.left + Point.x - m_pViewInfo->ptLeftMouse.x,
+                            Rect.top + Point.y - m_pViewInfo->ptLeftMouse.y,
 							0 , 0, SWP_NOSIZE);
 						return 0;
 					}
 				}
-				//Ìí¼ÓÊó±êÅÌĞıÍ¨Öª
+
+				//æ·»åŠ é¼ æ ‡ç›˜æ—‹é€šçŸ¥
 				
 				tme.cbSize = sizeof(TRACKMOUSEEVENT);
 				tme.dwFlags = TME_LEAVE|TME_HOVER;
@@ -1309,65 +1072,65 @@ end:
 				//TRACE(_T("CWindowUI::WM_MOUSEMOVE"));
 				return MouseProc(message, wParam, lParam);
 			}break;
-		case WM_LBUTTONDBLCLK://×óË«»÷
+		case WM_LBUTTONDBLCLK://å·¦åŒå‡»
 			{
-				//ÃÖ²¹Ò»ÌõÊó±ê°´ÏÂÏûÏ¢£¬Ê¹ÏûÏ¢Åä¶Ô£¬ËùÒÔ·²ÊÇË«»÷ÏûÏ¢¶¼Òª×¢ÒâÁË£¬MYUIµÄÏûÏ¢¸úWindowsÓĞÇø±ğ
-				//WindowsË«»÷£ºWM_LBUTTONDOWN->WM_LBUTTONUP->WM_LBUTTONDBLCLK->WM_LBUTTONUP
-				//MYUIË«»÷£º   WM_LBUTTONDOWN->WM_LBUTTONUP->WM_LBUTTONDOWN->WM_LBUTTONDBLCLK->WM_LBUTTONUP
-				WndProc(WM_LBUTTONDOWN, wParam, lParam);
-				TRACE(_T("WM_LBUTTONDBLCLK"));
+				//å¼¥è¡¥ä¸€æ¡é¼ æ ‡æŒ‰ä¸‹æ¶ˆæ¯ï¼Œä½¿æ¶ˆæ¯é…å¯¹ï¼Œæ‰€ä»¥å‡¡æ˜¯åŒå‡»æ¶ˆæ¯éƒ½è¦æ³¨æ„äº†ï¼ŒMYUIçš„æ¶ˆæ¯è·ŸWindowsæœ‰åŒºåˆ«
+				//WindowsåŒå‡»ï¼šWM_LBUTTONDOWN->WM_LBUTTONUP->WM_LBUTTONDBLCLK->WM_LBUTTONUP
+				//MYUIåŒå‡»ï¼š   WM_LBUTTONDOWN->WM_LBUTTONUP->WM_LBUTTONDOWN->WM_LBUTTONDBLCLK->WM_LBUTTONUP
+				//WndProc(WM_LBUTTONDOWN, wParam, lParam);
+				MUITRACE(_T("WM_LBUTTONDBLCLK"));
 				return MouseProc(message, wParam, lParam);
 			}break;
-		case WM_LBUTTONDOWN://×ó°´ÏÂ
+		case WM_LBUTTONDOWN://å·¦æŒ‰ä¸‹
 			{
-				TRACE(_T("WM_LBUTTONDOWN"));
+				MUITRACE(_T("WM_LBUTTONDOWN"));
 				m_pViewInfo->ptLeftMouse.x = GET_X_LPARAM(lParam);
 				m_pViewInfo->ptLeftMouse.y = GET_Y_LPARAM(lParam);
 				
 				return MouseProc(message, wParam, lParam);
 			}break;
-		case WM_LBUTTONUP://×óµ¯Æğ
+		case WM_LBUTTONUP://å·¦å¼¹èµ·
 			{
-				TRACE(_T("WM_LBUTTONUP"));
+				MUITRACE(_T("WM_LBUTTONUP"));
 				m_pViewInfo->ptLeftMouse.x = GET_X_LPARAM(lParam);
 				m_pViewInfo->ptLeftMouse.y = GET_Y_LPARAM(lParam);
 
 				return MouseProc(message, wParam, lParam);
 			}break;
-		case WM_MBUTTONDBLCLK://ÖĞË«»÷
+		case WM_MBUTTONDBLCLK://ä¸­åŒå‡»
 			{
-				TRACE(_T("WM_MBUTTONDBLCLK"));
-				WndProc(WM_MBUTTONDOWN, wParam, lParam);
+				MUITRACE(_T("WM_MBUTTONDBLCLK"));
+				//WndProc(WM_MBUTTONDOWN, wParam, lParam);
 				return MouseProc(message, wParam, lParam);
 			}break;
-		case WM_MBUTTONDOWN://ÖĞ°´ÏÂ
-			{
-				return MouseProc(message, wParam, lParam);
-			}break;
-		case WM_MBUTTONUP://ÖĞµ¯Æğ
+		case WM_MBUTTONDOWN://ä¸­æŒ‰ä¸‹
 			{
 				return MouseProc(message, wParam, lParam);
 			}break;
-		case WM_RBUTTONDBLCLK://ÓÒË«»÷
-			{
-				TRACE(_T("WM_RBUTTONDBLCLK"));
-				WndProc(WM_RBUTTONDOWN, wParam, lParam);
-				return MouseProc(message, wParam, lParam);
-			}break;
-		case WM_RBUTTONDOWN://ÓÒ°´ÏÂ
+		case WM_MBUTTONUP://ä¸­å¼¹èµ·
 			{
 				return MouseProc(message, wParam, lParam);
 			}break;
-		case WM_RBUTTONUP://ÓÒµ¯Æğ
+		case WM_RBUTTONDBLCLK://å³åŒå‡»
+			{
+				MUITRACE(_T("WM_RBUTTONDBLCLK"));
+				//WndProc(WM_RBUTTONDOWN, wParam, lParam);
+				return MouseProc(message, wParam, lParam);
+			}break;
+		case WM_RBUTTONDOWN://å³æŒ‰ä¸‹
+			{
+				return MouseProc(message, wParam, lParam);
+			}break;
+		case WM_RBUTTONUP://å³å¼¹èµ·
 			{
 				return MouseProc(message, wParam, lParam);
 			}break;
 		case WM_MOUSEWHEEL:
 			{
-				//WM_MOUSEWHEELµÄÊó±êÎ»ÖÃÊÇÆÁÄ»Î»ÖÃ
+				//WM_MOUSEWHEELçš„é¼ æ ‡ä½ç½®æ˜¯å±å¹•ä½ç½®
                 Point.x = LOWORD(lParam);
                 Point.y = HIWORD(lParam);
-                ScreenToClient(m_hWnd, &Point);//×ª»»Ò»ÏÂ
+                ScreenToClient(m_hWnd, &Point);//è½¬æ¢ä¸€ä¸‹
                 lParam = MAKELONG(Point.x, Point.y);
 				return MouseProc(message, wParam, lParam);
 			}break;
@@ -1381,12 +1144,12 @@ end:
 				//TRACE(_T("WM_MOUSELEAVE"));
 				MouseProc(message, wParam, lParam);
 			}break;
-			//»æÖÆÏûÏ¢
+			//ç»˜åˆ¶æ¶ˆæ¯
 		case WM_SETCURSOR:
 			{
 				if(m_pViewInfo && m_pViewInfo->pHotControl)
 				{
-					return m_pViewInfo->pHotControl->CallWndProc(m_hWnd, message, wParam, lParam);
+					return m_pViewInfo->pHotControl->CallWndProc(message, wParam, lParam);
 				}
 			}break;
 		case WM_MOVE:
@@ -1394,17 +1157,17 @@ end:
 				RECT rcShow = {0};
 				BOOL bShowInScreen = m_bShowInScreen;
 
-				::GetWindowRect(m_hWnd, &rect);
+				::GetWindowRect(m_hWnd, &Rect);
 				oMonitor.cbSize = sizeof(oMonitor);
 				::GetMonitorInfo(::MonitorFromWindow(m_hWnd, MONITOR_DEFAULTTONEAREST), &oMonitor);
 
-				if(FALSE == ::IntersectRect(&rcShow, &rect, &oMonitor.rcWork))
+				if(FALSE == ::IntersectRect(&rcShow, &Rect, &oMonitor.rcWork))
 				{
 					m_bShowInScreen = FALSE;
 					return 0;
 				}
 
-				if(TRUE == IsSameRect(rcShow, rect))
+				if(TRUE == IsSameRect(rcShow, Rect))
 				{
 					m_bShowInScreen = TRUE;
 				}
@@ -1418,19 +1181,19 @@ end:
 				::InvalidateRect(m_hWnd, &rcShow, FALSE);
 				return 0;
 			}break;
-		case WM_PAINT://Ç°¾°»æÖÆ
+		case WM_PAINT://å‰æ™¯ç»˜åˆ¶
 			{
-				//ÅĞ¶ÏÊÇ·ñĞèÒª½øĞĞ»æÖÆ
+				//åˆ¤æ–­æ˜¯å¦éœ€è¦è¿›è¡Œç»˜åˆ¶
 				if (!m_pViewInfo->pRootControl || !m_pShareInfo->pRenderEngine) break;
 
-				//ĞèÒª»æÖÆ£¬ÏÂÃæÕıÊ½¿ªÊ¼
+				//éœ€è¦ç»˜åˆ¶ï¼Œä¸‹é¢æ­£å¼å¼€å§‹
 				BeginPaint(m_hWnd, &ps);
 				if(TRUE == IsValidRect(ps.rcPaint))
 				{
-					::GetClientRect(m_hWnd, &rect);
-					m_pShareInfo->pRenderEngine->BeginPaint(rect);
-					m_pViewInfo->pRootControl->OnPaint(rect, 
-						m_pViewInfo->pRootControl->GetItem(), ps.rcPaint);
+					::GetClientRect(m_hWnd, &Rect);
+					::OffsetRect(&Rect, -Rect.left, -Rect.top);
+					m_pShareInfo->pRenderEngine->BeginPaint(Rect);
+					m_pViewInfo->pRootControl->OnPaint(ps.rcPaint);
 					m_pShareInfo->pRenderEngine->EndPaint(ps.rcPaint);
 				}
 
@@ -1445,7 +1208,7 @@ end:
 				HDC hdc = (HDC)wParam;
 				int nSave = ::SaveDC(hdc);
 				
-				ASSERT(0 && "Õâ¸öÊÂ¼şÒ»Ö±Ã»´¥·¢¹ı£¬ËùÒÔÔÚÕâÀïÉèÖÃÒ»¸ö´íÎó£¬×÷ÎªÌáÊ¾");
+				MUIASSERT(0 && "è¿™ä¸ªäº‹ä»¶ä¸€ç›´æ²¡è§¦å‘è¿‡ï¼Œæ‰€ä»¥åœ¨è¿™é‡Œè®¾ç½®ä¸€ä¸ªé”™è¯¯ï¼Œä½œä¸ºæç¤º");
 				if((PRF_CHILDREN & lParam))
 				{
 					HWND hChildWnd = ::GetWindow(m_hWnd, GW_CHILD);
@@ -1463,10 +1226,10 @@ end:
 				::RestoreDC(hdc, nSave);
 
 			}break;
-		case WM_ERASEBKGND://±³¾°»æÖÆ
+		case WM_ERASEBKGND://èƒŒæ™¯ç»˜åˆ¶
 			{
 				(HDC)wParam;
-				return TRUE;//¸æËßÏµÍ³ÒÑ¾­»æÖÆ¹ıÁË£¬²»±ØÔÙ»æÖÆ
+				return TRUE;//å‘Šè¯‰ç³»ç»Ÿå·²ç»ç»˜åˆ¶è¿‡äº†ï¼Œä¸å¿…å†ç»˜åˆ¶
 			}break;
 		case WM_GETDLGCODE:
 			{
@@ -1480,55 +1243,7 @@ end:
 				}
 			   return 0;
 			}break;
-		//¿Ø¼ş·¢³öÍ¨Öªºô½Ğ
-		case WM_CONTROLMSG_POST:
-		case WM_CONTROLMSG_SEND:
-			{
-				pControl = (CControlUI *)wParam;
-
-				return pControl->CallWndProc(((MSG*)lParam)->hwnd , ((MSG*)lParam)->message,
-					((MSG*)lParam)->wParam, ((MSG*)lParam)->lParam);
-
-				if(WM_CONTROLMSG_POST == message && lParam)
-				{
-					delete (void *)lParam;
-				}
-			}break;
-		case WM_NOTIFYEX:
-			{
-				//wParam ÊÇ·¢³öÍ¨ÖªµÄ´°¿Ú¾ä±ú
-				return FALSE;
-			}break;
-		case WM_SETTIMER:
-			{
-				ASSERT(lParam && "ÄãÃ»ÓĞÉèÖÃ CONTROLTIMER");
-
-				if(NULL == lParam) return FALSE;
-				
-				if(FALSE == wParam)//killTimer
-				{
-					pControlTimer = (CONTROLTIMER*)lParam;
-					::KillTimer(m_hWnd, (UINT_PTR)(char *)pControlTimer->pControl + pControlTimer->nIDEvnet);
-					pControlTimer = (CONTROLTIMER*)m_atrControlTimer.remove((__int64)(char *)
-						pControlTimer->pControl + pControlTimer->nIDEvnet);
-
-					if(pControlTimer)
-					{
-						delete pControlTimer;
-					}
-				}
-				else//TRUE : SetTimer
-				{
-					pControlTimer = new CONTROLTIMER;
-					*pControlTimer = *(CONTROLTIMER*)lParam;
-					m_atrControlTimer.insert((__int64)(char *)pControlTimer->pControl + pControlTimer->nIDEvnet, 
-						pControlTimer);
-					::SetTimer(m_hWnd,(UINT_PTR) (char *)pControlTimer->pControl + pControlTimer->nIDEvnet, 
-						pControlTimer->uElapse,  NULL);
-				}
-				return TRUE;
-			}break;
-        case WM_POPUPMENU:
+        case WMU_POPUPMENU:
         {
             if (wParam)
             {
@@ -1538,14 +1253,14 @@ end:
             }
             return !!wParam;
         }break; 
-        case WM_POPUPDIALOG:
+        case WMU_POPUPDIALOG:
         {
-            if (wParam)
-            {
-                reinterpret_cast<IDialogPopup*>(wParam)->Popup(lParam);
-            }
+            //if (wParam)
+            //{
+            //    reinterpret_cast<IDialogPopup*>(wParam)->Popup(lParam);
+            //}
             return !!wParam;
-        }
+        }break;
 		case WM_REQUESTINFO:
 			{
 				switch (wParam)
@@ -1564,23 +1279,23 @@ end:
 					}break;
 				default:
 					{
-						ASSERT(0 && "ÎŞĞ§µÄWM_REQUESTINFO²ÎÊı");
+						MUIASSERT(0 && "æ— æ•ˆçš„WM_REQUESTINFOå‚æ•°");
 					}break;
 				}
 			}break;
-		//½¹µã
+		//ç„¦ç‚¹
 		case WM_SETFOCUS:
 			{
-				TRACE(_T("CWindowUI %s: WM_SETFOCUS"), m_strClassName);
+				MUITRACE(_T("CWindowUI %s: WM_SETFOCUS"), m_strClassName);
 
 				if(NULL == lParam)
 				{
 					m_pViewInfo->bFocusWnd = TRUE;
 
-					event.dwType = EnumEventType::SetFocued;
-					event.wParam = wParam;
-					event.lParam = lParam;
-					return this->OnEvent(event);
+					Event.dwType = EnumEvent::SetFocued;
+					Event.wParam = wParam;
+					Event.lParam = lParam;
+					return this->OnEvent(Event);
 				}
 				else
 				{
@@ -1592,38 +1307,38 @@ end:
 						m_pViewInfo->pFocusControl = reinterpret_cast<CControlUI *>(lParam);
 						if(pControl)
 						{
-							pControl->CallWndProc(m_hWnd, WM_KILLFOCUS, 0, 0);
+							pControl->CallWndProc(WM_KILLFOCUS, 0, 0);
 						}
 					}
 
 					pControl = m_pViewInfo->pFocusControl;
-					pControl->CallWndProc(m_hWnd, message, 0, 0);
+					pControl->CallWndProc(message, 0, 0);
 					return 0;
 				}
 			}break;
 		case WM_KILLFOCUS:
 			{
-				TRACE(_T("CWindowUI %s: WM_KILLFOCUS"), m_strClassName);
-				//³·µô½¹µã£¬²¢ÇÒÍ¨ÖªÊ§È¥½¹µã
+				MUITRACE(_T("CWindowUI %s: WM_KILLFOCUS"), m_strClassName);
+				//æ’¤æ‰ç„¦ç‚¹ï¼Œå¹¶ä¸”é€šçŸ¥å¤±å»ç„¦ç‚¹
 				m_pViewInfo->bFocusWnd = FALSE;
 				pControl = m_pViewInfo->pFocusControl;
 				m_pViewInfo->pFocusControl = NULL;
 
 				if(pControl)
 				{
-					pControl->CallWndProc(m_hWnd, message, wParam, lParam);
+					pControl->CallWndProc(message, wParam, lParam);
 				}
 
-				event.dwType = EnumEventType::KillFocued;
-				event.wParam = wParam;
-				event.lParam = lParam;
-				return this->OnEvent(event);
+				Event.dwType = EnumEvent::KillFocued;
+				Event.wParam = wParam;
+				Event.lParam = lParam;
+				return this->OnEvent(Event);
 			}break;
-		//ÏµÍ³×Ô¶¨ÒåµÄÏûÏ¢
+		//ç³»ç»Ÿè‡ªå®šä¹‰çš„æ¶ˆæ¯
 		default:
 			{
-				ASSERT(m_pShareInfo);
-				//¼üÅÌÏûÏ¢
+				MUIASSERT(m_pShareInfo);
+				//é”®ç›˜æ¶ˆæ¯
 				if((message >= WM_KEYFIRST /*&& WM_KEYLAST >= message */ && WM_IME_KEYLAST >= message)
 					|| (message >= WM_IME_SETCONTEXT && WM_IME_KEYUP >= message))
 				{

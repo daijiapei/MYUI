@@ -25,7 +25,7 @@ namespace MYUI
 	{
 	}
 
-	CMuiString CLableUI::g_strClassName(_T("LableUI"));
+	const CMuiString CLableUI::g_strClassName(_T("LableUI"));
 
 	CMuiString CLableUI::GetClassName() const
 	{
@@ -129,7 +129,7 @@ namespace MYUI
 					}
 					else
 					{
-						ASSERT(0 && "CLableUI::SetAttribute strItem=align strValue is unknow");
+						MUIASSERT(0 && "CLableUI::SetAttribute strItem=align strValue is unknow");
 					}
 
 					strText[0] = _T('\0');
@@ -360,7 +360,7 @@ namespace MYUI
 		//Invalidate();
 	}
 
-	void CLableUI::PaintBorder(const RECT& rcItem, const RECT& rcPaint)
+	void CLableUI::PaintBorder(const RECT& rcUpdate)
 	{
         int nBorderSize = 0;
         ARGBREF refBorderColor = NULL;
@@ -378,21 +378,19 @@ namespace MYUI
 
         if(nBorderSize && refBorderColor)
         {
-            m_pShareInfo->pRenderEngine->OnDrawBroder(rcItem ,
+            m_pShareInfo->pRenderEngine->OnDrawBroder(m_rcRawItem ,
 				refBorderColor, nBorderSize, m_szBorderRound);
 			return;
         }
 		
-		return __super::PaintBorder(rcItem, rcPaint);
+		return __super::PaintBorder(rcUpdate);
 	}
 
-	void CLableUI::PaintText(const RECT& rcItem, const RECT& rcPaint)
+	void CLableUI::PaintText(const RECT& rcUpdate)
 	{
 		ARGBREF refTextColor = m_refTextColor;
 		RECT rcClient = m_rcClient;
 		DWORD dwDrawTextStyle = DT_SINGLELINE | DT_CENTER | DT_VCENTER;
-		OffsetRect(&rcClient, rcItem.left, rcItem.top);
-		HFONT hFont = (HFONT)m_pShareInfo->FontArray->Select(m_nFontId);
 		if(m_strText.IsEmpty()) return ;
 
 		if(FALSE == IndentRect(&rcClient, &m_rcTextPadding)) return ;
@@ -446,16 +444,14 @@ namespace MYUI
 		}
 
 		m_pShareInfo->pRenderEngine->OnDrawText(rcClient, m_strText,
-			refTextColor, hFont, dwDrawTextStyle);
+			refTextColor, m_hFont, dwDrawTextStyle);
 	}
 
-	void CLableUI::PaintStatusImage(const RECT& rcItem, const RECT& rcPaint)
+	void CLableUI::PaintStatusImage(const RECT& rcUpdate)
 	{
-		RECT rcClient = rcItem;
 		LPCTSTR strImage = m_strNormalImage;
 		ARGBREF refColor = m_refNormalColor;
 		if(false == m_bEnabled) return;
-
 
 		//OffsetRect(&rcClient, rcItem.left, rcItem.top);
 		//通过状态优先级，来判断显示哪一张图片
@@ -481,7 +477,7 @@ namespace MYUI
 
 		if(_T('\0') != strImage[0])
 		{
-			m_pShareInfo->pRenderEngine->OnDrawImage(rcClient, strImage);
+			m_pShareInfo->pRenderEngine->OnDrawImage(m_rcClient, strImage);
 			return;
 		}
 
@@ -508,14 +504,14 @@ namespace MYUI
 
 		if(NULL != refColor)
 		{
-			m_pShareInfo->pRenderEngine->OnDrawColor(rcClient, refColor);
+			m_pShareInfo->pRenderEngine->OnDrawColor(m_rcClient, refColor);
 			return ;
 		}
 		
 		return ;
 	}
 
-	LRESULT CLableUI::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+	LRESULT CLableUI::WndProc(UINT message, WPARAM wParam, LPARAM lParam)
 	{
 		CControlUI * pControl = NULL;
 		POINT point = {0,0};
@@ -523,31 +519,26 @@ namespace MYUI
 		{
 		case WM_LBUTTONDOWN:
 			{
-				if(true == m_bEnabled)
+				this->SetCapture();
+				if(NULL != m_refPushedColor || !m_strPushedImage.IsEmpty() || 
+					NULL != m_refPushedTextColor)
 				{
-					this->SetCapture();
-					if(NULL != m_refPushedColor || !m_strPushedImage.IsEmpty() || 
-						NULL != m_refPushedTextColor)
-					{
-						this->Invalidate();
-					}
+					this->Invalidate();
 				}
 			}break;
 		case WM_LBUTTONUP:
 			{
-				if(true == m_bEnabled)
-				{
-					if(NULL != m_refPushedColor || !m_strPushedImage.IsEmpty() || 
-						NULL != m_refPushedTextColor)
-					{
-						this->Invalidate();
-					}
 
-					if(STATE_PUSHED & m_dwState && STATE_HOT & m_dwState)
-					{
-                        this->ReleaseCapture();
-						this->CallWndProc(hWnd, WM_LBUTTONCLICK, wParam, lParam);
-					}
+				if (NULL != m_refPushedColor || !m_strPushedImage.IsEmpty() ||
+					NULL != m_refPushedTextColor)
+				{
+					this->Invalidate();
+				}
+
+				if (STATE_PUSHED & m_dwState && STATE_HOT & m_dwState)
+				{
+					this->ReleaseCapture();
+					this->CallWndProc(WMU_LBUTTONCLICK, wParam, lParam);
 				}
 			}break;
 		case WM_MOUSEMOVE:
@@ -555,24 +546,20 @@ namespace MYUI
 				point.x = (short)LOWORD(lParam);
 				point.y = (short)HIWORD(lParam);
 			}break;
-		case WM_MOUSEENTER://鼠标第一次进入
+		case WMU_MOUSEENTER://鼠标第一次进入
 		case WM_MOUSELEAVE://鼠标离开
 			{
-				//需要有对应的Hot设置才会更新
-				if(true == m_bEnabled)
+				if(NULL != m_refHotColor || !m_strHotImage.IsEmpty() || 
+					NULL != m_refHotTextColor)
 				{
-					if(NULL != m_refHotColor || !m_strHotImage.IsEmpty() || 
-						NULL != m_refHotTextColor)
-					{
-						this->Invalidate();
-						break;//产生一次刷新即可
-					}
+					this->Invalidate();
+					break;//产生一次刷新即可
+				}
 
-					if(m_nHotBorderSize && m_refHotBorderColor)
-					{
-						this->Invalidate();
-						break;//产生一次刷新即可
-					}
+				if(m_nHotBorderSize && m_refHotBorderColor)
+				{
+					this->Invalidate();
+					break;//产生一次刷新即可
 				}
 			}break;
 		case WM_MOUSEHOVER://鼠标停留
@@ -582,6 +569,6 @@ namespace MYUI
 			break;
 		}
 
-		return __super::WndProc(hWnd, message, wParam, lParam);
+		return __super::WndProc(message, wParam, lParam);
 	}
 }

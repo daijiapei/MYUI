@@ -21,12 +21,12 @@ namespace MYUI
 	public:
 		CGifUI();
 		~CGifUI();
-		static CMuiString g_strClassName;
+		const static CMuiString g_strClassName;
 		virtual CMuiString GetClassName() const;
 
 		virtual void SetBkImage(LPCTSTR strImage);
 		virtual void SetVisible(bool bVisible);
-		virtual bool OnPaint(RECT rcItem, RECT rcPaint, RECT rcUpdate);
+		virtual bool OnPaint(const RECT& rcUpdate) override;
 		
 
 		void	PlayGif();//播放gif图片
@@ -39,7 +39,7 @@ namespace MYUI
 		bool	IsAutoSize() const;
 
 	protected:
-		virtual LRESULT WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
+		virtual LRESULT WndProc(UINT message, WPARAM wParam, LPARAM lParam) override;
 		virtual void OnAttach(HWND hNewWnd);//当控件附加到新的窗口时，会调用一次该函数
 		virtual void OnDetach(HWND hOldWnd);//当控件离开一个窗口时，会调用一次该函数
 		

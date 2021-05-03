@@ -18,7 +18,7 @@ namespace MYUI
 	public:
 		COptionUI();
 		virtual ~COptionUI();
-		static CMuiString g_strClassName;
+		const static CMuiString g_strClassName;
 		virtual CMuiString GetClassName() const;
 		virtual void SetAttribute(LPCTSTR strItem, LPCTSTR strValue);
 		
@@ -38,8 +38,8 @@ namespace MYUI
 		
 		virtual void SetState(DWORD dwState);
 	protected:
-		virtual LRESULT WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
-		virtual void PaintStatusImage( const RECT& rcItem, const RECT& rcPaint);
+		virtual LRESULT WndProc(UINT message, WPARAM wParam, LPARAM lParam) override;
+		virtual void PaintStatusImage(const RECT& rcUpdate) override;
 		virtual void OnAttach(HWND hNewWnd);//当控件附加到新的窗口时，会调用一次该函数
 		virtual void OnDetach(HWND hOldWnd);//当控件离开一个窗口时，会调用一次该函数 
 

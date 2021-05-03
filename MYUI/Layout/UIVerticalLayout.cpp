@@ -14,7 +14,7 @@ namespace MYUI
 	{
 	}
 
-	CMuiString CVerticalLayoutUI::g_strClassName(_T("VerticalLayoutUI"));
+	const CMuiString CVerticalLayoutUI::g_strClassName(_T("VerticalLayoutUI"));
 
 	CMuiString CVerticalLayoutUI::GetClassName() const
 	{
@@ -86,6 +86,7 @@ namespace MYUI
 		int nControlCount = m_Items.GetSize();
 
 		if(false == __super::SetItem(rcItem, bMustUpdate)) return false;
+
 		if(nControlCount == 0 ) return true;//布局中没有其他控件就直接返回
 
 		//通过上面计算得出布局在窗口中的绝对位置
@@ -117,10 +118,9 @@ namespace MYUI
 		}
 
 		//先设置内缩进
-		rcThisRegoin = m_rcClient;
-		rcThisRegoin.right = rcThisRegoin.left + MAX(m_szContent.cx, rcThisRegoin.right - rcThisRegoin.left);
+		rcThisRegoin = m_rcContent;
 		IndentRect(&rcThisRegoin, &m_rcInset);
-		ptNextPos.x = m_rcInset.left;
+		ptNextPos.x = rcThisRegoin.left;
 		//先求出绝对高度的控件或布局的高度总和，
 		//然后将剩余的高度分配给相对布局的控件
 		if(nActiveControlCount == nFloatControlCount)
@@ -210,7 +210,7 @@ namespace MYUI
 			rcChildMargin = pControl->GetMargin();
 			IndentRect(&rcChildItem, &rcChildMargin);
 loop:
-			pControl->SetItem(rcChildItem, false);
+			pControl->SetItem(rcChildItem, bMustUpdate);
 		}
 		return true;
 	}

@@ -14,7 +14,7 @@ int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance,
 	CoInitialize(NULL);
 	//_Module.Init( 0, hInstance );
 
-    MYUI::CUserHandleTable::InitHandleTable();
+	MYUI::CUIThread::Init(hInstance);
 
 	CFrameWindow * window = new CFrameWindow();
 	RECT rect;
@@ -28,8 +28,7 @@ int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance,
 	window->ShowModal();
 	delete window;
 
-    MYUI::CUserHandleTable::ClearHandleTable();
-    MYUI::CUserHandleTable::FreeHandleTable();
+	MYUI::CUIThread::Uninit();
 
 	//_Module.Term();
 	CoUninitialize();

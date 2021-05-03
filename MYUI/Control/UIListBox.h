@@ -16,7 +16,7 @@ namespace MYUI
 	public:
 		CListBoxUI();
 		virtual ~CListBoxUI();
-		static CMuiString g_strClassName;
+		const static CMuiString g_strClassName;
 		virtual CMuiString GetClassName() const;
 
 		bool SetSingleSelect(int index);//清除所有STATE_SELECT，然后设置一个STATE_SELECT
@@ -33,7 +33,7 @@ namespace MYUI
 		virtual bool AddAt(CControlUI* pControl, int nIndex);
 		virtual bool RemoveAt(int nIndex);
 	protected:
-		virtual LRESULT WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
+		virtual LRESULT WndProc(UINT message, WPARAM wParam, LPARAM lParam) override;
 		CControlUI * GetItemByPoint(POINT &pt);
 	protected:
 		CControlUI * m_pHotControl;
@@ -62,10 +62,10 @@ namespace MYUI
 
 	
 
-    typedef struct __LISTDRAWINFO
+    typedef struct __MUILISTDRAW_INFO
 	{
-		TSHAREINFO * pShareInfo;
-	}LISTDRAWINFO;
+		MUISHAREINFO * pShareInfo;
+	}MUILISTDRAWINFO;
 
 	/*class MYUI_API CListElementUI 
 	{

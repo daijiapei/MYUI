@@ -29,6 +29,7 @@ namespace MYUI
 		Auto = ContraDirection
 	};
 
+	
 
 	class MYUI_API CScrollBarUI : public CControlUI
 	{
@@ -65,7 +66,7 @@ namespace MYUI
 		//所以在水平滚动条中，向导按钮的高无效
 		bool CalcDragBarRect();
 		virtual bool SetItem(RECT &rcItem, bool bMustUpdate);
-		virtual bool OnPaint(RECT rcItem, RECT rcPaint, RECT rcUpdate);
+		virtual bool OnPaint(const RECT& rcUpdate);
 
 		//图片
 		void SetFrontNormalImage(LPCTSTR pStrImage);
@@ -105,17 +106,17 @@ namespace MYUI
 		LPCTSTR GetDragBtnDisabledImage();
 
 	protected:
-		virtual LRESULT WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
+		virtual LRESULT WndProc(UINT message, WPARAM wParam, LPARAM lParam);
 		virtual void SetState(DWORD dwState);
 		int GetDragBarOffset();
 
 		DWORD CalcPointIn(const POINT& pt);
 
-		void PaintTrackButton(const RECT &rcItem);//承载拖拽按钮的轨道
-		void PaintFrontButton(const RECT &rcItem);//开始的按钮
-		void PaintFinalButton(const RECT &rcItem);//末尾的按钮
-		void PaintDragButton(const RECT &rcItem);//拖拽按钮
-		void PaintIntersect(const RECT &rcItem);//交汇区域
+		void PaintTrackButton(const RECT& rcUpdate);//承载拖拽按钮的轨道
+		void PaintFrontButton(const RECT& rcUpdate);//开始的按钮
+		void PaintFinalButton(const RECT& rcUpdate);//末尾的按钮
+		void PaintDragButton(const RECT& rcUpdate);//拖拽按钮
+		void PaintIntersect(const RECT& rcUpdate);//交汇区域
 
 	private:
 		POINT m_ptOldMousePos;
@@ -168,7 +169,7 @@ namespace MYUI
 			: CScrollBarUI(AutoHorizontalStyle)
 		{  0;  }
 
-		static CMuiString g_strClassName;
+		const static CMuiString g_strClassName;
 		virtual CMuiString GetClassName() const
 		{
 			return CHorizontailScrollBarUI::g_strClassName;
@@ -182,13 +183,20 @@ namespace MYUI
 			: CScrollBarUI(AutoVerticalStyle)
 		{  0;  }
 
-		static CMuiString g_strClassName;
+		const static CMuiString g_strClassName;
 		virtual CMuiString GetClassName() const
 		{
 			return CVerticalScrollBarUI::g_strClassName;
 		}
 	};
 	
+	class IScrollBarMove
+	{
+		//pSender = 目标滚动条
+	public:
+		virtual void OnScrollBarMove(CScrollBarUI* pSender, int nShift) = 0;
+		virtual const SIZE& GetScrollBarShift() const = 0;
+	};
 }
 
 #endif

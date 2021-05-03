@@ -1,6 +1,6 @@
 
-#ifndef _MYUI_BUILDER_H_
-#define _MYUI_BUILDER_H_
+#ifndef __MYUI_BUILDER_H__
+#define __MYUI_BUILDER_H__
 
 #include "UIControl.h"
 #include "UIWindow.h"

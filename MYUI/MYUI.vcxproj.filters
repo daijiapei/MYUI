@@ -117,9 +117,6 @@
     <ClCompile Include="Core\UIWindow.cpp">
       <Filter>Core</Filter>
     </ClCompile>
-    <ClCompile Include="Core\UserHandle.cpp">
-      <Filter>Core</Filter>
-    </ClCompile>
     <ClCompile Include="ExtControl\UIActiveX.cpp">
       <Filter>ExtControl</Filter>
     </ClCompile>
@@ -165,13 +162,7 @@
     <ClCompile Include="Render\SkinManager.cpp">
       <Filter>Render</Filter>
     </ClCompile>
-    <ClCompile Include="Utils\AvlTree.cpp">
-      <Filter>Utils</Filter>
-    </ClCompile>
     <ClCompile Include="Utils\QR_Encode.cpp">
-      <Filter>Utils</Filter>
-    </ClCompile>
-    <ClCompile Include="Utils\Helper.cpp">
       <Filter>Utils</Filter>
     </ClCompile>
     <ClCompile Include="Utils\stb_image.c">
@@ -186,11 +177,32 @@
     <ClCompile Include="Utils\rbtree.c">
       <Filter>Utils</Filter>
     </ClCompile>
-    <ClCompile Include="Utils\MD5.c">
-      <Filter>Utils</Filter>
-    </ClCompile>
     <ClCompile Include="Control\UIMenu.cpp">
       <Filter>Control</Filter>
+    </ClCompile>
+    <ClCompile Include="Utils\binaryheap.c">
+      <Filter>Utils</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\UIThread.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\UITimer.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Render\LanguageEdition.cpp">
+      <Filter>Render</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\UICaret.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\UIWindowBase.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Control\UIWidget.cpp">
+      <Filter>Control</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\UIInterface.cpp">
+      <Filter>Core</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -230,14 +242,8 @@
     <ClInclude Include="Layout\UIHorizontalLayout.h">
       <Filter>Layout</Filter>
     </ClInclude>
-    <ClInclude Include="Utils\Helper.h">
-      <Filter>Utils</Filter>
-    </ClInclude>
     <ClInclude Include="Control\UIScrollBar.h">
       <Filter>Control</Filter>
-    </ClInclude>
-    <ClInclude Include="Utils\AvlTree.h">
-      <Filter>Utils</Filter>
     </ClInclude>
     <ClInclude Include="Utils\XUnzip.h">
       <Filter>Utils</Filter>
@@ -338,22 +344,32 @@
     <ClInclude Include="Utils\QR_Encode.h">
       <Filter>Utils</Filter>
     </ClInclude>
-    <ClInclude Include="Core\UserHandle.h">
-      <Filter>Core</Filter>
-    </ClInclude>
     <ClInclude Include="Utils\rbtree.h">
-      <Filter>Utils</Filter>
-    </ClInclude>
-    <ClInclude Include="Utils\MD5.h">
       <Filter>Utils</Filter>
     </ClInclude>
     <ClInclude Include="Control\UIMenu.h">
       <Filter>Control</Filter>
     </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Attribute.xml">
-      <Filter>头文件</Filter>
-    </None>
+    <ClInclude Include="Utils\binaryheap.h">
+      <Filter>Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\UIThread.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\UITimer.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Render\LanguageEdition.h">
+      <Filter>Render</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\UICaret.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\UIWindowBase.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Control\UIWidget.h">
+      <Filter>Control</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

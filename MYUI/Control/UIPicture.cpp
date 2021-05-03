@@ -18,7 +18,7 @@ namespace MYUI
         }
 	}
 
-	CMuiString CPictureUI::g_strClassName(_T("PictureUI"));
+    const CMuiString CPictureUI::g_strClassName(_T("PictureUI"));
 
 	CMuiString CPictureUI::GetClassName() const
 	{
@@ -45,7 +45,7 @@ namespace MYUI
         if (0 == _tcsicmp(strItem, _T("QrCode")))
         {
 #ifdef _DEBUG
-            ASSERT(CheckBoer(strValue));
+            MUIASSERT(CheckBoer(strValue));
 #endif
             ShowQrCode(CheckTrue(strValue));
         }
@@ -73,15 +73,13 @@ namespace MYUI
         __super::SetText(pstrText);
     }
 
-    void CPictureUI::PaintStatusImage(const RECT& rcItem, const RECT& rcPaint)
+    void CPictureUI::PaintStatusImage(const RECT& rcUpdate)
     {
         if (NULL == (MPICS_QRCODE & m_dwStyle) || NULL == m_QrCode.hBitmap) return;
 
         RECT rcClient = m_rcClient;
         RECT rcSource = { 0 }, rcCorner = { 0 };
         ARGBREF refMask = 0xFF000000;
-
-        OffsetRect(&rcClient, rcItem.left, rcItem.top);
 
         rcSource.right = m_QrCode.szBitmap.cx;
         rcSource.bottom = m_QrCode.szBitmap.cy;

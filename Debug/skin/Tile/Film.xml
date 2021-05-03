@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="gb2312"?>
-<UIFrame>
+<MYUI>
 
       <TileLayout bkColor="RGB(36,36,36)" AdaptItemSize="140,190" AdaptPadding="10,5,10,5">
         <Lable bkImage="file='Tile/大黄蜂.jpg' dest='0,0,120,160'" textpadding="0,164,0,0" text="大黄蜂" font="6" textcolor="RGB(255,255,255)"/>
@@ -13,4 +13,4 @@
         <Lable bkImage="file='Tile/英雄再起.jpg' dest='0,0,120,160'" textpadding="0,164,0,0" text="英雄再起" font="6" textcolor="RGB(255,255,255)"/>
       </TileLayout>
 
-</UIFrame>
+</MYUI>

@@ -16,14 +16,13 @@ namespace MYUI
 		m_refSelBkColor = ARGB(255,156,199,230);
 		m_refSelTextColor = ARGB(255,0,0,0);
 		m_refHintColor = ARGB(255, 159,171,198);
-		m_ptCaret.x = m_ptCaret.y = 0;
 	}
 
 	CEditUI::~CEditUI()
 	{
 	}
 
-	CMuiString CEditUI::g_strClassName(_T("EditUI"));
+	const CMuiString CEditUI::g_strClassName(_T("EditUI"));
 
 	CMuiString CEditUI::GetClassName() const
 	{
@@ -43,16 +42,39 @@ namespace MYUI
 		return __super::SetStyle(dwStyle);
 	}
 
-	bool CEditUI::SetItem(RECT rcItem, bool bMustUpdate)
+	void CEditUI::SetTextFont(int FontId)
 	{
-		bool bRet = false;
-		bRet = __super::SetItem(rcItem, bMustUpdate);
-		if(STATE_FOCUS & m_dwState && m_bShowCaret)
-		{
-			this->SetCaret(NULL);
-		}
+		__super::SetTextFont(FontId);
+		MUITRACE(_T("CGdiRenderEngine::SetCaret"));
+		TEXTMETRIC tm = { 0 };
+		RECT rcCaret = { 0 };
+		HFONT hOldFont = NULL;
+		HDC hDC = NULL;
 
-		return bRet;
+		if (FALSE == ::IsWindow(GETHWND(this))) return;
+
+		hDC = ::GetDC(GETHWND(this));
+		if (m_hFont)
+		{
+			hOldFont = (HFONT)SelectObject(hDC, m_hFont);
+		}
+		
+		GetTextMetrics(hDC, &tm);
+
+		if (m_hFont)
+		{
+			(HFONT)SelectObject(hDC, hOldFont);
+		}
+		::ReleaseDC(GETHWND(this), hDC);
+
+		m_CaretInfo.Size.cx = MAX(1, tm.tmHeight / 10);
+		m_CaretInfo.Size.cy = tm.tmHeight;
+	}
+
+	void CEditUI::SetTextColor(ARGBREF argb)
+	{
+		__super::SetTextColor(argb);
+		m_CaretInfo.Color = argb;
 	}
 
 	void CEditUI::SetAttribute(LPCTSTR strItem, LPCTSTR strValue)
@@ -78,7 +100,7 @@ namespace MYUI
 		{
 			DWORD dwStyle = GetStyle();
 #ifdef _DEBUG
-			ASSERT(CheckBoer(strValue));
+			MUIASSERT(CheckBoer(strValue));
 #endif
 			if(TRUE == CheckTrue(strValue))
 			{
@@ -94,7 +116,7 @@ namespace MYUI
 		{
 			DWORD dwStyle = GetStyle();
 #ifdef _DEBUG
-			ASSERT(CheckBoer(strValue));
+			MUIASSERT(CheckBoer(strValue));
 #endif
 
 			if(TRUE == CheckTrue(strValue))
@@ -111,7 +133,7 @@ namespace MYUI
 		{
 			DWORD dwStyle = GetStyle();
 #ifdef _DEBUG
-			ASSERT(CheckBoer(strValue));
+			MUIASSERT(CheckBoer(strValue));
 #endif
 
 			if(TRUE == CheckTrue(strValue))
@@ -128,7 +150,7 @@ namespace MYUI
 		{
 			DWORD dwStyle = GetStyle();
 #ifdef _DEBUG
-			ASSERT(CheckBoer(strValue));
+			MUIASSERT(CheckBoer(strValue));
 #endif
 			if(TRUE == CheckTrue(strValue))
 			{
@@ -144,7 +166,7 @@ namespace MYUI
 		{
 			DWORD dwStyle = GetStyle();
 #ifdef _DEBUG
-			ASSERT(CheckBoer(strValue));
+			MUIASSERT(CheckBoer(strValue));
 #endif
 			if(TRUE == CheckTrue(strValue))
 			{
@@ -160,7 +182,7 @@ namespace MYUI
 		{
 			DWORD dwStyle = GetStyle();
 #ifdef _DEBUG
-			ASSERT(CheckBoer(strValue));
+			MUIASSERT(CheckBoer(strValue));
 #endif
 			if(TRUE == CheckTrue(strValue))
 			{
@@ -176,7 +198,7 @@ namespace MYUI
 		{
 			DWORD dwStyle = GetStyle();
 #ifdef _DEBUG
-			ASSERT(CheckBoer(strValue));
+			MUIASSERT(CheckBoer(strValue));
 #endif
 			if(TRUE == CheckTrue(strValue))
 			{
@@ -192,7 +214,7 @@ namespace MYUI
 		{
 			DWORD dwStyle = GetStyle();
 #ifdef _DEBUG
-			ASSERT(CheckBoer(strValue));
+			MUIASSERT(CheckBoer(strValue));
 #endif
 			if(TRUE == CheckTrue(strValue))
 			{
@@ -218,7 +240,6 @@ namespace MYUI
 		bool bHasNext = false;
 		int nWidth = 0, nHeight = 0;
 		RECT rcClient = m_rcRawItem;;
-		HFONT hFont = (HFONT)(m_pShareInfo ? m_pShareInfo->FontArray->Select(m_nFontId) : NULL);
 		if(!(m_dwStyle & MES_MULTILINE))
 		{
 			return szContent;
@@ -235,7 +256,7 @@ namespace MYUI
 			rcClient.right -= m_rcTextPadding.right;
 			
 			szContent = m_pShareInfo->pRenderEngine->GetTextSize(rcClient,
-				m_TextBuffer, m_TextBuffer.GetLenght(), hFont,
+				m_TextBuffer, m_TextBuffer.GetLenght(), m_hFont,
 				m_nRowSpace, TOS_AUTOLINEFREE | TOS_MULTILLINE);
 
 			szContent.cy += m_rcTextPadding.top + m_rcTextPadding.bottom;
@@ -244,7 +265,7 @@ namespace MYUI
 		{
 			//TOS_MULTILLINE旗标中，rcClient 其实是忽略的
 			szContent = m_pShareInfo->pRenderEngine->GetTextSize(rcClient,
-				m_TextBuffer, m_TextBuffer.GetLenght(), hFont,
+				m_TextBuffer, m_TextBuffer.GetLenght(), m_hFont,
 				m_nRowSpace, TOS_MULTILLINE);
 
 			szContent.cx += m_rcTextPadding.right + m_rcTextPadding.left;
@@ -298,21 +319,17 @@ namespace MYUI
 		m_nRowSpace = nRowSpace;
 	}
 
-	void CEditUI::PaintText(const RECT& rcItem, const RECT& rcPaint)
+	void CEditUI::PaintContent(const RECT& rcUpdate)
 	{
 		SIZE szText;
 		POINT ptOutput;
 		DWORD dwType = NULL;
-		HCLIP hOldClip = NULL;
 		RECT rcText = m_rcContent;
-		RECT rcClip = {0};
 		SIZE szBroder = {0};
-		HFONT hFont = (HFONT)m_pShareInfo->FontArray->Select(m_nFontId);
 
 		if(_T('\0') == m_TextBuffer[0] && _T('\0') == m_strHint[0]) return;
 
 		IndentRect(&rcText, &m_rcTextPadding);
-		OffsetRect(&rcText,rcItem.left - m_szScrollOffset.cx,rcItem.top - m_szScrollOffset.cy);
 		int nSelStart = m_nSelStart, nSelLenght = m_nSelLenght;
 		if(MES_MULTILINE & m_dwStyle)
 		{
@@ -335,30 +352,18 @@ namespace MYUI
 			nSelLenght = -nSelLenght;
 		}
 
-		//设置有效绘制区域
-		if(m_rcContent.right - m_rcContent.left > m_rcClient.right - m_rcClient.left
-			|| m_rcContent.bottom - m_rcContent.top > m_rcClient.bottom - m_rcClient.top)
-		{
-			rcClip = rcItem;
-			if(IndentRect(&rcClip, &m_rcTextPadding))
-			{
-				hOldClip = m_pShareInfo->pRenderEngine->EnterClip(rcClip, szBroder);
-			}
-		}
-
 		if(FALSE == (STATE_FOCUS & m_dwState) && m_TextBuffer.IsEmpty() && false == m_strHint.IsEmpty())
 		{
 			m_pShareInfo->pRenderEngine->OnTextOut(rcText, ptOutput,
 				m_strHint, m_strHint.GetLength() , m_refHintColor,
-				hFont, m_nRowSpace, dwType, NULL);
+				m_hFont, m_nRowSpace, dwType, NULL);
 		}
-
 		else if(false == m_TextBuffer.IsEmpty())
 		{
 			if(MES_CENTER & m_dwStyle)
 			{
 				szText = m_pShareInfo->pRenderEngine->GetTextSize(rcText, m_TextBuffer,
-					m_TextBuffer.GetLenght(), hFont, 0, dwType);
+					m_TextBuffer.GetLenght(), m_hFont, 0, dwType);
 				rcText.left += MAX(0, (rcText.right - rcText.left - szText.cx) / 2);
 				rcText.right -= MAX(0, (rcText.right - rcText.left - szText.cx) / 2);
 				ptOutput.x = rcText.left;
@@ -366,52 +371,39 @@ namespace MYUI
 			//首先绘制0 到选中索引的位置
 			m_pShareInfo->pRenderEngine->OnTextOut(rcText, ptOutput,
 				m_TextBuffer, nSelStart , m_refTextColor,
-				hFont, m_nRowSpace, dwType, NULL);
+				m_hFont, m_nRowSpace, dwType, NULL);
 
 			m_pShareInfo->pRenderEngine->OnTextOut(rcText, ptOutput,
 				&m_TextBuffer[nSelStart], nSelLenght , m_refSelTextColor,
-				hFont, m_nRowSpace, dwType, m_refSelBkColor);
+				m_hFont, m_nRowSpace, dwType, m_refSelBkColor);
 
 			//最后绘制索引后面的文字
 			m_pShareInfo->pRenderEngine->OnTextOut(rcText, ptOutput,
 				&m_TextBuffer[nSelStart + nSelLenght] ,
 				m_TextBuffer.GetLenght() - (nSelStart + nSelLenght) , 
-				m_refTextColor,hFont, m_nRowSpace, dwType, NULL);
+				m_refTextColor, m_hFont, m_nRowSpace, dwType, NULL);
 		}
 
-		m_pShareInfo->pRenderEngine->LeaveClip(hOldClip);//离开有效绘制区域
-	}
-
-	void CEditUI::OnScrollBarMove(LPCVOID pSender, int nShift)
-	{
-		POINT ptCaret = m_ptCaret;
-		RECT rcDisplay = {0};
-		HFONT hFont = (HFONT)m_pShareInfo->FontArray->Select(m_nFontId);
-		if(pSender == m_pVerticalScrollBar && m_pVerticalScrollBar)
-		{
-			ptCaret.y -= nShift;
-		}
-
-		if(pSender == m_pHorizontalScrollBar && m_pHorizontalScrollBar)
-		{
-			ptCaret.x -= nShift;
-		}
-
-		if(true == GetItemDisplayRect(rcDisplay))
-		{
-			ptCaret.x += rcDisplay.left;
-			ptCaret.y += rcDisplay.top;
-			m_pShareInfo->pRenderEngine->SetCaret(rcDisplay, ptCaret, hFont);
-		}
-		else
-		{
-			DestroyCaret();
-		}
+		OnDrawCaret(rcUpdate);
 		
-		__super::OnScrollBarMove(pSender, nShift);
 	}
 
-	LRESULT CEditUI::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+	void CEditUI::OnDrawCaret(const RECT& rcUpdate)
+	{
+		RECT rcCaret = { 0 };
+		if (FALSE == m_CaretInfo.Visible || FALSE == m_CaretInfo.Showing) return;
+
+		rcCaret.left = m_rcContent.left + m_CaretInfo.Point.x;
+		rcCaret.top = m_rcContent.top + m_CaretInfo.Point.y;
+		rcCaret.right = rcCaret.left + m_CaretInfo.Size.cx;
+		rcCaret.bottom = rcCaret.top + m_CaretInfo.Size.cy;
+
+		if (FALSE == IsContainRect(rcCaret, m_rcClient)) return;
+
+		m_pShareInfo->pRenderEngine->OnDrawColor(rcCaret, m_refTextColor);
+	}
+
+	LRESULT CEditUI::WndProc(UINT message, WPARAM wParam, LPARAM lParam)
 	{
 		POINT point;
 		bool bRet = false;
@@ -419,11 +411,13 @@ namespace MYUI
 		RECT rcText = {0}, rcDisplay = {0};
 		int nEncodeLenght = 0;
 		int nTextHeight = 0;
-		HFONT hFont = (HFONT)(m_pShareInfo ? m_pShareInfo->FontArray->Select(m_nFontId) : NULL);
+		HWND hWnd = GETHWND(this);
+		HFONT hFont = (HFONT)m_hFont;
 		switch(message)
 		{
 		case WM_LBUTTONDOWN:
 			{
+				MUITRACE(_T("CEditUI::WM_LBUTTONDOWN"));
 				OnLeftButtonDown(hWnd, message, wParam, lParam);
 			}break;
 		case WM_LBUTTONUP:
@@ -468,26 +462,42 @@ namespace MYUI
 			{
 
 			}break;
+		case WM_TIMER:
+		{
+			if (CaretTimerId != wParam) break;
+
+			//GetClientDisplayRect(rcDisplay);
+			m_CaretInfo.Showing = !m_CaretInfo.Showing;
+			this->Invalidate();
+			return 0;
+		}break;
 		case WM_SETFOCUS:
 			{
-				TRACE(_T("CEditUI::WM_SETFOCUS"));
+				MUITRACE(_T("CEditUI::WM_SETFOCUS"));
 				if(0x000000F0 & GetStyle() && NULL == m_hIMC)
 				{
 					m_hIMC = ImmAssociateContext(m_pShareInfo->hWnd, NULL);
 				}
+				m_CaretInfo.Visible = TRUE;
+				m_CaretInfo.Showing = FALSE;
+				this->SetTimer(CaretTimerId, CaretTimeOut);
+				//return 0;
 			}break;
 		case WM_KILLFOCUS:
 			{
-				DestroyCaret();
-				TRACE(_T("CEditUI::WM_KILLFOCUS"));
+				//DestroyCaret();
+				MUITRACE(_T("CEditUI::WM_KILLFOCUS"));
 				if(m_hIMC)
 				{
 					ImmAssociateContext(m_pShareInfo->hWnd, m_hIMC);
 				}
 				m_hIMC = NULL;
 				m_bShowCaret = false;
+				m_CaretInfo.Visible = FALSE;
+				this->KillTimer(CaretTimerId);
+				//return 0;
 			}break;
-		case WM_MOUSEENTER://鼠标第一次进入
+		case WMU_MOUSEENTER://鼠标第一次进入
 		case WM_MOUSELEAVE://鼠标离开
 			{
 				
@@ -496,7 +506,7 @@ namespace MYUI
 			break;
 		}
 
-		return __super::WndProc(hWnd, message, wParam, lParam);
+		return __super::WndProc(message, wParam, lParam);
 	}
 
 	LRESULT CEditUI::OnKeyDown(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
@@ -508,8 +518,6 @@ namespace MYUI
 		int nTextHeight = 0;
 		HGLOBAL hMem = NULL;
 		TCHAR * strText = NULL;
-
-		HFONT hFont = (HFONT)(m_pShareInfo ? m_pShareInfo->FontArray->Select(m_nFontId) : NULL);
 		
 		//键按下消息
 		if(FALSE == m_bEnabled) return false;
@@ -542,8 +550,8 @@ namespace MYUI
 			}break;
 		case VK_UP:
 			{
-				pt = m_ptCaret;
-				nTextHeight = m_pShareInfo->pRenderEngine->GetTextHeight(hFont);
+				pt = m_CaretInfo.Point;
+				nTextHeight = m_pShareInfo->pRenderEngine->GetTextHeight(m_hFont);
 				pt.y -= (nTextHeight / 2) - m_nRowSpace;
 				
 				if(0 != m_nSelLenght)
@@ -556,8 +564,8 @@ namespace MYUI
 			}break;
 		case VK_DOWN:
 			{
-				pt = m_ptCaret;
-				nTextHeight = m_pShareInfo->pRenderEngine->GetTextHeight(hFont);
+				pt = m_CaretInfo.Point;
+				nTextHeight = m_pShareInfo->pRenderEngine->GetTextHeight(m_hFont);
 				pt.y += (nTextHeight * 3 / 2) + m_nRowSpace;
 
 				if(0 != m_nSelLenght)
@@ -585,7 +593,7 @@ namespace MYUI
 				if(GetKeyState(VK_CONTROL) > 0) break;//Ctrl没有按下
 				if(MES_PASSWORD & m_dwStyle) break;
 
-				TRACE(_T("Ctrl + X KeyDown"));
+				MUITRACE(_T("Ctrl + X KeyDown"));
 				int nStart = m_nSelStart, nLenght = m_nSelLenght;
 
 				if(0 > nLenght)
@@ -620,7 +628,7 @@ namespace MYUI
 				if(GetKeyState(VK_CONTROL) > 0) break;//Ctrl没有按下
 				if(MES_PASSWORD & m_dwStyle) break;
 
-				TRACE(_T("Ctrl + C KeyDown"));
+				MUITRACE(_T("Ctrl + C KeyDown"));
 				int nStart = m_nSelStart, nLenght = m_nSelLenght;
 
 				if(0 > nLenght)
@@ -646,7 +654,7 @@ namespace MYUI
 				if(GetKeyState(VK_CONTROL) > 0) break;//Ctrl没有按下
 				if(MES_PASSWORD & m_dwStyle) break;
 
-				TRACE(_T("Ctrl + V KeyDown"));
+				MUITRACE(_T("Ctrl + V KeyDown"));
 				OpenClipboard(m_pShareInfo->hWnd);
 				if(IsClipboardFormatAvailable(CF_TEXT))//存在文本
 				{
@@ -688,17 +696,17 @@ namespace MYUI
 		RECT rcText = {0}, rcDisplay = {0};
 		int nEncodeLenght = 0;
 		int nTextHeight = 0;
-		HFONT hFont = (HFONT)(m_pShareInfo ? m_pShareInfo->FontArray->Select(m_nFontId) : NULL);
+		HFONT hFont = m_hFont;
 
 		if(false == m_bEnabled || MES_READONLY & m_dwStyle) return false;
 
-		TRACE(_T("CEditUI::OnChat = %c, 0x%x"),(TCHAR)wParam,(TCHAR)wParam);
+		MUITRACE(_T("CEditUI::OnChat = %c, 0x%x"),(TCHAR)wParam,(TCHAR)wParam);
 		switch((TCHAR)wParam)
 		{
 		case _T('\b'):// 退格键
 			{
 				//处理文字缓冲
-				TRACE(_T("m_nSelStart = %d, m_nSelLenght= %d"), m_nSelStart, m_nSelLenght);
+				MUITRACE(_T("m_nSelStart = %d, m_nSelLenght= %d"), m_nSelStart, m_nSelLenght);
 
 				//没有可以删除的文字
 				if(0 == m_nSelStart && 0 == m_nSelLenght) return false;
@@ -740,7 +748,7 @@ namespace MYUI
 			}break;
 		}
 
-		this->SendNotify(!hWnd, EnumNotifyMsg::TextChange, wParam, message);
+		this->SendNotify(EnumNotify::TextChange, wParam, message);
 		this->SetItem(m_rcItem, true);
 		this->Invalidate();
 
@@ -749,26 +757,26 @@ namespace MYUI
 
 	LRESULT CEditUI::OnLeftButtonDown(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	{
-		POINT pt;
+		POINT Point = { 0 };
 		bool bRet = false;
 		DWORD dwType = NULL;
 		RECT rcText = {0}, rcDisplay = {0}, rcFixed = {0};
 		int nEncodeLenght = 0;
 		int nTextHeight = 0;
-		HFONT hFont = (HFONT)(m_pShareInfo ? m_pShareInfo->FontArray->Select(m_nFontId) : NULL);
-		//::SetFocus(msg.hWnd);
+		
+		MUITRACE(_T("m_dwState = %x"), m_dwState);
 		if(FALSE == (STATE_FOCUS & m_dwState) || false == m_bEnabled)
 		{
 			//有焦点和启用才能设置光标
 			return bRet;
 		}
 
-		pt.x = LOWORD(lParam);
-		pt.y = HIWORD(lParam);
+		Point.x = GET_X_LPARAM(lParam);
+		Point.y = GET_Y_LPARAM(lParam);
 		m_nSelLenght = 0;
-		this->SetCaret(&pt);
+		this->SetCaret(&Point);
 		this->Invalidate();
-		TRACE(_T("TestTextIndex = %d"), m_nSelStart);
+		MUITRACE(_T("TestTextIndex = %d"), m_nSelStart);
 
 		return 0;
 	}
@@ -781,7 +789,6 @@ namespace MYUI
 		RECT rcText = {0}, rcDisplay = {0}, rcFixed = {0};
 		int nEncodeLenght = 0;
 		int nTextHeight = 0;
-		HFONT hFont = (HFONT)(m_pShareInfo ? m_pShareInfo->FontArray->Select(m_nFontId) : NULL);
 
 		if(STATE_PUSHED & m_dwState)
 		{
@@ -793,22 +800,20 @@ namespace MYUI
 
 	LRESULT CEditUI::OnMouseMove(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	{
-		POINT pt;
+		POINT Point;
 		bool bRet = false;
 		DWORD dwType = NULL;
 		RECT rcText = {0}, rcDisplay = {0}, rcFixed = {0};
 		int nEncodeLenght = 0;
 		int nTextHeight = 0;
-		HFONT hFont = (HFONT)(m_pShareInfo ? m_pShareInfo->FontArray->Select(m_nFontId) : NULL);
 
-		if(FALSE == m_bEnabled || FALSE == (STATE_PUSHED & m_dwState) ||
-			FALSE == (STATE_FOCUS & m_dwState))
+		if(FALSE == (STATE_PUSHED & m_dwState) || FALSE == (STATE_FOCUS & m_dwState))
 		{
 			return false;
 		}
 
-		pt.x = LOWORD(lParam);
-		pt.y = HIWORD(lParam);
+		Point.x = GET_X_LPARAM(lParam);
+		Point.y = GET_Y_LPARAM(lParam);
 
 		if(MES_MULTILINE & m_dwStyle)
 		{
@@ -828,25 +833,19 @@ namespace MYUI
 		OffsetRect(&rcText, -m_szScrollOffset.cx, -m_szScrollOffset.cy);//滚动偏移
 
 		int nIndex = m_pShareInfo->pRenderEngine->TestTextIndex(rcText,
-			pt, m_TextBuffer, m_TextBuffer.GetLenght(), 
-			hFont, m_nRowSpace, dwType);
+			Point, m_TextBuffer, m_TextBuffer.GetLenght(),
+			m_hFont, m_nRowSpace, dwType);
 
 		if(m_nSelLenght != nIndex - m_nSelStart)
 		{
 			m_nSelLenght = nIndex - m_nSelStart;
 			this->Invalidate();
 		}
-		
-		m_ptCaret = pt;
 
-		//GetClientDisplayRect(rcDisplay);
-		//GetItemFixedRect(rcFixed);
-		//pt.x += rcFixed.left;
-		//pt.y += rcFixed.top;
-		//if(TRUE == IntersectRect(&rcDisplay, &rcDisplay, &rcFixed))
-		//{
-		//	m_pShareInfo->pRenderEngine->SetCaret(rcDisplay, pt, hFont);
-		//}
+		Point.x -= m_rcContent.left;
+		Point.y -= m_rcContent.top;
+		
+		m_CaretInfo.Point = Point;
 
 		return 0;
 	}
@@ -856,8 +855,7 @@ namespace MYUI
 		RECT rcText = m_rcContent;
 		DWORD dwType = NULL;
 		RECT rcDisplay = {0}, rcFixed = {0}, rcIndent = {0};
-		POINT pt;
-		HFONT hFont = (HFONT)(m_pShareInfo ? m_pShareInfo->FontArray->Select(m_nFontId) : NULL);
+		POINT Point;
 
 		m_bShowCaret = true;
 		//处理光标位置
@@ -874,37 +872,37 @@ namespace MYUI
 			dwType |= TOS_AUTOLINEFREE | TOS_MULTILLINE;
 		}
 
-		if(IndentRect(&rcText, &m_rcTextPadding) &&
-			OffsetRect(&rcText, -m_szScrollOffset.cx, -m_szScrollOffset.cy) &&
-			GetClientDisplayRect(rcDisplay) && GetItemFixedRect(rcFixed))
+		
+		MUITRACE(_T("SetCaret::rcText.left=%d; top = %d, right=%d, bottom=%d"), 
+			rcText.top, rcText.top, rcText.right, rcText.bottom);
+		MUITRACE(_T("SetCaret::rcPadd.left=%d; top = %d, right=%d, bottom=%d"), 
+			m_rcTextPadding.top, m_rcTextPadding.top, m_rcTextPadding.right, m_rcTextPadding.bottom);
+
+		if(IndentRect(&rcText, &m_rcTextPadding))
 		{
+			MUITRACE(_T("SetCaret::rcText.left=%d; top = %d, right=%d, bottom=%d"),
+				rcText.top, rcText.top, rcText.right, rcText.bottom);
 			if(ptMouse)//根据点击位置求光标
 			{
-				pt = *ptMouse;
+				Point = *ptMouse;
+				MUITRACE(_T("SetCaret::ptMouse.x = %d; ptMouse.y = %d"), Point.x, Point.y);
 				m_nSelStart = m_pShareInfo->pRenderEngine->TestTextIndex(rcText,
-					pt, m_TextBuffer, m_TextBuffer.GetLenght(),
-					hFont, m_nRowSpace, dwType);
+					Point, m_TextBuffer, m_TextBuffer.GetLenght(),
+					m_hFont, m_nRowSpace, dwType);
+				MUITRACE(_T("SetCaret::Point.x = %d; Point.y = %d"), Point.x, Point.y);
+				Point.x -= m_rcContent.left;
+				Point.y -= m_rcContent.top;
 			}
 			else
 			{
 				//根据文本索引求光标
-				pt = m_pShareInfo->pRenderEngine->GetTextPos(rcText, m_nSelStart, m_TextBuffer,
-					hFont, m_nRowSpace, dwType);
+				Point = m_pShareInfo->pRenderEngine->GetTextPos(rcText, m_nSelStart, m_TextBuffer,
+					m_hFont, m_nRowSpace, dwType);
 			}
 
-			m_ptCaret = pt;
+			m_CaretInfo.Point = Point;
 
-			pt.x += rcFixed.left;
-			pt.y += rcFixed.top;
-			
-			rcIndent.left = rcIndent.top = rcIndent.right = rcIndent.bottom = MAX(m_nBorderSize, m_nHotBorderSize);
-
-			if(TRUE == IndentRect(&rcFixed, &rcIndent) &&
-				TRUE == IntersectRect(&rcDisplay, &rcDisplay, &rcFixed))
-			{
-				m_pShareInfo->pRenderEngine->SetCaret(rcDisplay, pt, hFont);
-				return true;
-			}
+			return true;
 		}
 
 		return false;//光标是否有显示的位置

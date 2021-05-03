@@ -64,7 +64,7 @@ namespace MYUI
 	//CDragItemUI中不要使用异步关闭
 	BOOL CDragItemUI::Close(LONG nRet)
 	{
-		ASSERT(::IsWindow(m_hWnd));
+		MUIASSERT(::IsWindow(m_hWnd));
 		if( !::IsWindow(m_hWnd) ) return FALSE;
 		::PostMessage(m_hWnd, WM_CLOSE, nRet, 0L);
 		return TRUE;
@@ -72,7 +72,7 @@ namespace MYUI
 
 	BOOL CDragItemUI::Destroy()
 	{
-		ASSERT(::IsWindow(m_hWnd));
+		MUIASSERT(::IsWindow(m_hWnd));
 		return ::DestroyWindow(m_hWnd);
 	}
 
@@ -101,7 +101,7 @@ namespace MYUI
 		wndclass.lpszClassName = CDragItemUI::g_strClassName;
 
 		ATOM ret = ::RegisterClass(&wndclass);
-		ASSERT(ret!=NULL || ::GetLastError()==ERROR_CLASS_ALREADY_EXISTS);
+		MUIASSERT(ret!=NULL || ::GetLastError()==ERROR_CLASS_ALREADY_EXISTS);
 		return ret != NULL || ::GetLastError() == ERROR_CLASS_ALREADY_EXISTS;
 	}
 
@@ -115,7 +115,7 @@ namespace MYUI
 		if(szRound) m_szRound = *szRound;
 		if(NULL == pPointWnd)
 		{
-			ASSERT(pPointWnd && "IWindowEvent * pPointWnd 必须设置才能产生回调！");
+			MUIASSERT(pPointWnd && "IWindowEvent * pPointWnd 必须设置才能产生回调！");
 			return NULL;
 		}
 
@@ -126,7 +126,7 @@ namespace MYUI
 			0, 0, m_rcDrag.right - m_rcDrag.left, m_rcDrag.bottom - m_rcDrag.top,
 			NULL , NULL, hInstance, this);
 		
-		ASSERT(m_hWnd!=NULL);
+		MUIASSERT(m_hWnd!=NULL);
 		
 		return m_hWnd;
 	}
@@ -215,7 +215,7 @@ namespace MYUI
 		{
 			//一般我们是通过WM_LBUTTONDOWN时，产生一个DragItem控件，然后在
 			//WM_LBUTTONUP消息中释放DragItem，所以一般m_uOverMessage 的值是 WM_LBUTTONUP
-			TEVENT event;
+			MUIEVENT event;
 			::GetCursorPos(&point);
 			event.dwType = DragOver;
 			event.wParam = (WPARAM)this;

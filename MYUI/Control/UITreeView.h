@@ -60,23 +60,23 @@ namespace MYUI
 		virtual void RemoveAll();
 		virtual CControlUI * Find(int nIndex);
 		virtual int Find(CControlUI * pControl);
-		virtual int GetCount() const;
+		virtual int GetCount();
 	public:
 		CTreeNodeUI();
 		virtual ~CTreeNodeUI();
 
-		static CMuiString g_strClassName;
+		const static CMuiString g_strClassName;
 		virtual CMuiString GetClassName() const;
 
-		virtual bool SetItem(RECT rcItem, bool bMustUpdate);
+		virtual bool SetItem(RECT rcItem, bool bMustUpdate) override;
 		virtual SIZE GetValidSize();
 
-		virtual bool OnPaint(RECT rcItem, RECT rcPaint, RECT rcUpdate);
-		virtual void PaintBkColor( const RECT& rcItem, const RECT& rcPaint);
-		virtual void PaintBkImage( const RECT& rcItem, const RECT& rcPaint);
-		virtual void PaintStatusImage( const RECT& rcItem, const RECT& rcPaint);
-		virtual void PaintText(const RECT& rcItem, const RECT& rcPaint);
-		virtual VOID SetShareInfo(TSHAREINFO * pShareInfo);
+		virtual bool OnPaint(const RECT& rcUpdate) override;
+		virtual void PaintBkColor(const RECT& rcUpdate) override;
+		virtual void PaintBkImage(const RECT& rcUpdate) override;
+		virtual void PaintStatusImage(const RECT& rcUpdate) override;
+		virtual void PaintText(const RECT& rcUpdate) override;
+		virtual VOID SetShareInfo(MUISHAREINFO * pShareInfo);
 		virtual void SetAttribute(LPCTSTR strItem, LPCTSTR strValue);
 
 		virtual bool Update();//我会更新父布局的区域，所以兄弟控件也会调整
@@ -87,7 +87,7 @@ namespace MYUI
 		
 
 		//CNodeInterface
-		virtual void OnDrawNodeBk(const RECT &rcItem, const RECT &rcPaint);
+		virtual void OnDrawNodeBk(const RECT & rcUpdate);
 		virtual bool OnEvent(DWORD dwEvent, LPVOID wParam, LPVOID lParam);
 	public:
 
@@ -147,7 +147,7 @@ namespace MYUI
 		void SetHotColor(ARGBREF refColor);
 		ARGBREF GetHotColor() const;
 	protected:
-		virtual LRESULT WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
+		virtual LRESULT WndProc(UINT message, WPARAM wParam, LPARAM lParam) override;
 		DWORD CalcPointIn(const POINT& pt);
 
 	protected:
@@ -197,9 +197,9 @@ namespace MYUI
 		virtual ~CTreeViewUI();
 		static CMuiString g_strClassName;
 		virtual CMuiString GetClassName() const;
-		virtual LRESULT WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
+		virtual LRESULT WndProc(UINT message, WPARAM wParam, LPARAM lParam);
 		virtual void SetAttribute(LPCTSTR strItem, LPCTSTR strValue);
-		virtual bool OnPaint(RECT rcItem, RECT rcPaint, RECT rcUpdate);
+		virtual void PaintContent(const RECT& rcUpdate) override;
 		
 	public:
 		

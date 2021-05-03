@@ -1,6 +1,6 @@
 
-#ifndef _MYUI_TILE_LAYOUT_H_
-#define _MYUI_TILE_LAYOUT_H_
+#ifndef __MYUI_TILE_LAYOUT_H__
+#define __MYUI_TILE_LAYOUT_H__
 
 #include "UIBaseLayout.h"
 
@@ -24,11 +24,11 @@ namespace MYUI
 	public:
 		CTileLayoutUI();
 		virtual ~CTileLayoutUI();
-		static CMuiString g_strClassName;
+		const static CMuiString g_strClassName;
 		virtual CMuiString GetClassName() const;
 		virtual void SetAttribute(LPCTSTR strItem, LPCTSTR strValue);
 
-		virtual bool SetItem(RECT rcItem, bool bMustUpdate);
+		virtual bool SetItem(RECT rcItem, bool bMustUpdate) override;
 		virtual SIZE GetContentSize();
 
 		//HeightAdap ºÍ HeightAdap ºöÂÔnCount²ÎÊý

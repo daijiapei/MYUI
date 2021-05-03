@@ -13,7 +13,7 @@ namespace MYUI
 	{
 	}
 
-	CMuiString CHorizontalLayoutUI::g_strClassName(_T("HorizontalLayoutUI"));
+	const CMuiString CHorizontalLayoutUI::g_strClassName(_T("HorizontalLayoutUI"));
 
 	CMuiString CHorizontalLayoutUI::GetClassName() const
 	{
@@ -42,6 +42,7 @@ namespace MYUI
 
 		szContent.cx += m_rcInset.left + m_rcInset.right;
 		szContent.cy += m_rcInset.top + m_rcInset.bottom;
+
 		return szContent;
 	}
 
@@ -49,12 +50,11 @@ namespace MYUI
 	{
 		
 		//计算子控件的打印区域，要注意子控件的高，是否显示
-		RECT rcThisRegoin;//根据客户区计算出的子控件显示区域
+		RECT rcThisRegoin;
 		RECT rcChildItem;
 		RECT rcChildMargin;
 		POINT ptNextPos={0};//下一个控件的位置
 		SIZE siValidSize;
-		SIZE siNeedSize;
 
 		int nCenterPos = 0;
 		int nFloatWidth = 0;
@@ -70,6 +70,7 @@ namespace MYUI
 		int nControlCount = m_Items.GetSize();
 
 		if(false == __super::SetItem(rcItem, bMustUpdate)) return false;
+
 		if(nControlCount == 0 ) return true;//布局中没有其他控件就直接返回
 
 		//通过上面计算得出布局在窗口中的绝对位置
@@ -101,11 +102,9 @@ namespace MYUI
 		}
 
 		//先设置内缩进
-		siNeedSize = GetContentSize();
-		rcThisRegoin = m_rcClient;
-		rcThisRegoin.bottom = rcThisRegoin.top + MAX(siNeedSize.cy, rcThisRegoin.bottom - rcThisRegoin.top);
+		rcThisRegoin = m_rcContent;
 		IndentRect(&rcThisRegoin, &m_rcInset);
-		ptNextPos.y = m_rcInset.top;
+		ptNextPos.y = rcThisRegoin.top;
 		//先求出绝对宽度的控件或布局的宽度总和，
 		//然后将剩余的宽度分配给相对布局的控件
 		if(nActiveControlCount == nFloatControlCount)
@@ -195,7 +194,7 @@ namespace MYUI
 			rcChildMargin = pControl->GetMargin();
 			IndentRect(&rcChildItem, &rcChildMargin);
 loop:
-			pControl->SetItem(rcChildItem, false);
+			pControl->SetItem(rcChildItem, bMustUpdate);
 		}
 		return true;
 	}

@@ -12,7 +12,7 @@ namespace MYUI
 	{
 	}
 
-	CMuiString CTabLayoutUI::g_strClassName(_T("TabLayoutUI"));
+	const CMuiString CTabLayoutUI::g_strClassName(_T("TabLayoutUI"));
 
 	CMuiString CTabLayoutUI::GetClassName() const
 	{
@@ -139,46 +139,39 @@ namespace MYUI
 			//置空
 			EmptyRect(rcChildItem);
 			
-			if(false == pControl->IsVisible())
+			//if(true == pControl->IsVisible())
 			{
-				//不显示打印区域就是空了
-				goto loop;
+				rcChildItem = m_rcClient;
+				//缩进相对于父控件的内边距
+				IndentRect(&rcChildItem, &m_rcInset);
+				//缩进相对于自己的外边距
+				rcChildMargin = pControl->GetMargin();
+				IndentRect(&rcChildItem, &rcChildMargin);
 			}
 
-			rcChildItem = m_rcClient;
-			//缩进相对于父控件的内边距
-			IndentRect(&rcChildItem, &m_rcInset);
-			//缩进相对于自己的外边距
-			rcChildMargin = pControl->GetMargin();
-			IndentRect(&rcChildItem, &rcChildMargin);
-loop:
-			pControl->SetItem(rcChildItem, false);
+			pControl->SetItem(rcChildItem, bMustUpdate);
 		}
 		return true;
 	}
 
-	bool CTabLayoutUI::OnPaint(RECT rcItem, RECT rcPaint, RECT rcUpdate)
+	bool CTabLayoutUI::OnPaint(const RECT& rcUpdate)
 	{
 		bool bResult = false;
 		RECT rcChildItem = m_rcClient;
-		RECT rcChildPaint;
+		RECT rcChildUpdate;
 		//先绘制自己，没有滚动条的
 		
-		HCLIP hOldClip = m_pShareInfo->pRenderEngine->EnterClip(rcPaint, m_szBorderRound);
-		if(false == CControlUI::OnPaint(rcItem, rcPaint, rcUpdate))
+		if(false == CControlUI::OnPaint(rcUpdate)) return false;
+
+		if (NULL == m_pSelect) return true;
+
+		rcChildItem = m_pSelect->GetItem();
+		if(IntersectRect(&rcChildUpdate, &rcChildItem, &rcUpdate))
 		{
-			goto finish;
+			OffsetRect(&rcChildUpdate, -rcChildItem.left, -rcChildItem.top);
+			bResult = m_pSelect->OnPaint(rcChildUpdate);
 		}
 
-		//再绘制m_pSelect就OK了
-		if(m_pSelect && OffsetRect(&rcChildItem, rcItem.left, rcItem.top)
-			&& IntersectRect(&rcChildPaint, &rcChildItem, &rcPaint))
-		{
-			bResult = m_pSelect->OnPaint(rcChildItem, rcChildPaint, rcUpdate);
-		}
-
-finish:
-		m_pShareInfo->pRenderEngine->LeaveClip(hOldClip);
-		return bResult;
+		return true;
 	}
 }

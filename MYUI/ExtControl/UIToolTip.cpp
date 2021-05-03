@@ -62,7 +62,7 @@ namespace MYUI
 	//CDragItemUI中不要使用异步关闭
 	BOOL CToolTipUI::Close(LONG nRet)
 	{
-		ASSERT(::IsWindow(m_hWnd));
+		MUIASSERT(::IsWindow(m_hWnd));
 		if( !::IsWindow(m_hWnd) ) return FALSE;
 		::PostMessage(m_hWnd, WM_CLOSE, nRet, 0L);
 		return TRUE;
@@ -70,7 +70,7 @@ namespace MYUI
 
 	BOOL CToolTipUI::Destroy()
 	{
-		ASSERT(::IsWindow(m_hWnd));
+		MUIASSERT(::IsWindow(m_hWnd));
 		return ::DestroyWindow(m_hWnd);
 	}
 
@@ -89,7 +89,7 @@ namespace MYUI
 		wndclass.lpszClassName = CToolTipUI::g_strClassName;
 
 		ATOM ret = ::RegisterClass(&wndclass);
-		ASSERT(ret!=NULL || ::GetLastError()==ERROR_CLASS_ALREADY_EXISTS);
+		MUIASSERT(ret!=NULL || ::GetLastError()==ERROR_CLASS_ALREADY_EXISTS);
 		return ret != NULL || ::GetLastError() == ERROR_CLASS_ALREADY_EXISTS;
 	}
 
@@ -97,18 +97,18 @@ namespace MYUI
 	{
 		if(false == RegisterClass(hInstance)) return NULL;
 
-		m_hWnd = ::CreateWindowEx(WS_EX_LAYERED, CToolTipUI::g_strClassName, _T("\0"),
+        m_hWnd = ::CreateWindowEx(WS_EX_TOOLWINDOW | WS_EX_LAYERED, CToolTipUI::g_strClassName, _T("\0"),
 			WS_POPUP | WS_CLIPSIBLINGS,
 			0, 0, 0, 0,
 			NULL , NULL, hInstance, this);
 		
-		ASSERT(m_hWnd!=NULL);
+		MUIASSERT(m_hWnd!=NULL);
 		return m_hWnd;
 	}
 
 	void CToolTipUI::ShowWindow(BOOL bShow)
 	{
-		ASSERT(::IsWindow(m_hWnd));
+		MUIASSERT(::IsWindow(m_hWnd));
 		::ShowWindow(m_hWnd, bShow);
 	}
 

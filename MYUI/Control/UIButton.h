@@ -13,12 +13,12 @@ namespace MYUI
 	public:
 		CButtonUI();
 		virtual ~CButtonUI();
-		static CMuiString g_strClassName;
+		const static CMuiString g_strClassName;
 
 		virtual CMuiString GetClassName() const;
 
 	protected:
-		virtual LRESULT WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
+		virtual LRESULT WndProc(UINT message, WPARAM wParam, LPARAM lParam);
 
 
 	};

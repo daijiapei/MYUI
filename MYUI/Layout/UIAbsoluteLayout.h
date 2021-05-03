@@ -1,6 +1,6 @@
 
-#ifndef _MYUI_ABSOLUTE_LAYOUT_H_
-#define _MYUI_ABSOLUTE_LAYOUT_H_
+#ifndef __MYUI_ABSOLUTE_LAYOUT_H__
+#define __MYUI_ABSOLUTE_LAYOUT_H__
 
 #include "UIBaseLayout.h"
 
@@ -16,10 +16,10 @@ namespace MYUI
 	public:
 		CAbsoluteLayoutUI();
 		virtual ~CAbsoluteLayoutUI();
-		static CMuiString g_strClassName;
+		const static CMuiString g_strClassName;
 		virtual CMuiString GetClassName() const;
 
-		virtual bool SetItem(RECT rcItem, bool bMustUpdate);
+		virtual bool SetItem(RECT rcItem, bool bMustUpdate) override;
 		virtual SIZE GetContentSize();
 
 	protected:

@@ -1,5 +1,6 @@
 
 #include "UIControl.h"
+#include "UIThread.h"
 
 namespace MYUI
 {
@@ -17,7 +18,7 @@ namespace MYUI
 
 	CControlUI::~CControlUI()
 	{
-		TRACE(_T("CControlUI::~CControlUI"));
+		MUITRACE(_T("CControlUI::~CControlUI"));
 	}
 
 	bool CControlUI::IsControl()
@@ -27,103 +28,88 @@ namespace MYUI
 
 	bool CControlUI::GetItemDisplayRect(RECT &rcDisplay)
 	{
-		RECT rc = m_rcRawItem;
-		OffsetRect(&rc, m_rcItem.left, m_rcItem.top);
-		return GetDisplayRect(rcDisplay, rc);
+		RECT rcMatch = m_rcRawItem;
+		OffsetRect(&rcMatch, m_rcItem.left, m_rcItem.top);
+		return GetDisplayRect(rcDisplay, rcMatch);
 	}
 
 	bool CControlUI::GetClientDisplayRect(RECT &rcDisplay)
 	{
-		RECT rc = m_rcClient;
-		OffsetRect(&rc, m_rcItem.left, m_rcItem.top);
-		return GetDisplayRect(rcDisplay, rc);
+		RECT rcMatch = m_rcClient;
+		OffsetRect(&rcMatch, m_rcItem.left, m_rcItem.top);
+		return GetDisplayRect(rcDisplay, rcMatch);
 	}
 
-	bool CControlUI::GetDisplayRect(RECT &rcDisplay,const RECT &rc)
+	bool CControlUI::GetDisplayRect(RECT &rcDisplay,const RECT &rcMatch)
 	{
 		//控件在窗口中显示的位置，如果在窗口中有显示，则返回true
 		//没有显示则返回false
 		//注意，如果在绝对布局中，发生重叠的控件，
 		//这个函数不会考虑重叠问题，返回的区域可能大于显示区域
 		RECT rcParentClient;
-		RECT rcDisplayTmp = rc;
-
+		RECT rcParentItem;
+		RECT rcDisplayTmp = rcMatch;
+		
 		CControlUI * pControl = this;
-		IScrollBarMove * pInterface = nullptr;
 
-		if(false == m_bVisible) return false;
+		if (false == pControl->IsVisible())
+		{
+			return false;
+		}
 
-		while(pControl = pControl->GetParent())
+		while (pControl = pControl->GetParent())
 		{
 			if(false == pControl->IsVisible())
 			{
 				return false;
 			}
 
-			pInterface = dynamic_cast<IScrollBarMove *>(pControl);
-			if(pInterface)
-			{
-				OffsetRect(&rcDisplayTmp, - pInterface->GetScrollBarShift().cx,
-					-pInterface->GetScrollBarShift().cy);
-			}
-
+			rcParentItem = pControl->GetItem();
 			rcParentClient = pControl->GetItemClient();
-			OffsetRect(&rcDisplayTmp, rcParentClient.left, rcParentClient.top);
+			OffsetRect(&rcDisplayTmp, rcParentItem.left, rcParentItem.top);
 			if(false == IntersectRect(&rcDisplayTmp, &rcDisplayTmp, &rcParentClient))
 			{
 				return false;
 			}
 		}
+
 		rcDisplay = rcDisplayTmp;
 		return true;
 	}
 
 	bool CControlUI::GetItemFixedRect(RECT &rcFixed)
 	{
-		RECT rc = m_rcRawItem;
-		OffsetRect(&rc, m_rcItem.left, m_rcItem.top);
-		return GetFixedRect(rcFixed, rc);
+		return GetFixedRect(rcFixed, m_rcRawItem);
 	}
 
-	bool CControlUI::GetClientFixedRect(RECT &rcFixed)
+	bool CControlUI::GetClientFixedRect(RECT& rcFixed)
 	{
-		RECT rc = m_rcClient;
-		OffsetRect(&rc, m_rcItem.left, m_rcItem.top);
-		return GetFixedRect(rcFixed, rc);
+		return GetFixedRect(rcFixed, m_rcClient);
 	}
 
-	bool CControlUI::GetFixedRect(RECT &rcFixed, const RECT &rc)
+	bool CControlUI::GetFixedRect(RECT &rcFixed, const RECT & rcMatch)
 	{
-		RECT rcParentClient;
-		RECT rcFixedTmp = rc;
+		RECT rcParentItem;
+		RECT rcFixedTmp = rcMatch;
 
 		CControlUI * pControl = this;
-		IScrollBarMove * pInterface = nullptr;
 
-		if(false == m_bVisible) return false;
-
-		while(pControl = pControl->GetParent())
+		do
 		{
 			if(false == pControl->IsVisible())
 			{
 				return false;
 			}
 
-			pInterface = dynamic_cast<IScrollBarMove *>(pControl);
-			if(pInterface)
-			{
-				OffsetRect(&rcFixedTmp, - pInterface->GetScrollBarShift().cx,
-					-pInterface->GetScrollBarShift().cy);
-			}
+			rcParentItem = pControl->GetItem();
+			OffsetRect(&rcFixedTmp, rcParentItem.left, rcParentItem.top);
+		}while (pControl = pControl->GetParent());
 
-			rcParentClient = pControl->GetItemClient();
-			OffsetRect(&rcFixedTmp, rcParentClient.left, rcParentClient.top);
-		}
 		rcFixed = rcFixedTmp;
 		return true;
 	}
 
-	void CControlUI::SetShareInfo(TSHAREINFO * pShareInfo)
+	void CControlUI::SetShareInfo(MUISHAREINFO * pShareInfo)
 	{
 		HWND hOldWnd = m_pShareInfo ? m_pShareInfo->hWnd : NULL ;
 		HWND hNewWnd = pShareInfo ? pShareInfo->hWnd : NULL ;
@@ -153,6 +139,22 @@ namespace MYUI
 		if(false == __super::SetItem(rcItem, bMustUpdate) && m_bControl) return false;
 
 		return true;
+	}
+
+	void CControlUI::SetTextFont(int FontId)
+	{
+		__super::SetTextFont(FontId);
+		if (0 > m_nFontId)
+		{
+			m_hFont = NULL;
+		}
+		else
+		{
+			if (m_pShareInfo)
+			{
+				m_hFont = (HFONT)m_pShareInfo->FontArray.Select(m_nFontId);
+			}
+		}
 	}
 
 	void CControlUI::SetAttribute(LPCTSTR strItem, LPCTSTR strValue)
@@ -244,21 +246,21 @@ namespace MYUI
 		else if(0 == _tcsicmp(strItem, _T("visible"))) 
 		{
 #ifdef _DEBUG
-			ASSERT(CheckBoer(strValue));
+			MUIASSERT(CheckBoer(strValue));
 #endif
 			SetVisible(CheckTrue(strValue));
 		}
 		else if(0 == _tcsicmp(strItem, _T("enabled"))) 
 		{
 #ifdef _DEBUG
-			ASSERT(CheckBoer(strValue));
+			MUIASSERT(CheckBoer(strValue));
 #endif
 			SetEnabled(CheckTrue(strValue));
 		}
 		else if(0 == _tcsicmp(strItem, _T("Penetrated"))) 
 		{
 #ifdef _DEBUG
-			ASSERT(CheckBoer(strValue));
+			MUIASSERT(CheckBoer(strValue));
 #endif
 			SetPenetrated(CheckTrue(strValue));
 		}
@@ -280,26 +282,32 @@ namespace MYUI
 		}
 		else
 		{
-			TRACE(_T("SetAttribute: Item=%s, Value=%s"), strItem, strValue);
-			ASSERT(0 && "CControlUI::SetAttribute：no define strItem");
+			MUITRACE(_T("SetAttribute: Item=%s, Value=%s"), strItem, strValue);
+			MUIASSERT(0 && "CControlUI::SetAttribute：no define strItem");
 		}
 	}
 
-	CControlUI * CControlUI::FindControlByPoint(POINT &pt)
+	CControlUI * CControlUI::FindControlByPoint(POINT &Point)
 	{
 		HRGN hrgn = NULL;
 		CControlUI * pControl = NULL;
+
+		if (true == m_bPenetrated)
+		{
+			return NULL;
+		}
+
 		if(m_szBorderRound.cx || m_szBorderRound.cy)
 		{
 			hrgn = ::CreateRoundRectRgn(m_rcRawItem.left, m_rcRawItem.top, m_rcRawItem.right + 1,
 				m_rcRawItem.bottom + 1, m_szBorderRound.cx, m_szBorderRound.cy);
-			if(TRUE == ::PtInRegion(hrgn, pt.x, pt.y))
+			if(TRUE == ::PtInRegion(hrgn, Point.x, Point.y))
 			{
 				pControl = this;
 			}
 			::DeleteObject(hrgn);
 		}
-		else if(false == m_bPenetrated && PointInRect(pt, m_rcRawItem))
+		else if(PointInRect(Point, m_rcRawItem))
 		{
 			pControl = this;
 		}
@@ -324,9 +332,9 @@ namespace MYUI
 
 	bool CControlUI::SetFocus()
 	{
-		ASSERT(m_pShareInfo && m_pShareInfo->hWnd);
+		MUIASSERT(m_pShareInfo && m_pShareInfo->hWnd);
 		if(!m_pShareInfo || !m_pShareInfo->hWnd) return false;
-		::SendMessage(m_pShareInfo->hWnd, WM_SETFOCUS, NULL, (LPARAM)this);
+		::SendMessage(GETHWND(this), WM_SETFOCUS, NULL, (LPARAM)this);
 		return true;
 	}
 
@@ -396,50 +404,54 @@ namespace MYUI
 		this->Invalidate();
 	}
 
-	void CControlUI::PaintBkColor(const RECT& rcItem, const RECT& rcPaint)
+	void CControlUI::OnAttach(HWND hNewWnd)
+	{
+		SetTextFont(m_nFontId);
+		return __super::OnAttach(hNewWnd);
+	}
+
+	void CControlUI::OnDetach(HWND hOldWnd)
+	{
+		//bug
+		//在离开窗口时，应该判断一下窗口的热点等，是不是当前控件
+		//如果是，要把这些数据置空
+		SetState(0);
+		m_hFont = NULL;
+		return __super::OnDetach(hOldWnd);
+	}
+
+	void CControlUI::PaintBkColor(const RECT& rcUpdate)
 	{
 		//RECT rcClient = m_rcRawItem;
 		//OffsetRect(&rcClient, rcItem.left, rcItem.top);
-		m_pShareInfo->pRenderEngine->OnDrawColor(rcItem, m_refBkColor);
+		m_pShareInfo->pRenderEngine->OnDrawColor(m_rcClient, m_refBkColor);
 	}
 
-	void CControlUI::PaintStatusImage(const RECT& rcItem, const RECT& rcPaint)
+	void CControlUI::PaintStatusImage(const RECT& rcUpdate)
 	{
 		return ;
 	}
 
-	void CControlUI::PaintText(const RECT& rcItem, const RECT& rcPaint)
+	void CControlUI::PaintText(const RECT& rcUpdate)
 	{
 		return;
 	}
 
-	void CControlUI::PaintBorder(const RECT& rcItem, const RECT& rcPaint)
+	void CControlUI::PaintBorder(const RECT& rcUpdate)
 	{
-		m_pShareInfo->pRenderEngine->OnDrawBroder(rcItem ,m_refBorderColor, m_nBorderSize, m_szBorderRound);
+		m_pShareInfo->pRenderEngine->OnDrawBroder(m_rcRawItem, m_refBorderColor, m_nBorderSize, m_szBorderRound);
 	}
 
-	void CControlUI::PaintBkImage(const RECT& rcItem, const RECT& rcPaint)
+	void CControlUI::PaintBkImage(const RECT& rcUpdate)
 	{
 		LPCTSTR strImage = m_strBkImage;
-		RECT rcClient = m_rcClient;
 		if(!m_strDisabledImage.IsEmpty() && false == IsEnabled())
 		{
 			strImage = m_strDisabledImage;
 		}
 
 		if(_T('\0') == strImage[0]) return;
-		OffsetRect(&rcClient, rcItem.left, rcItem.top);
-		m_pShareInfo->pRenderEngine->OnDrawImage(rcClient, strImage);
-	}
-
-	void CControlUI::OnAttach(HWND hNewWnd)
-	{
-		return;
-	}
-
-	void CControlUI::OnDetach(HWND hOldWnd)
-	{
-		return;
+		m_pShareInfo->pRenderEngine->OnDrawImage(m_rcClient, strImage);
 	}
 
 	bool CControlUI::Invalidate()
@@ -473,27 +485,22 @@ namespace MYUI
         return this->Invalidate();
     }
 
-	bool CControlUI::OnPaint(RECT rcItem, RECT rcPaint, RECT rcUpdate)
+	bool CControlUI::OnPaint(const RECT& rcUpdate)
 	{
 		//这个rcItem跟m_rcItem的值有点不同，
 		//m_rcItem是相对于父控件的位置
 		//rcItem是相对整个窗口的位置，是一个绝对位置
-		if(!m_bVisible || !IsValidRect(rcPaint) || !m_pShareInfo) return false;
-
-		if(FALSE == IsContainRect(rcPaint, rcUpdate))
-		{
-			return false;
-		}
+		if(!m_bVisible || !m_pShareInfo) return false;
 
 		//rcPaint是父窗口提供的有效绘图区域
 		//rcClient参数是m_rcItem的绝对位置, 所以要将m_rcClient偏移到绝对位置：
 
 		/*从这里进行缓冲绘制*/
-		PaintBkColor(rcItem, rcPaint);
-		PaintBkImage(rcItem, rcPaint);
-		PaintStatusImage(rcItem, rcPaint);
-		PaintText(rcItem, rcPaint);
-		PaintBorder(rcItem, rcPaint);
+		PaintBkColor(rcUpdate);
+		PaintBkImage(rcUpdate);
+		PaintStatusImage(rcUpdate);
+		PaintText(rcUpdate);
+		PaintBorder(rcUpdate);
 
 		return true;
 	}
@@ -550,6 +557,28 @@ namespace MYUI
 		return m_strToolTip;
 	}
 
+	LPVOID CControlUI::GetInterface(LPCTSTR strName)
+	{
+		if (0 == _tcsicmp(strName, _T("CItemViewInfo")))
+		{
+			return static_cast<CItemViewInfo*>(this);
+		}
+		else if (0 == _tcsicmp(strName, _T("CItemPosition")))
+		{
+			return static_cast<CItemPosition*>(this);
+		}
+		else if (0 == _tcsicmp(strName, _T("CUIMessage")))
+		{
+			return static_cast<CUIMessage*>(this);
+		}
+		else if (0 == _tcsicmp(strName, _T("CControlUI")))
+		{
+			return static_cast<CControlUI*>(this);
+		}
+
+		return NULL;
+	}
+
 	CMuiString CControlUI::GetClassName() const
 	{
 		return _T("CControlUI");
@@ -570,23 +599,21 @@ namespace MYUI
 	}
 
 	//发出Notify通知
-	bool CControlUI::SendNotify(BOOL bChild, EnumNotifyMsg dwType, WPARAM wParam/* = NULL*/, LPARAM lParam/* = NULL*/)
+	BOOL CControlUI::SendNotify(EnumNotify emNotify, WPARAM wParam/* = NULL*/, LPARAM lParam/* = NULL*/)
 	{
-        TNOTIFYUI Notify;
+		MUINOTIFY Notify;
+		BOOL bChild = m_pParentContrl ? m_pParentContrl->IsControl() : FALSE;
         INotify * pNotify = m_pShareInfo ? m_pShareInfo->pNotify : NULL;
         Notify.pSender = this;
-        Notify.dwType = dwType;
+        Notify.dwType = emNotify;
         Notify.wParam = wParam;
         Notify.lParam = lParam;
 
-		if(bChild)
+		if (bChild != bChild)
 		{
 			//如果bChild = TRUE, 则说明这个控件作为了一个Item，不能发出Notify
 			//何为item? 比如listBox中的每一项，就是一个Item，如果点击了listBox
 			//的某一项，那么不应该由item发出通知，应该由listbox发出通知
-
-			//不能发出notify，则我们通知父窗口
-			ASSERT(m_pParentContrl && "SendNotify.bChild = TURE ,m_pParentContrl 不能为空！");
 
             if (m_pParentContrl && m_pParentContrl->m_pShareInfo)
             {
@@ -608,52 +635,6 @@ namespace MYUI
         return false;
 	}
 
-	BOOL CControlUI::SetTimer(UINT nIDEvnet, UINT uElapse)
-	{
-		CONTROLTIMER timer;
-		//bNotify 是否产生 Notify通知，有些控件希望自己在内部处理消息，不需要发出Notify
-		if(nIDEvnet > sizeof(CControlUI))
-		{
-			//为了保证ID唯一性，Timer的id以this指针为基址进行偏移，所以为了保证
-			//id 唯一性，id 必须在控件大小的范围内，这样才不会与其他控件产生冲突
-			ASSERT(0 && "nIDEvnet 不能大于sizeof(CControlUI)，请重新设置你的nIDEvnet");
-			return false;
-		}
-
-		if(!m_pShareInfo || !m_pShareInfo->hWnd)
-		{
-			ASSERT(0 && "控件还没有附加到窗口，请附加到窗口后再SetTimer");
-			return false;
-		}
-
-		timer.pControl = this;
-		timer.nIDEvnet = nIDEvnet;
-		timer.uElapse = uElapse;
-		return !!::SendMessage(m_pShareInfo->hWnd, WM_SETTIMER, TRUE, (LPARAM)&timer);
-	}
-
-	BOOL CControlUI::KillTimer(UINT nIDEvnet)
-	{
-		CONTROLTIMER timer;
-		if(nIDEvnet > sizeof(CControlUI))
-		{
-			//为了保证ID唯一性，Timer的id以this指针为基址进行偏移，所以为了保证
-			//id 唯一性，id 必须在控件大小的范围内，这样才不会与其他控件产生冲突
-			ASSERT(0 && "nIDEvnet 不能大于sizeof(CControlUI)，请重新设置你的nIDEvnet");
-			return false;
-		}
-
-		if(!m_pShareInfo || !m_pShareInfo->hWnd)
-		{
-			ASSERT(0 && "控件还没有附加到窗口，请附加到窗口后再KillTimer");
-			return false;
-		}
-		
-		timer.pControl = this;
-		timer.nIDEvnet = nIDEvnet;
-		timer.uElapse = NULL;
-		return !!::SendMessage(m_pShareInfo->hWnd, WM_SETTIMER, FALSE, (LPARAM)&timer);
-	}
 
     void CControlUI::SetMenu(IMenuPopup * pMenu)
     {
@@ -667,25 +648,27 @@ namespace MYUI
 
 	BOOL CControlUI::SetCapture()
 	{
-		ASSERT(m_pShareInfo && m_pShareInfo->hWnd);
-		if(!m_pShareInfo || !m_pShareInfo->hWnd) return FALSE;
+		MUIASSERT(m_pShareInfo && m_pShareInfo->hWnd);
+		if(!m_pShareInfo || !::IsWindow(m_pShareInfo->hWnd)) return FALSE;
 
+		//必须先发出这个消息
 		::SendMessage(m_pShareInfo->hWnd, WM_CANCELMODE, 1, (LPARAM)this);
 		if(m_pShareInfo->hWnd != ::GetCapture())
 		{
 			::SetCapture(m_pShareInfo->hWnd);
 		}
+		
 		AddState(STATE_PUSHED);
 		return TRUE;
 	}
 
 	BOOL CControlUI::ReleaseCapture()
 	{
-		ASSERT(m_pShareInfo && m_pShareInfo->hWnd);
+		MUIASSERT(m_pShareInfo && m_pShareInfo->hWnd);
 		if(!m_pShareInfo || !m_pShareInfo->hWnd) return FALSE;
 
-		::SendMessage(m_pShareInfo->hWnd, WM_CANCELMODE, 1, NULL);
 		::ReleaseCapture();
+		::SendMessage(m_pShareInfo->hWnd, WM_CANCELMODE, 1, NULL);
 		RemoveState(STATE_PUSHED);
 		return TRUE;
 	}
@@ -694,11 +677,11 @@ namespace MYUI
 	{
 		if(-1 == index)
 		{
-			return !!m_pHookers.Add(pHooker);
+			return !!m_Hookers.Add(pHooker);
 		}
 		else
 		{
-			return !!m_pHookers.InsertAt(index, pHooker);
+			return !!m_Hookers.InsertAt(index, pHooker);
 		}
 		return FALSE;
 	}
@@ -707,35 +690,36 @@ namespace MYUI
 	{
 		//因为一个Hooker可能寄生于多个CControlUI中，所以UnHooker是不会delete Hooker的
 		//请用户选择适当的时机，delete所有hooker
-		return !!m_pHookers.Remove(pHooker);
+		return !!m_Hookers.Remove(pHooker);
 	}
 
 	IControlHooker * CControlUI::UnHooker(int index)
 	{
 		//因为一个Hooker可能寄生于多个CControlUI中，所以UnHooker是不会delete Hooker的
 		//请用户选择适当的时机，delete所有hooker
-		return (IControlHooker *)m_pHookers.Remove(index, 1);
+		return (IControlHooker *)m_Hookers.Remove(index, 1);
 	}
 
-	//用法跟windows的SendMessage一样
-	LRESULT CControlUI::SendMessage(UINT message, WPARAM wParam/* = NULL*/, LPARAM lParam/* = NULL*/)
+	BOOL CControlUI::SendWindowMessage(UINT message, WPARAM wParam, LPARAM lParam, LRESULT* lResult)
 	{
-		return WndProc(m_pShareInfo ? m_pShareInfo->hWnd : NULL, message, wParam, lParam);
+		LRESULT lRet = 0;
+		if (m_pShareInfo && ::IsWindow(m_pShareInfo->hWnd))
+		{
+			lRet = ::SendMessage(m_pShareInfo->hWnd, message, wParam, lParam);
+
+			if (lResult) *lResult = lRet;
+			return TRUE;
+		}
+		return FALSE;
 	}
 
-	//用法跟windows的PostMessage一样
-	LRESULT CControlUI::PostMessage(UINT message, WPARAM wParam/* = NULL*/, LPARAM lParam /*= NULL*/)
+	BOOL CControlUI::PostWindowMessage(UINT message, WPARAM wParam, LPARAM lParam)
 	{
-		ASSERT(m_pShareInfo && ::IsWindow(m_pShareInfo->hWnd));
-		MSG * msg = new MSG;
-		memset(msg, 0, sizeof(TMSG));
-
-		msg->hwnd = m_pShareInfo->hWnd;
-		msg->message = message;
-		msg->wParam = wParam;
-		msg->lParam = lParam;
-
-		return ::PostMessage(m_pShareInfo ? m_pShareInfo->hWnd : NULL, WM_CONTROLMSG_POST,(WPARAM)this, (LPARAM)msg);
+		if (m_pShareInfo && ::IsWindow(m_pShareInfo->hWnd))
+		{
+			return ::PostMessage(m_pShareInfo->hWnd, message, wParam, lParam);
+		}
+		return FALSE;
 	}
 
 	CControlUI * CControlUI::GetParent() const
@@ -756,12 +740,12 @@ namespace MYUI
 		}
 	}
 
-	LRESULT CControlUI::CallWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+	LRESULT CControlUI::CallWndProc(UINT message, WPARAM wParam, LPARAM lParam)
 	{
 		IControlHooker * pHooker;
-		int nCount = m_pHookers.GetSize();
+		int nCount = m_Hookers.GetSize();
 		LRESULT lResule = 0;
-
+		HWND hWnd = m_pShareInfo ? m_pShareInfo->hWnd : NULL;
         if (false == m_bEnabled)
         {
             //当控件禁用，不接受键鼠消息
@@ -779,7 +763,7 @@ namespace MYUI
 #ifdef ENABLE_CONTROL_HOOK
 		for(int i=0; nCount > i; i++)
 		{
-			pHooker = (IControlHooker *)m_pHookers[i];
+			pHooker = (IControlHooker *)m_Hookers[i];
 			if(true == pHooker->OnBefore(this, hWnd, message, wParam, lParam, lResule))
 			{
 				//返回真就不往下转发了
@@ -788,12 +772,12 @@ namespace MYUI
 		}
 #endif
 
-		lResule = WndProc(hWnd, message, wParam, lParam);
+		lResule = WndProc(message, wParam, lParam);
 
 #ifdef ENABLE_CONTROL_HOOK
 		for(int i=0; nCount > i; i++)
 		{
-			pHooker = (IControlHooker *)m_pHookers[i];
+			pHooker = (IControlHooker *)m_Hookers[i];
 			if(true == pHooker->OnAfter(this, hWnd, message, wParam, lParam, lResule))
 			{
 				//返回真就不往下转发了
@@ -805,19 +789,20 @@ namespace MYUI
 		return lResule;
 	}
 
-	LRESULT CControlUI::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+	LRESULT CControlUI::WndProc(UINT message, WPARAM wParam, LPARAM lParam)
 	{
 		CControlUI * pControl = NULL;
         POINT Point = { 0, 0 };
         RECT rcPos = { 0 };
         SIZE Size = { 0 };
 		bool bRet = false;
+		HWND hWnd = m_pShareInfo ? m_pShareInfo->hWnd : NULL;
 		//如果要产生一条OnNotify通知，返回true;
 		switch(message)
 		{
 		case WM_TIMER:
 			{
-				SendNotify(!hWnd, EnumNotifyMsg::TimerCall, wParam, lParam);
+				SendNotify(EnumNotify::TimerCall, wParam, lParam);
 			}break;
 		case WM_LBUTTONDOWN:
 			{
@@ -827,17 +812,17 @@ namespace MYUI
 			{
                 
 			}break;
-		case WM_LBUTTONCLICK:
+		case WMU_LBUTTONCLICK:
 			{
 
 			}break;
 		case WM_MOUSEMOVE:
 			{
-                Point.x = (short)LOWORD(lParam);
-                Point.y = (short)HIWORD(lParam);
+                Point.x = (short)GET_X_LPARAM(lParam);
+                Point.y = (short)GET_Y_LPARAM(lParam);
 
 			}break;
-		case WM_MOUSEENTER://鼠标第一次进入
+		case WMU_MOUSEENTER://鼠标第一次进入
 			{
 				if(m_bEnabled)
 				{
@@ -846,12 +831,13 @@ namespace MYUI
 			}break;
 		case WM_MOUSEHOVER://鼠标停留
 			{
-				if(m_pShareInfo && m_pShareInfo->pToolTip && !m_strToolTip.IsEmpty())
+				if(false == m_strToolTip.IsEmpty() && true == GetItemFixedRect(rcPos))
 				{
-					m_pShareInfo->pToolTip->SetText(m_strToolTip);
-                    ::GetCursorPos(&Point);
-                    m_pShareInfo->pToolTip->ShowTip(Point);
+					Point.x = (short)GET_X_LPARAM(lParam) + rcPos.left;
+					Point.y = (short)GET_Y_LPARAM(lParam) + rcPos.top;
+					SendNotify(EnumNotify::ShowTip, MAKELONG(Point.x, Point.y), (LPARAM)m_strToolTip.GetData());
 				}
+
 			}break;
 		case WM_MOUSELEAVE://鼠标离开
 			{
@@ -893,7 +879,7 @@ namespace MYUI
                 Size = m_pMenu->GetSize();
                 Point = CalcPopupPoint(&rcPos, &Size, CPOT_RIGHT);
 
-                ::PostMessage(GETHWND(this), WM_POPUPMENU, (WPARAM)m_pMenu, MAKELONG(Point.x, Point.y));
+                SendWindowMessage(WMU_POPUPMENU, (WPARAM)m_pMenu, MAKELONG(Point.x, Point.y));
             }
 		}break;
 		case WM_SETCURSOR:
@@ -911,13 +897,13 @@ namespace MYUI
 			{
 				AddState(STATE_FOCUS);
 				Invalidate();
-				SendNotify(FALSE, EnumNotifyMsg::SetFocus);
+				SendNotify(EnumNotify::SetFocus);
 			}break;
 		case WM_KILLFOCUS:
 			{
 				RemoveState(STATE_FOCUS);
 				Invalidate();
-				SendNotify(FALSE, EnumNotifyMsg::KillFocus);
+				SendNotify(EnumNotify::KillFocus);
 			}break;
 		default:
 			break;

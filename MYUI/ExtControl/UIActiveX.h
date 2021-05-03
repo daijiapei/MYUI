@@ -149,7 +149,7 @@ namespace MYUI
 		virtual bool OnPaint(RECT rcItem,RECT rcPaint, RECT rcUpdate);
 		
 	protected:
-		virtual LRESULT WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
+		virtual LRESULT WndProc(UINT message, WPARAM wParam, LPARAM lParam);
 		virtual void OnAttach(HWND hNewWnd);//当控件附加到新的窗口时，会调用一次该函数
 		virtual void OnDetach(HWND hOldWnd);//当控件离开一个窗口时，会调用一次该函数 
 		virtual void ReleaseControl();

@@ -16,16 +16,16 @@ namespace MYUI
 	{
 	}
 
-	CMuiString CListBoxUI::g_strClassName(_T("ListBoxUI"));
+	const CMuiString CListBoxUI::g_strClassName(_T("ListBoxUI"));
 
 	CMuiString CListBoxUI::GetClassName() const
 	{
 		return CListBoxUI::g_strClassName;
 	}
 
-	CControlUI * CListBoxUI::GetItemByPoint(POINT &pt)
+	CControlUI * CListBoxUI::GetItemByPoint(POINT &Point)
 	{
-		POINT ptThis = pt;//保存起来
+		POINT ptThis = Point;//保存起来
 		RECT rcChildItem;
 		CControlUI * target = NULL;
 		int nCount = m_Items.GetSize();
@@ -42,23 +42,23 @@ namespace MYUI
 				continue;
 			}
 			rcChildItem = pControl->GetItem();
-			pt.x += m_szScrollOffset.cx;
-			pt.y += m_szScrollOffset.cy;
+			//pt.x += m_szScrollOffset.cx;
+			//pt.y += m_szScrollOffset.cy;
 
-			if(TRUE == PointInRect(pt, rcChildItem))
+			if(TRUE == PointInRect(Point, rcChildItem))
 			{
-				pt.x -= rcChildItem.left;
-				pt.y -= rcChildItem.top;
+				Point.x -= rcChildItem.left;
+				Point.y -= rcChildItem.top;
 				target = pControl;
 				break;
 			}
-			pt = ptThis;//不能够获取成功，要还原参数，避免用户误会
+			Point = ptThis;//不能够获取成功，要还原参数，避免用户误会
 		}
 		//TRACE(_T("nCount = %d"), nCount);
 		return target;
 	}
 
-	LRESULT CListBoxUI::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+	LRESULT CListBoxUI::WndProc(UINT message, WPARAM wParam, LPARAM lParam)
 	{
 		POINT pt;
 		CControlUI * pControl = NULL,* pTmpControl = NULL;
@@ -78,7 +78,7 @@ namespace MYUI
 					m_pPushedControl = pControl;
 					m_pPushedControl->AddState(STATE_PUSHED);
 
-					pControl->CallWndProc(NULL, message, wParam, MAKELONG(pt.x, pt.y));
+					pControl->CallWndProc(message, wParam, MAKELONG(pt.x, pt.y));
 				}
 			}break;
 		case WM_LBUTTONUP:
@@ -110,10 +110,10 @@ namespace MYUI
 
 						m_pSelectControl = pControl;
 
-						SendNotify(!hWnd, SelectItem,!!(STATE_SELECT & pControl->GetState()), (LPARAM)pControl);
+						SendNotify(SelectItem,!!(STATE_SELECT & pControl->GetState()), (LPARAM)pControl);
 					}
 
-					pControl->CallWndProc(NULL, message, wParam, MAKELONG(pt.x, pt.y));
+					pControl->CallWndProc(message, wParam, MAKELONG(pt.x, pt.y));
 					pControl->RemoveState(STATE_PUSHED);
 
 					if(m_pPushedControl && pControl != m_pPushedControl)
@@ -130,7 +130,7 @@ namespace MYUI
 				pt.y = GET_Y_LPARAM(lParam);
 				if(pControl = GetItemByPoint(pt)) 
 				{
-					SendNotify(!hWnd, ActiveItem, this->Find(pControl), (LPARAM)pControl);
+					SendNotify(EnumNotify::ActiveItem, this->Find(pControl), (LPARAM)pControl);
 				}
 			}break;
 		case WM_MOUSEMOVE:
@@ -149,13 +149,13 @@ namespace MYUI
 					//先发出离开通知，
 					if(NULL != pTmpControl)
 					{
-						pTmpControl->CallWndProc(NULL, WM_MOUSELEAVE, 0, 0);
+						pTmpControl->CallWndProc(WM_MOUSELEAVE, 0, 0);
 					}
 
 					//再发出进入通知
 					if(NULL != pControl)
 					{
-						pControl->CallWndProc(NULL, WM_MOUSEENTER, wParam, MAKELONG(pt.x, pt.y));
+						pControl->CallWndProc(WMU_MOUSEENTER, wParam, MAKELONG(pt.x, pt.y));
 					}
 				}
 			}break;
@@ -165,7 +165,7 @@ namespace MYUI
 				pt.y = GET_Y_LPARAM(lParam);
 				if(pControl = GetItemByPoint(pt)) 
 				{
-					pControl->CallWndProc(hWnd, WM_MOUSEHOVER, wParam, MAKELONG(pt.x, pt.y));
+					pControl->CallWndProc(WM_MOUSEHOVER, wParam, MAKELONG(pt.x, pt.y));
 				}
 			}break;
 		case WM_MOUSELEAVE:
@@ -174,7 +174,7 @@ namespace MYUI
 				{
 					pTmpControl = m_pHotControl;
 					m_pHotControl = NULL;
-					pTmpControl->CallWndProc(hWnd, WM_MOUSELEAVE, 0, 0);
+					pTmpControl->CallWndProc(WM_MOUSELEAVE, 0, 0);
 				}
 			}break;
 		case WM_KEYDOWN:
@@ -200,7 +200,7 @@ namespace MYUI
 		default:
 			break;
 		}
-		return __super::WndProc(hWnd, message, wParam, lParam);
+		return __super::WndProc(message, wParam, lParam);
 	}
 
 	bool CListBoxUI::SetSingleSelect(int index)
@@ -225,7 +225,7 @@ namespace MYUI
 		if(NULL == (MLBXS_MULTI & m_dwStyle)) return false;
 		pControl = (CControlUI *)m_Items.GetAt(index);
 
-		ASSERT(pControl && "子控件下标越界拉！！");
+		MUIASSERT(pControl && "子控件下标越界拉！！");
 		if(NULL == pControl) return false;
 
 		pControl->SetState(STATE_SELECT);
@@ -237,7 +237,7 @@ namespace MYUI
 		CControlUI * pControl = NULL;
 		pControl = (CControlUI *)m_Items.GetAt(index);
 
-		ASSERT(pControl && "子控件下标越界拉！！");
+		MUIASSERT(pControl && "子控件下标越界拉！！");
 		if(NULL == pControl) return false;
 
 		pControl->RemoveState(STATE_SELECT);
@@ -247,7 +247,7 @@ namespace MYUI
 
 	CControlUI *  CListBoxUI::GetSelect()
 	{
-		ASSERT(NULL == (MLBXS_MULTI & m_dwStyle));
+		MUIASSERT(NULL == (MLBXS_MULTI & m_dwStyle));
 
 		if(NULL == (MLBXS_MULTI & m_dwStyle))
 		{

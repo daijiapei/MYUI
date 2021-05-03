@@ -13,7 +13,7 @@ namespace MYUI
 	public:
 		CPictureUI();
 		virtual ~CPictureUI();
-		static CMuiString g_strClassName;
+		const static CMuiString g_strClassName;
 		virtual CMuiString GetClassName() const;
 
         virtual void SetAttribute(LPCTSTR strItem, LPCTSTR strValue);
@@ -22,11 +22,11 @@ namespace MYUI
         void ShowQrCode(bool bShow);
         bool QrCodeVisible();
 	protected:
-        virtual void PaintStatusImage(const RECT& rcItem, const RECT& rcPaint);
+        virtual void PaintStatusImage(const RECT& rcUpdate) override;
 	private:
 
     protected:
-        IMAGEINFO m_QrCode;
+        MUIIMAGEINFO m_QrCode;
 	};
 
 }

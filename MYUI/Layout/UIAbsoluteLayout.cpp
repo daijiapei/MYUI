@@ -12,7 +12,7 @@ namespace MYUI
 	{
 	}
 
-	CMuiString CAbsoluteLayoutUI::g_strClassName(_T("AbsoluteLayoutUI"));
+	const CMuiString CAbsoluteLayoutUI::g_strClassName(_T("AbsoluteLayoutUI"));
 
 	CMuiString CAbsoluteLayoutUI::GetClassName() const
 	{
@@ -22,6 +22,7 @@ namespace MYUI
 	SIZE CAbsoluteLayoutUI::GetContentSize()
 	{
 		//注意，当xy是负数的时候，负数区域将无法显示
+		//实际上可以做到兼容负数的，但是这样逻辑不合理
 		SIZE szContent = {0};
 		RECT rcPos;
 		RECT rcMargin;
@@ -51,13 +52,15 @@ namespace MYUI
 	bool CAbsoluteLayoutUI::SetItem(RECT rcItem, bool bMustUpdate)
 	{
 		RECT rcChildItem;
-		//RECT rcChildMargin;
+		RECT rcThisRegoin;
 		EnumFloatType type = EnumFloatType::FloatNon;
 		CControlUI * pControl = nullptr;
 		int nControlCount = m_Items.GetSize();
 
 		if(false == __super::SetItem(rcItem, bMustUpdate)) return false;
-		if(nControlCount == 0 ) return true;//布局中没有其他控件就直接返回
+
+		rcThisRegoin = m_rcContent;
+		IndentRect(&rcThisRegoin, &m_rcInset);
 
 		for(int i=0; nControlCount > i; i++)
 		{
@@ -74,20 +77,20 @@ namespace MYUI
 
 			if(EnumFloatType::FloatPointX & type)
 			{
-				rcChildItem.left = pControl->GetPointX();
+				rcChildItem.left = pControl->GetPointX() + rcThisRegoin.left;
 			}
 			else
 			{
-				rcChildItem.left = 0;
+				rcChildItem.left = rcThisRegoin.left;
 			}
 
 			if(EnumFloatType::FloatPointY & type)
 			{
-				rcChildItem.top = pControl->GetPointY();
+				rcChildItem.top = pControl->GetPointY() + rcThisRegoin.top;
 			}
 			else
 			{
-				rcChildItem.top = 0;
+				rcChildItem.top = rcThisRegoin.top;
 			}
 
 			if(EnumFloatType::FloatSizeCx & type)
@@ -96,7 +99,7 @@ namespace MYUI
 			}
 			else
 			{
-				rcChildItem.right = m_rcClient.right;
+				rcChildItem.right = rcThisRegoin.right;
 			}
 
 			if(EnumFloatType::FloatSizeCy & type)
@@ -105,13 +108,12 @@ namespace MYUI
 			}
 			else
 			{
-				rcChildItem.bottom = m_rcClient.bottom;
+				rcChildItem.bottom = rcThisRegoin.bottom;
 			}
 
-			//绝对布局的外边距不生效
+			//绝对布局的子控件外边距没有意义，所以不需要处理
 			//rcChildMargin = pControl->GetMargin();
 			//ExpandRect(&rcChildItem, &rcChildMargin);
-			OffsetRect(&rcChildItem, m_rcInset.left, m_rcInset.top);
 
 loop:
 			pControl->SetItem(rcChildItem, false);

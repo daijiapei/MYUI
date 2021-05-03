@@ -1,6 +1,6 @@
 
-#ifndef _MYUI_GDI_RENDER_ENGINE_H_
-#define _MYUI_GDI_RENDER_ENGINE_H_
+#ifndef __MYUI_GDI_RENDER_ENGINE_H__
+#define __MYUI_GDI_RENDER_ENGINE_H__
 
 #include "RenderEngine.h"
 
@@ -12,44 +12,52 @@ namespace MYUI
 		CGdiRenderEngine(HWND hWnd);
 		virtual ~CGdiRenderEngine();
 
+	
+		//引擎名称
+		virtual LPCTSTR GetName() const;
+
 		//窗口调用
 		virtual bool BeginPaint(const RECT &rcScreen);
 		virtual bool EndPaint(const RECT &rcUpdate);
 
-		//控件内部调用
-		virtual HCLIP EnterClip(const RECT &rcClient, SIZE &szRound);
-		virtual void  LeaveClip(HCLIP hOldClip);
-
+	
 		//打算自绘，将缓冲DC提取出来，自己在上面绘制
 		virtual HDC GetMemDC();
 		virtual void  ReleaseMemDC(HDC hMemDc);
+	
+	protected:
+		virtual HCLIP EnterClipImp(const RECT& rcClient, SIZE& szRound);
+		virtual void  LeaveClipImp(HCLIP hOldClip);
 		
-		virtual bool OnDrawFrame(const RECT &rcDraw, ARGBREF refColor);
-		virtual bool OnDrawLine(const POINT &ptBegin,const POINT& ptEnd, int nPenSize, ARGBREF refColor);
-		virtual bool OnDrawText(const RECT &rcDraw, LPCTSTR strText,ARGBREF refTextColor, HFONT hFont, DWORD dwType);
-		virtual bool OnDrawBroder(const RECT &rcDraw, ARGBREF refColor, int nBroderSize, SIZE &szRound);
-		virtual bool OnDrawColor(const RECT &rcDraw, ARGBREF refColor);
-		virtual bool OnDrawImage(const RECT &rcDraw,IMAGEINFO * pImageInfo, const RECT &rcSource,
-			const RECT &rcCorner, ARGBREF refMask, DWORD dwFade, bool bHole);
+		virtual bool DrawFrameImp(const RECT &rcDraw, ARGBREF refColor);
+		virtual bool DrawLineImp(const POINT &ptBegin,const POINT& ptEnd, int nPenSize, ARGBREF refColor);
+		virtual bool DrawTextImp(const RECT &rcDraw, LPCTSTR strText,ARGBREF refTextColor, HFONT hFont, DWORD dwType);
+		virtual bool DrawBroderImp(const RECT &rcDraw, ARGBREF refColor, int nBroderSize, SIZE &szRound);
+		virtual bool DrawColorImp(const RECT &rcDraw, ARGBREF refColor);
+		virtual bool DrawImageImp(const RECT &rcDraw, MUIIMAGEINFO * pImageInfo, const RECT &rcSource,
+			const RECT &rcCorner, ARGBREF refMask, DWORD dwFade, BOOL bHole);
 
-		virtual bool OnDrawHtmlText(const RECT &rcDraw, LPCTSTR strText, 
+		virtual bool DrawHtmlTextImp(const RECT &rcDraw, LPCTSTR strText,
 			  CMuiIdArray * FontArray, ARGBREF refTextColor);
 
-		virtual int GetTextHeight(HFONT hFont);
-		virtual SIZE GetTextSize(const RECT &rcItem, LPCTSTR strText, int nLenght, HFONT hFont, 
-			int nRowSpace, DWORD dwTextStyle);
-		virtual bool OnTextOut(const RECT &rcItem, POINT &ptOutput, LPCTSTR strText, int nStrLenght, 
-			ARGBREF refTextColor,HFONT hFont, int nRowSpace,  DWORD dwTextStyle,  ARGBREF refTextBkColor);
+		virtual int GetTextHeightImp(HFONT hFont);
 
-		virtual POINT GetTextPos(const RECT &rcItem, int nTextIndex, LPCTSTR strText,
-			HFONT hFont, int nRowSpace, DWORD dwTextStyle);
-		virtual int TestTextIndex(const RECT &rcItem, POINT &ptMouse, 
+		virtual int TestTextIndexImp(const RECT& rcItem, POINT& ptMouse,
 			LPCTSTR strText, int nLenght, HFONT hFont, int nRowSpace, DWORD dwTextStyle);
 
-		//virtual void KissCaret();
-		virtual bool SetCaret(const RECT &rcItem, const POINT ptCaret, HFONT hFont);
+		virtual SIZE GetTextSizeImp(const RECT &rcItem, LPCTSTR strText, int nLenght, HFONT hFont,
+			int nRowSpace, DWORD dwTextStyle);
 
-		virtual bool DrawOleObject(const RECT &rcItem, IViewObject * pViewObject);
+		virtual bool TextOutImp(const RECT &rcItem, POINT &ptOutput, LPCTSTR strText, int nStrLenght,
+			ARGBREF refTextColor,HFONT hFont, int nRowSpace,  DWORD dwTextStyle,  ARGBREF refTextBkColor);
+
+		virtual POINT GetTextPosImp(const RECT &rcItem, int nTextIndex, LPCTSTR strText,
+			HFONT hFont, int nRowSpace, DWORD dwTextStyle);
+		
+		//virtual void KissCaret();
+		virtual bool SetCaretImp(const RECT &rcItem, const POINT ptCaret, HFONT hFont);
+
+		virtual bool DrawOleObjectImp(const RECT &rcItem, IViewObject * pViewObject);
 
 	private:
 

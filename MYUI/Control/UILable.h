@@ -22,7 +22,7 @@ namespace MYUI
 		virtual ~CLableUI();
 		virtual void SetAttribute(LPCTSTR strItem, LPCTSTR strValue);
 
-		static CMuiString g_strClassName;
+		const static CMuiString g_strClassName;
 		virtual CMuiString GetClassName() const;
 		
 		void SetTextPadding(const RECT &rect);
@@ -71,10 +71,10 @@ namespace MYUI
 		void SetFocusedBorderColor(ARGBREF refColor);
 
 	protected:
-		virtual LRESULT WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
-		virtual void PaintStatusImage( const RECT& rcItem, const RECT& rcPaint);
-		virtual void PaintText(const RECT& rcItem, const RECT& rcPaint);
-		virtual void PaintBorder(const RECT& rcItem, const RECT& rcPaint);
+		virtual LRESULT WndProc(UINT message, WPARAM wParam, LPARAM lParam) override;
+		virtual void PaintStatusImage( const RECT& rcUpdate) override;
+		virtual void PaintText(const RECT& rcUpdate) override;
+		virtual void PaintBorder(const RECT& rcUpdate) override;
 		virtual void SetState(DWORD dwState);
 	protected:
 		

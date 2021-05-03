@@ -13,7 +13,7 @@ namespace MYUI
 	{
 	}
 
-	CMuiString CTextUI::g_strClassName(_T("TextUI"));
+	const CMuiString CTextUI::g_strClassName(_T("TextUI"));
 
 	CMuiString CTextUI::GetClassName() const
 	{
@@ -25,7 +25,7 @@ namespace MYUI
 		if(0 == _tcsicmp(_T("showHtml"), strItem))
 		{
 #ifdef _DEBUG
-			ASSERT(CheckBoer(strValue));
+			MUIASSERT(CheckBoer(strValue));
 #endif
 			SetShowHtml(CheckTrue(strValue));
 		}
@@ -46,27 +46,27 @@ namespace MYUI
 		return m_bShowHtml;
 	}
 
-	void CTextUI::PaintText(const RECT& rcItem, const RECT& rcPaint)
+	void CTextUI::PaintText(const RECT& rcUpdate)
 	{
-		RECT rcDraw = rcItem;
+		RECT rcDraw = m_rcClient;
 		if(false == m_bShowHtml)
 		{
-			__super::PaintText(rcDraw, rcPaint);
+			__super::PaintText(rcUpdate);
 		}
 		else
 		{
 			if(IndentRect(&rcDraw, &m_rcTextPadding))
 			{
 				m_pShareInfo->pRenderEngine->OnDrawHtmlText(rcDraw, m_strText,
-					m_pShareInfo->FontArray, m_refTextColor);
+					&m_pShareInfo->FontArray, m_refTextColor);
 			}
 		}
 		return;
 	}
 
-	LRESULT CTextUI::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+	LRESULT CTextUI::WndProc(UINT message, WPARAM wParam, LPARAM lParam)
 	{
-		POINT pt;
+		POINT Point;
 		bool bRet = false;
 		switch(message)
 		{
@@ -76,8 +76,8 @@ namespace MYUI
 			}break;
 		case WM_MOUSEMOVE:
 			{
-				pt.x = GET_X_LPARAM(lParam);
-				pt.y = GET_Y_LPARAM(lParam);
+			Point.x = GET_X_LPARAM(lParam);
+			Point.y = GET_Y_LPARAM(lParam);
 			}break;
 		case WM_SETCURSOR:
 			{
@@ -85,7 +85,7 @@ namespace MYUI
 		default:
 			break;
 		}
-		return __super::WndProc(hWnd, message, wParam, lParam);
+		return __super::WndProc(message, wParam, lParam);
 	}
 
 }

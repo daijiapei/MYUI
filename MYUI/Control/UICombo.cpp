@@ -14,14 +14,14 @@ namespace MYUI
 	{
 	}
 
-	CMuiString CComboUI::g_strClassName(_T("ComboUI"));
+	const CMuiString CComboUI::g_strClassName(_T("ComboUI"));
 
 	CMuiString CComboUI::GetClassName() const
 	{
 		return CComboUI::g_strClassName;
 	}
 
-	LRESULT CComboUI::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+	LRESULT CComboUI::WndProc(UINT message, WPARAM wParam, LPARAM lParam)
 	{
 		CControlUI * pControl = NULL;
 		bool bNeedUpdate = false;
@@ -33,8 +33,8 @@ namespace MYUI
 		{
 		case WM_LBUTTONDOWN:
 			{
-				pt.x = (short)LOWORD(lParam);
-				pt.y = (short)HIWORD(lParam);
+				pt.x = (short)GET_X_LPARAM(lParam);
+				pt.y = (short)GET_Y_LPARAM(lParam);
 
 				rcButton = m_rcRawItem;
 				rcButton.left = rcButton.right - m_rcTextPadding.right;
@@ -58,8 +58,8 @@ namespace MYUI
 			}
 		case WM_MOUSEMOVE:
 			{
-				pt.x = (short)LOWORD(lParam);
-				pt.y = (short)HIWORD(lParam);
+				pt.x = (short)GET_X_LPARAM(lParam);
+				pt.y = (short)GET_Y_LPARAM(lParam);
 
 				rcButton = m_rcClient;
 				OffsetRect(&rcButton, -rcButton.left, -rcButton.top);
@@ -93,7 +93,6 @@ namespace MYUI
 					{
 					case VK_RETURN:
 						{
-							MessageBox(m_pShareInfo->hWnd, _T("hell0"),_T("hell0"),NULL);
 						}break;
 					default:
 						break;
@@ -104,7 +103,7 @@ namespace MYUI
 			break;
 		}
 
-		return __super::WndProc(hWnd, message, wParam, lParam);
+		return __super::WndProc(message, wParam, lParam);
 	}
 
 }

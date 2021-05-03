@@ -4,11 +4,12 @@
 
 #include "UIContainer.h"
 #include "UIInterface.h"
+#include "UIWindowBase.h"
 
 namespace MYUI
 {
 
-    typedef struct __VIEWINFO
+    typedef struct __MUIVIEW_INFO
 	{
 		BOOL bFocusWnd;//窗口拥有焦点
 		CControlUI * pRootControl;//整个窗口，主要就是绘制这个控件/布局
@@ -27,13 +28,13 @@ namespace MYUI
 		SIZE SizeMin;
 		SIZE SizeMax;
 
-	}VIEWINFO, *PVIEWINFO;
+	}MUIVIEWINFO, *LPMUIVIEWINFO;
 
 	//注意：
 	//1. 继承CWindowUI的类必须用new命令构建对象
 	//2. 窗口收到WM_NCDESTROY[窗口销毁]后，会自动delete CWindowUI，无需用户手动回收
 	//   所以请不要对CWindowUI和它的子类执行delete操作
-	class MYUI_API CWindowUI : public INotify, public IControlNotify, public IWindowEvent
+	class MYUI_API CWindowUI : public CWindowBase, public INotify, public IControlNotify, public IWindowEvent
 	{
         friend class CBuilder;
 	public:
@@ -41,26 +42,13 @@ namespace MYUI
 		virtual ~CWindowUI();
 
         virtual LPVOID GetInterface(LPCTSTR strName);
-		operator HWND() const;
 
-		HWND Create(HINSTANCE hInstance,HWND hWndParent, DWORD dwStyle, 
-			LPCTSTR strClassName ,LPCTSTR strWindowText, RECT * pRect = NULL);//创建窗口
-		BOOL Close(LONG nRet = 0);//异步关闭，可以在任何地方调用
+        BOOL UpdateLayeredWindow(COLORREF refKey, DWORD dwFlags = ULW_ALPHA);
 
-		//同步，提醒大家一个问题，如果在窗口内部调用此方法，则不能再WindowDestroy事件中delete this指针
-		BOOL Destroy();
-		
-		void ShowWindow(bool bShow = true, bool bTakeFocus = false);//显示窗口
-        LRESULT ShowModal(bool bShow = true, bool bEnableParent = true, UINT uBreakMessage = -1);//显示模态窗口，即阻塞窗口
         LRESULT Popup(RECT rcPos);
-		HWND GetHandle();
 
-		void CenterWindow();
-		void SetIcon(UINT nRes);
+        virtual void SendNotify(MUINOTIFY &notify);
 
-        virtual void SendNotify(TNOTIFYUI &notify);
-		LRESULT SendMessage(UINT message, WPARAM wParam = 0, LPARAM lParam = 0L);
-		LRESULT PostMessage(UINT message, WPARAM wParam = 0, LPARAM lParam = 0L);
 		void SetMinSize(SIZE size);
 		const SIZE &GetMinSize() const;
 		void SetMaxSize(SIZE size);
@@ -70,9 +58,7 @@ namespace MYUI
 		void SetHoverTime(DWORD dwHoverTime);
 		DWORD GetHoverTimer() const;
 
-		CMuiString GetClassName();
-		CMuiString GetWindowText();
-		
+
 		//每个窗口有且只能有一个主布局
 		void AttachFrameView(CControlUI * pControl);
 		CControlUI * GetFrameView() const;
@@ -80,10 +66,6 @@ namespace MYUI
         //语言文件
         void SetLanguageFile(LPCTSTR strFile);
         LPCTSTR GetLanguageFile() const;
-
-		//与宿主窗口使用同一资源
-        bool CloneResource(TSHAREINFO * pShareInfo);
-        bool SetSyncResource(CWindowUI *pHostWindow);
 
 		bool SetSkin(LPCTSTR strSkin);
 		LPCTSTR GetSkin() const;
@@ -97,34 +79,38 @@ namespace MYUI
 		CControlUI * GetCaption() const;
 		CControlUI * GetFocusControl();
 
+		CControlUI* FindControl(LPCTSTR strName);
+		CControlUI* FindControl(POINT& Point);
+
+		CControlUI* GetRootControl();
+
+		bool SetHost(CWindowUI * pHost);
+		
+
         BOOL PostBreakMessage(BOOL bCheck, CControlUI * pParent);
 	protected:
 		//void SetCapture(bool bCapture);
 		virtual LRESULT CALLBACK WndProc(UINT message, WPARAM wParam, LPARAM lParam);
         
 	private:
-		bool RegisterClass();//注册窗口 
+		bool AddParasite(CWindowUI* pParasite);
+		bool RemoveParasite(CWindowUI* pParasite);
 		LRESULT MouseProc(UINT message, WPARAM wParam, LPARAM lParam);
 		LRESULT KeyBoardProc(UINT message, WPARAM wParam, LPARAM lParam);
-		static LRESULT CALLBACK FrameWndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
 		//下面是变量定义
-        
 
-	protected:
-		HINSTANCE m_hInstance;
-		HWND m_hWnd;
+	private:
 		int m_nFontId;
 		DWORD m_dwHoverTime;
-		CMuiString m_strClassName;
-		CMuiString m_strWindowText;
 
 		CMuiStringPtrMap m_GroupArray;//用来记录控件的分组名称
-		CAvlTree m_atrControlTimer;
-		TSHAREINFO * m_pShareInfo;
-		VIEWINFO * m_pViewInfo;
+		MUISHAREINFO * m_pShareInfo;
+		MUIVIEWINFO* m_pViewInfo;
 		BOOL m_bShowInScreen;
         CMuiPtrArray m_MenuArray;
-        CMuiString m_strLanguageFile;
+		CMuiString m_strLanguageFile;
+		CWindowUI* m_pHost;
+		CMuiPtrArray m_Parasite;
 	};
 }
 

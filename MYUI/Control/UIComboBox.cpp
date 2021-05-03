@@ -27,8 +27,8 @@ namespace MYUI
 
 	protected:
 		virtual LRESULT CALLBACK WndProc(UINT message, WPARAM wParam, LPARAM lParam);
-        virtual void OnNotify(TNOTIFYUI &notify);
-		virtual LRESULT OnEvent(TEVENT &event);
+        virtual void OnNotify(MUINOTIFY& notify);
+		virtual LRESULT OnEvent(MUIEVENT &event);
 
 	private:
 		CListBoxUI * m_pListBox;
@@ -62,28 +62,28 @@ namespace MYUI
 			}break;
         case WM_KILLFOCUS:
         {
-            ::PostMessage(GetWindowOwner(m_hWnd), WM_BREAKLOOP, TRUE,
-                (LPARAM)static_cast<CControlUI*>(m_pParent));
+			/*::PostMessage(GetWindowOwner(m_hWnd), WM_BREAKLOOP, TRUE,
+				(LPARAM)static_cast<CControlUI*>(m_pParent));*/
         }break;
 		}
 
 		return __super::WndProc(message, wParam, lParam);
 	}
 
-    void CComboBoxWnd::OnNotify(TNOTIFYUI &notify)
+    void CComboBoxWnd::OnNotify(MUINOTIFY& Notify)
 	{
-		switch(notify.dwType)
+		switch(Notify.dwType)
 		{
-		case EnumNotifyMsg::SelectItem:
+		case EnumNotify::SelectItem:
 			{
-				CControlUI * pConntrol = (CControlUI*) notify.lParam;
+				CControlUI * pConntrol = (CControlUI*) Notify.lParam;
 				
 				if(pConntrol && m_pParent)
 				{
                     ::ShowWindow(m_hWnd, FALSE);
-                    ::PostMessage(m_hWnd, WM_BREAKLOOP, TRUE, NULL);
+                    ::PostMessage(m_hWnd, WMU_BREAKLOOP, TRUE, NULL);
 					m_pParent->SetText(pConntrol->GetText());
-					m_pParent->SendNotify(FALSE, notify.dwType, notify.wParam, notify.lParam);
+					m_pParent->SendNotify(Notify.dwType, Notify.wParam, Notify.lParam);
 				}
 			}break;
 		}
@@ -91,11 +91,11 @@ namespace MYUI
 		//return __super::OnNotify(notify);
 	};
 
-	LRESULT CComboBoxWnd::OnEvent(TEVENT &event)
+	LRESULT CComboBoxWnd::OnEvent(MUIEVENT &event)
 	{
 		switch (event.dwType)
 		{
-		case EnumEventType::WindowInit:
+		case EnumEvent::WindowInit:
 			{
 				CVerticalLayoutUI * pRootLayout = new CVerticalLayoutUI();
 
@@ -106,20 +106,22 @@ namespace MYUI
 				pRootLayout->Add(m_pListBox);
 				this->AttachFrameView(pRootLayout);
 			}break;
-		case EnumEventType::OnTimer:
+		case EnumEvent::OnTimer:
 			{
 
 			}break;
-		case EnumEventType::WindowShow:
+		case EnumEvent::WindowShow:
 			{
 			
 			}break;
-		case EnumEventType::KillFocued:
+		case EnumEvent::KillFocued:
 			{
+				::PostMessage(GetWindowOwner(m_hWnd), WMU_BREAKLOOP, TRUE,
+				(LPARAM)static_cast<CControlUI*>(m_pParent));
 			}break;
-		case EnumEventType::WindowDestroy:
+		case EnumEvent::WindowDestroy:
 		{
-            CVerticalLayoutUI * pRootLayout = static_cast<CVerticalLayoutUI*>(m_pViewInfo->pRootControl);
+            CVerticalLayoutUI * pRootLayout = static_cast<CVerticalLayoutUI*>(GetRootControl());
             pRootLayout->Remove(m_pListBox);
 		}break;
 		default:
@@ -127,7 +129,6 @@ namespace MYUI
 		}
 
 		return 0;
-		//return __super::OnEvent(event);
 	}
 
 /**********************************************************************************
@@ -148,7 +149,7 @@ namespace MYUI
 		delete m_pListBox;
 	}
 
-	CMuiString CComboBoxUI::g_strClassName(_T("ComboBoxUI"));
+	const CMuiString CComboBoxUI::g_strClassName(_T("ComboBoxUI"));
 
 	CMuiString CComboBoxUI::GetClassName() const
 	{
@@ -190,7 +191,7 @@ namespace MYUI
 		return m_pListBox->Find(pControl);
 	}
 
-	int CComboBoxUI::GetCount() const
+	int CComboBoxUI::GetCount()
 	{
 		return m_pListBox->GetCount();
 	}
@@ -231,6 +232,22 @@ namespace MYUI
 		return m_nItemBoxHeight;
 	}
 
+	RECT CComboBoxUI::CalcButtonPostion()
+	{
+		RECT rcButton = m_rcRawItem;
+
+		if (1)
+		{
+			rcButton.left = rcButton.right - m_rcTextPadding.right;
+		}
+		else
+		{
+			rcButton.right = m_rcTextPadding.left;
+		}
+		
+		return rcButton;
+	}
+
     LRESULT CComboBoxUI::Popup(LPARAM lParam)
     {
         LRESULT lResult = FALSE;
@@ -241,7 +258,7 @@ namespace MYUI
         
         if (m_pDialog)
         {
-            ASSERT(0 && "CComboBoxUI::Popup 不合适的调用时机, m_pDialog应该为空");
+            MUIASSERT(0 && "CComboBoxUI::Popup 不合适的调用时机, m_pDialog应该为空");
             return FALSE;
         }
         
@@ -264,7 +281,7 @@ namespace MYUI
 
         //显示dialog
         pDialog = new CComboBoxWnd(static_cast<CControlUI*>(this), m_pListBox);
-        pDialog->CloneResource(m_pShareInfo);
+        //pDialog->CloneResource(m_pShareInfo);
         pDialog->Create((HINSTANCE)GetWindowLong(GETHWND(this), GWL_HINSTANCE), GETHWND(this),
             WS_BORDER | WS_POPUP | WS_CLIPSIBLINGS,
             _T("{2F581E91-B25B-4A39-AFE8-96087151DFA7}"), _T("ComboBoxWnd"));
@@ -278,7 +295,7 @@ namespace MYUI
         return lResult;
     }
 
-	LRESULT CComboBoxUI::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+	LRESULT CComboBoxUI::WndProc(UINT message, WPARAM wParam, LPARAM lParam)
 	{
 		POINT pt;
 		RECT rcButton;
@@ -291,19 +308,20 @@ namespace MYUI
 				pt.x = (short)GET_X_LPARAM(lParam);
 				pt.y = (short)GET_Y_LPARAM(lParam);
 
-				rcButton = m_rcRawItem;
-				rcButton.left = rcButton.right - m_rcTextPadding.right;
+				rcButton = CalcButtonPostion();
 
                 if (TRUE == PointInRect(pt, rcButton))
                 {
                     if (m_pDialog)
                     {
-                        m_pDialog->PostMessage(WM_BREAKLOOP, TRUE, NULL);
+                        m_pDialog->PostMessage(WMU_BREAKLOOP, TRUE, NULL);
                     }
                     else
                     {
-                        ::PostMessage(GETHWND(this), WM_POPUPDIALOG, (WPARAM)static_cast<IDialogPopup*>(this), NULL);
+                        //::PostMessage(GETHWND(this), WM_POPUPDIALOG, (WPARAM)static_cast<IDialogPopup*>(this), NULL);
+						this->Popup(lParam);
                     }
+					return 0;
                 }
 			}break;
 		case WM_KEYDOWN:
@@ -313,13 +331,13 @@ namespace MYUI
 					//ShowDialog(!::IsWindowVisible(* m_pDialog));
                     if (m_pDialog)
                     {
-                        m_pDialog->PostMessage(WM_BREAKLOOP, TRUE, NULL);
+                        m_pDialog->PostMessage(WMU_BREAKLOOP, TRUE, NULL);
                     }
                     else
                     {
-                        ::PostMessage(GETHWND(this), WM_POPUPDIALOG, (WPARAM)static_cast<IDialogPopup*>(this), NULL);
+                        ::PostMessage(GETHWND(this), WMU_POPUPDIALOG, (WPARAM)static_cast<IDialogPopup*>(this), NULL);
                     }
-					TRACE(_T("CComboBoxUI WM_KEYDOWN From Edit"));
+					MUITRACE(_T("CComboBoxUI WM_KEYDOWN From Edit"));
 					return false;
 				}
 			}break;
@@ -327,8 +345,7 @@ namespace MYUI
 			{
 				pt.x = (short)GET_X_LPARAM(lParam);
 				pt.y = (short)GET_Y_LPARAM(lParam);
-				rcButton = m_rcRawItem;
-				rcButton.left = rcButton.right - m_rcTextPadding.right;
+				rcButton = CalcButtonPostion();
 
 				if(TRUE == PointInRect(pt, rcButton))
 				{
@@ -358,14 +375,14 @@ namespace MYUI
 			}break;
 		case WM_SETFOCUS:
 			{
-                TRACE(_T("CComboBoxUI WM_SETFOCUS"));
+                MUITRACE(_T("CComboBoxUI WM_SETFOCUS"));
 			}break;
 		case WM_KILLFOCUS:
 			{
-				TRACE(_T("CComboBoxUI WM_KILLFOCUS"));
+				MUITRACE(_T("CComboBoxUI WM_KILLFOCUS"));
                 if (m_pDialog)
                 {
-                    ::PostMessage(::GetWindowOwner(*m_pDialog), WM_BREAKLOOP,
+                    ::PostMessage(::GetWindowOwner(*m_pDialog), WMU_BREAKLOOP,
                         TRUE, (LPARAM)static_cast<CControlUI*>(this));
                 }
 			}break;
@@ -373,7 +390,7 @@ namespace MYUI
 			break;
 		}
 
-		return __super::WndProc(hWnd, message, wParam, lParam);
+		return __super::WndProc(message, wParam, lParam);
 	}
 
 	bool CComboBoxUI::SetHorizontalScrollBarActive(bool bActive)

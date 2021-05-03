@@ -11,7 +11,7 @@ namespace MYUI
 	public:
 		CSliderUI();
 		virtual ~CSliderUI();
-		static CMuiString g_strClassName;
+		const static CMuiString g_strClassName;
 		virtual CMuiString GetClassName() const;
 		virtual void SetAttribute(LPCTSTR strItem, LPCTSTR strValue);
 
@@ -22,11 +22,10 @@ namespace MYUI
 		void SetStepBarImage(LPCTSTR strImage);
 		LPCTSTR GetStepBarImage() const;
 		//»æÖÆ
-		virtual void PaintStatusImage(const RECT &rcItem,const RECT &rcPaint);
+		virtual void PaintStatusImage(const RECT &rcUpdate) override;
 		
 	protected:
-		virtual LRESULT WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
-		bool IsPointInStepBar(POINT &pt);
+		virtual LRESULT WndProc(UINT message, WPARAM wParam, LPARAM lParam) override;
 
 	protected:
 		POINT m_ptOldMousePos;

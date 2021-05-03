@@ -999,6 +999,8 @@ BYTE CQR_Encode::AlphabetToBinaly(unsigned char v_c)
     {
         return 44;
     }
+
+    return 0;
 }//AlphabetToBinaly
 
 /************************************************************************/

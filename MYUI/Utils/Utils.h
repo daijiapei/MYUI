@@ -3,7 +3,6 @@
 #define _MYUI_UTILS_H__
 
 #include "..//base.h"
-#include "AvlTree.h"
 
 namespace MYUI
 {

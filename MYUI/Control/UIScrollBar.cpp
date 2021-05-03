@@ -35,8 +35,8 @@ namespace MYUI
 	}
 	
 	CMuiString CScrollBarUI::g_strClassName(_T("ScrollBarUI"));
-	CMuiString CHorizontailScrollBarUI::g_strClassName(_T("HScrollBarUI"));
-	CMuiString CVerticalScrollBarUI::g_strClassName(_T("VScrollBarUI"));
+	const CMuiString CHorizontailScrollBarUI::g_strClassName(_T("HScrollBarUI"));
+	const CMuiString CVerticalScrollBarUI::g_strClassName(_T("VScrollBarUI"));
 
 	CMuiString CScrollBarUI::GetClassName() const
 	{
@@ -186,7 +186,7 @@ namespace MYUI
 		if(m_nNowShift == nShift) return;
 		m_nNowShift = nShift;
 
-		ASSERT(m_pParentContrl && "滚动条必须拥有父窗口！");
+		MUIASSERT(m_pParentContrl && "滚动条必须拥有父窗口！");
 		IScrollBarMove * pInterface = dynamic_cast<IScrollBarMove *>(m_pParentContrl);
 		if(pInterface)
 		{
@@ -319,23 +319,17 @@ namespace MYUI
 	}
 
 	//绘制
-	bool CScrollBarUI::OnPaint( RECT rcItem, RECT rcPaint, RECT rcUpdate)
+	bool CScrollBarUI::OnPaint(const RECT& rcUpdate)
 	{
-		//RECT rcItem = rcItemFixed;
-		//RECT rcItem = GetRawRect(m_rcItemPaintFixed);
+
 		if(false == m_bVisible) return false;
 
-		RECT rcDraw = m_rcRawItem;
-		//rcPaint是父窗口提供的有效绘图区域
-		//rcClient参数是m_rcItem的绝对位置, 所以要将m_rcClient偏移到绝对位置：
-		OffsetRect(&rcDraw, rcItem.left , rcItem.top);
-		
 		//PaintBkColor(rcDraw);
 
-		PaintFrontButton(rcItem);
-		PaintFinalButton(rcItem);
-		PaintTrackButton(rcItem);
-		PaintDragButton(rcItem);
+		PaintFrontButton(rcUpdate);
+		PaintFinalButton(rcUpdate);
+		PaintTrackButton(rcUpdate);
+		PaintDragButton(rcUpdate);
 		//PaintIntersect(hMemDc, rcSrcDraw);
 
 		//PaintBorder(rcDraw);
@@ -345,7 +339,6 @@ namespace MYUI
 	void CScrollBarUI::PaintTrackButton(const RECT &rcItem)
 	{
 		RECT rcDest = m_rcTrackButton;
-		OffsetRect(&rcDest, rcItem.left, rcItem.top);
 		
 		LPCTSTR strImage = _T("");;
 		//通过状态优先级，来判断显示哪一张图片
@@ -376,10 +369,9 @@ namespace MYUI
 		}
 	}
 
-	void CScrollBarUI::PaintFrontButton(const RECT &rcItem)
+	void CScrollBarUI::PaintFrontButton(const RECT & rcPaint)
 	{
 		RECT rcDest = m_rcFrontButton;
-		OffsetRect(&rcDest, rcItem.left, rcItem.top);
 
 		LPCTSTR strImage = _T("");;
 
@@ -411,10 +403,9 @@ namespace MYUI
 		}
 	}
 
-	void CScrollBarUI::PaintFinalButton(const RECT &rcItem)
+	void CScrollBarUI::PaintFinalButton(const RECT & rcPaint)
 	{
 		RECT rcDest = m_rcFinalButton;
-		OffsetRect(&rcDest, rcItem.left, rcItem.top);
 		
 		LPCTSTR strImage = _T("");;
 		//通过状态优先级，来判断显示哪一张图片
@@ -446,10 +437,10 @@ namespace MYUI
 
 	}
 
-	void CScrollBarUI::PaintDragButton(const RECT &rcItem)
+	void CScrollBarUI::PaintDragButton(const RECT & rcPaint)
 	{
 		RECT rcDest = m_rcDragButton;
-		OffsetRect(&rcDest, rcItem.left, rcItem.top);
+
 		if(m_dwStyle & ScrollBarStyle::BarVertical)
 		{
 			OffsetRect(&rcDest, 0 , GetDragBarOffset());
@@ -490,7 +481,7 @@ namespace MYUI
 		return;
 	}
 
-	void CScrollBarUI::PaintIntersect(const RECT &rcItem)
+	void CScrollBarUI::PaintIntersect(const RECT & rcPaint)
 	{
 		RECT rcDest = m_rcBarIntersect;
 		SIZE siOffset;
@@ -504,7 +495,7 @@ namespace MYUI
 	{
 		if(dwState != m_dwState)
 		{
-			TRACE(_T("CScrollBarUI::SetState : 0x%x"), dwState);
+			MUITRACE(_T("CScrollBarUI::SetState : 0x%x"), dwState);
 			__super::SetState(dwState);
 			this->Invalidate();
 		}
@@ -554,6 +545,9 @@ namespace MYUI
 	{
 		int nMaxOffset = 0;
 		int nOffset = 0;
+
+		if (0 == m_nMaxShift) return 0;
+
 		if(m_dwStyle & ScrollBarStyle::BarVertical)
 		{
 			nMaxOffset = (m_rcTrackButton.bottom - m_rcTrackButton.top) -
@@ -565,11 +559,8 @@ namespace MYUI
 				(m_rcDragButton.right - m_rcDragButton.left);
 		}
 
-		if(m_nMaxShift)
-		{
-			nOffset = nMaxOffset * m_nNowShift / m_nMaxShift;
-		}
-		
+		nOffset = nMaxOffset * m_nNowShift / m_nMaxShift;
+
 		return nOffset;
 	}
 
@@ -733,7 +724,7 @@ namespace MYUI
 		return m_strDragBtnDisabledImage;
 	}
 
-	LRESULT CScrollBarUI::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+	LRESULT CScrollBarUI::WndProc(UINT message, WPARAM wParam, LPARAM lParam)
 	{
 		POINT pt;
 		bool bRet = false;
@@ -829,7 +820,7 @@ namespace MYUI
 		default:
 			break;
 		}
-		return __super::WndProc(hWnd, message, wParam, lParam);
+		return __super::WndProc(message, wParam, lParam);
 	}
 
 

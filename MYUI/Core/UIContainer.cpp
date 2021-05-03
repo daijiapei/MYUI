@@ -19,7 +19,7 @@ namespace MYUI
 		if(m_pHorizontalScrollBar) delete m_pHorizontalScrollBar;
 	}
 
-	void CContainerUI::SetShareInfo(TSHAREINFO * pShareInfo)
+	void CContainerUI::SetShareInfo(MUISHAREINFO * pShareInfo)
 	{
 		__super::SetShareInfo(pShareInfo);
 
@@ -39,7 +39,7 @@ namespace MYUI
 		if(0 == _tcsicmp(strItem, _T("vScroll"))) 
 		{
 #ifdef _DEBUG
-			ASSERT(CheckBoer(strValue));
+			MUIASSERT(CheckBoer(strValue));
 #endif
 			if(TRUE == CheckTrue(strValue))
 			{
@@ -49,7 +49,7 @@ namespace MYUI
 		else if(0 == _tcsicmp(strItem, _T("hScroll"))) 
 		{
 #ifdef _DEBUG
-			ASSERT(CheckBoer(strValue));
+			MUIASSERT(CheckBoer(strValue));
 #endif
 			if(TRUE == CheckTrue(strValue))
 			{
@@ -59,14 +59,14 @@ namespace MYUI
 		else if(0 == _tcsicmp(strItem, _T("vScrollActive"))) 
 		{
 #ifdef _DEBUG
-			ASSERT(CheckBoer(strValue));
+			MUIASSERT(CheckBoer(strValue));
 #endif
 			SetVerticalScrollBarActive(CheckTrue(strValue));
 		}
 		else if(0 == _tcsicmp(strItem, _T("hScrollActive"))) 
 		{
 #ifdef _DEBUG
-			ASSERT(CheckBoer(strValue));
+			MUIASSERT(CheckBoer(strValue));
 #endif
 			SetHorizontalScrollBarActive(CheckTrue(strValue));
 		}
@@ -76,42 +76,53 @@ namespace MYUI
 		}
 	}
 
-	CControlUI * CContainerUI::FindControlByPoint(POINT &pt)
-	{
-		POINT ptThis = pt;//保存起来
-		RECT rcChildItem;
 
-		if(NULL == __super::FindControlByPoint(pt)) return NULL;
+	LPVOID CContainerUI::GetInterface(LPCTSTR strName)
+	{
+		if (0 == _tcsicmp(strName, _T("CContainerUI")))
+		{
+			return static_cast<CContainerUI*>(this);
+		}
+		
+		return __super::GetInterface(strName);
+	}
+
+	CControlUI * CContainerUI::FindControlByPoint(POINT &Point)
+	{
+		RECT rcChildItem;
+		POINT ptThis = Point;//保存起来
+		if(NULL == __super::FindControlByPoint(Point)) return NULL;
 		//要检查一下坐标是否落在子控件或者滚动条上
 
-		//先判断是否落在滚动条，是的话，返回自己
+		//先判断是否落在滚动条，
 		if(m_pVerticalScrollBar)
 		{
 			//GetItemClient能够排除交汇区
 			rcChildItem = m_pVerticalScrollBar->GetItemClient();
-			pt.x -= rcChildItem.left;
-			pt.y -= rcChildItem.top;
+			Point.x -= rcChildItem.left;
+			Point.y -= rcChildItem.top;
 			if(m_pVerticalScrollBar->IsShowing()
-				&& m_pVerticalScrollBar->FindControlByPoint(pt))
+				&& m_pVerticalScrollBar->FindControlByPoint(Point))
 			{
 				return m_pVerticalScrollBar;
 			}
-			pt = ptThis;
+			Point = ptThis;//还原
 		}
 
 		if(m_pHorizontalScrollBar)
 		{
 			//GetItemClient能够排除交汇区
 			rcChildItem = m_pHorizontalScrollBar->GetItemClient();
-			pt.x -= rcChildItem.left;
-			pt.y -= rcChildItem.top;
+			Point.x -= rcChildItem.left;
+			Point.y -= rcChildItem.top;
 			if(m_pHorizontalScrollBar->IsShowing()
-				&& m_pHorizontalScrollBar->FindControlByPoint(pt))
+				&& m_pHorizontalScrollBar->FindControlByPoint(Point))
 			{
 				return m_pHorizontalScrollBar;
 			}
-			pt = ptThis;
+			Point = ptThis;//还原
 		}
+
 		return this;
 	}
 
@@ -251,7 +262,7 @@ namespace MYUI
 		{
 			//两个滚动条同时出现，设置他们的交汇点
 			//这个操作一定是成功的，失败请调试
-			ASSERT(IntersectRect(&rcBarIntersect, &rcVScollBar, &rcHScollBar));
+			MUIASSERT(IntersectRect(&rcBarIntersect, &rcVScollBar, &rcHScollBar));
 		}
 		else
 		{
@@ -278,20 +289,19 @@ end:
 		m_rcContent = m_rcClient;
 		m_rcContent.right = m_rcContent.left + MAX(m_szContent.cx, m_rcClient.right - m_rcClient.left);
 		m_rcContent.bottom = m_rcContent.top + MAX(m_szContent.cy, m_rcClient.bottom - m_rcClient.top);
-		//绘制和提取是，再计算偏移
-		//OffsetRect(&m_rcContent, -m_szScrollOffset.cx, -m_szScrollOffset.cy);
+
+		OffsetRect(&m_rcContent, -m_szScrollOffset.cx, -m_szScrollOffset.cy);
 		return true;
 	}
 
-	bool CContainerUI::OnPaint(RECT rcItem, RECT rcPaint, RECT rcUpdate)
+	bool CContainerUI::OnPaint(const RECT& rcUpdate)
 	{
 		//这个rcItem跟m_rcItem的值有点不同，
 		//m_rcItem是相对于父控件的位置
 		//rcItem是相对整个窗口的位置，是一个绝对位置
+		RECT rcScrollUpdate, rcScrollItem;
 
-		RECT rcScrollPaint, rcScrollClient;
-
-		if(false == __super::OnPaint(rcItem ,rcPaint, rcUpdate))
+		if(false == __super::OnPaint(rcUpdate))
 		{
 			return false;
 		}
@@ -299,28 +309,66 @@ end:
 		if(m_pVerticalScrollBar && m_pVerticalScrollBar->IsShowing())
 		{
 			//计算出绘制区域，开始绘制
-			rcScrollClient = m_pVerticalScrollBar->GetItem();
-			OffsetRect(&rcScrollClient,rcItem.left, rcItem.top);
-			if(TRUE == IntersectRect(&rcScrollPaint, &rcScrollClient, &rcPaint))
+			rcScrollItem = m_pVerticalScrollBar->GetItem();
+			if(TRUE == IntersectRect(&rcScrollUpdate, &rcScrollItem, &rcUpdate))
 			{
 				//拥有相交区域才能绘制
-				m_pVerticalScrollBar->OnPaint(rcScrollClient ,rcScrollPaint, rcUpdate);
+				OffsetRect(&rcScrollUpdate, -rcScrollItem.left, -rcScrollItem.top);
+				m_pShareInfo->pRenderEngine->OffsetDrawPoint(rcScrollItem.left, rcScrollItem.top);
+				m_pVerticalScrollBar->OnPaint(rcScrollUpdate);
+				m_pShareInfo->pRenderEngine->OffsetDrawPoint(-rcScrollItem.left, -rcScrollItem.top);
 			}
 		}
 
 		if(m_pHorizontalScrollBar && m_pHorizontalScrollBar->IsShowing())
 		{
 			//计算出绘制区域，开始绘制
-			rcScrollClient = m_pHorizontalScrollBar->GetItem();
-			OffsetRect(&rcScrollClient,rcItem.left, rcItem.top);
-			if(TRUE == IntersectRect(&rcScrollPaint, &rcScrollClient, &rcPaint))
+			rcScrollItem = m_pHorizontalScrollBar->GetItem();
+			if(TRUE == IntersectRect(&rcScrollUpdate, &rcScrollItem, &rcUpdate))
 			{
 				//拥有相交区域才能绘制
-				m_pHorizontalScrollBar->OnPaint(rcScrollClient ,rcScrollPaint, rcUpdate);
+				OffsetRect(&rcScrollUpdate, -rcScrollItem.left, -rcScrollItem.top);
+				m_pShareInfo->pRenderEngine->OffsetDrawPoint(rcScrollItem.left, rcScrollItem.top);
+				m_pHorizontalScrollBar->OnPaint(rcScrollUpdate);
+				m_pShareInfo->pRenderEngine->OffsetDrawPoint(-rcScrollItem.left, -rcScrollItem.top);
 			}
 		}
-
+		
 		return true;
+	}
+
+	void CContainerUI::PaintText(const RECT& rcUpdate)
+	{
+		//这个控件不需要绘制文字
+
+		//提取客户区的有效显示区域
+		RECT rcThisUpdate;
+		SIZE szRound = { 0 };
+		if (FALSE == IntersectRect(&rcThisUpdate, &m_rcClient, &rcUpdate))
+		{
+			return;
+		}
+
+		HCLIP hClientOldClip = NULL;
+		if (FALSE == IsSameRect(m_rcClient, m_rcRawItem))
+		{
+			//存在滚动条，提供给子控件的区域需要再减去滚动条
+			hClientOldClip = m_pShareInfo->pRenderEngine->EnterClip(m_rcClient, szRound);
+		}
+
+		PaintContent(rcUpdate);
+
+		if (hClientOldClip)
+		{
+			m_pShareInfo->pRenderEngine->LeaveClip(hClientOldClip);
+		}
+
+		return;
+	}
+
+	void CContainerUI::PaintContent(const RECT& rcUpdate)
+	{
+		return;
 	}
 
 	bool CContainerUI::SetHorizontalScrollBarActive(bool bActive)
@@ -391,18 +439,23 @@ end:
 		return m_pHorizontalScrollBar;
 	}
 
-	void CContainerUI::OnScrollBarMove(LPCVOID pSender, int nShift)
+	void CContainerUI::OnScrollBarMove(CScrollBarUI* pSender, int nShift)
 	{
-		if(pSender == m_pVerticalScrollBar && m_pVerticalScrollBar)
+		if (NULL == pSender)
 		{
-			m_szScrollOffset.cy = nShift;
-			this->Invalidate();
+			return;
 		}
 
-		if(pSender == m_pHorizontalScrollBar && m_pHorizontalScrollBar)
+		if(pSender == m_pVerticalScrollBar)
+		{
+			m_szScrollOffset.cy = nShift;
+			this->Renewal();
+		}
+
+		if(pSender == m_pHorizontalScrollBar)
 		{
 			m_szScrollOffset.cx = nShift;
-			this->Invalidate();
+			this->Renewal();
 		}
 	}
 
@@ -411,12 +464,7 @@ end:
 		return m_szScrollOffset;
 	}
 
-	void CContainerUI::PaintText(const RECT& rcItem, const RECT& rcPaint)
-	{
-		return ;
-	}
-
-	LRESULT CContainerUI::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+	LRESULT CContainerUI::WndProc(UINT message, WPARAM wParam, LPARAM lParam)
 	{
 		POINT pt;
 		bool bRet = false;
@@ -426,23 +474,11 @@ end:
         {
             
         }break;
-		case WM_GETSCROLL:
-			{
-				if(GSL_VERTICAL == wParam)
-				{
-					return (LRESULT)GetVerticalScrollBar();
-				}
-				if(GSL_HORIZONTAIL == wParam)
-				{
-					return (LRESULT)GetHorizontalScrollBar();
-				}
-				return NULL;
-			}break;
 		case WM_MOUSEWHEEL:
 			{
-				if(m_bEnabled && m_pVerticalScrollBar)
+				if(m_pVerticalScrollBar)
 				{
-					return m_pVerticalScrollBar->CallWndProc(hWnd, message, wParam, lParam);
+					return m_pVerticalScrollBar->CallWndProc(message, wParam, lParam);
 				}
 			}break;
 		case WM_MOUSEMOVE:
@@ -451,6 +487,6 @@ end:
 		default:
 			break;
 		}
-		return __super::WndProc(hWnd, message, wParam, lParam);
+		return __super::WndProc(message, wParam, lParam);
 	}
 }

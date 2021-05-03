@@ -27,7 +27,7 @@ namespace MYUI
         virtual void RemoveAll();
         virtual CControlUI * Find(int nIndex);
         virtual int Find(CControlUI * pControl);
-        virtual int GetCount() const;
+        virtual int GetCount();
 
     public:
         
@@ -41,12 +41,11 @@ namespace MYUI
 
         virtual LPVOID GetInterface(LPCTSTR strName);
 
-        virtual void OnNotify(TNOTIFYUI &notify);
-        virtual LRESULT OnEvent(TEVENT &event);
+        virtual void OnNotify(MUINOTIFY& notify);
+        virtual LRESULT OnEvent(MUIEVENT &event);
         virtual CControlUI * CreateControl(const char* strClass);
 
-        LRESULT DoModal();
-        CBaseLayoutUI * GetMenuUI() const;
+        CBaseLayoutUI * GetMenuUI();
     protected:
         INotify * m_pNotify;
     };
@@ -77,10 +76,10 @@ namespace MYUI
         void SetLineMode(bool b);
         bool IsLineMode();
     protected:
-        virtual LRESULT WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
-        virtual void PaintBkColor(const RECT& rcItem, const RECT& rcPaint);
-        virtual void PaintStatusImage(const RECT& rcItem, const RECT& rcPaint);
-        virtual void PaintText(const RECT& rcItem, const RECT& rcPaint);
+        virtual LRESULT WndProc(UINT message, WPARAM wParam, LPARAM lParam) override;
+        virtual void PaintBkColor(const RECT& rcUpdate);
+        virtual void PaintStatusImage(const RECT& rcUpdate);
+        virtual void PaintText(const RECT& rcUpdate);
         virtual SIZE GetValidSize();//取得真正有效的尺寸
     public:
         //绘制属性
